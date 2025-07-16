@@ -33,7 +33,8 @@
                 "${workspaceFolder}/lib/DaisySP/DaisySP-LGPL/Source/**"
             ],
             "name": "Win32",
-            "windowsSdkVersion": "10.0.17763.0"
+            "windowsSdkVersion": "10.0.17763.0",
+            "configurationProvider": "ms-vscode.cmake-tools"
         },
         {
             "cStandard": "c11",
