@@ -47,7 +47,7 @@
         "init",
         "reset init",
       ],
-      "preLaunchTask": "build_all_debug",
+      "preLaunchTask": "clean_build_debug",
       "preRestartCommands": [
         "load",
         "enable breakpoint",
