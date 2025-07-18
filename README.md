@@ -17,35 +17,6 @@ within the MIDI classes. See code for example usage.
 
 ## Compiling and Installing
 
-### Installing the Bootloader
-
-_NOTE: you must have physical access to the Daisy Seed itself in order to flash the bootloader onto the Seed_
-
-The firmware depends on the official v6.2 version of the [Daisy Bootloader](https://electro-smith.github.io/libDaisy/md_doc_2md_2__a7___getting-_started-_daisy-_bootloader.html),
-You must install the bootloader onto the seed FIRST before doing anything else.
-
-**This only needs to be done once per seed**
-
-To install the Daisy bootloader you must first put the Seed into ST System Bootloader mode:
-
-1. Connect the Seed to your computer with a USB cable using its built-in USB Micro-B connector
-2. Hold down the BOOT button and press the RESET button once
-3. Open a terminal and navigate (`cd`) to the root directory of this repository (the one containing the `Makefile`)
-4. Program the bootloader into internal flash by invoking `make program-boot` from a terminal
-
-Alternatively you can use the [Daisy Web Programmer](https://electro-smith.github.io/Programmer/) to install the bootloader.
-
-1. First, download the [bootloader binary](https://raw.githubusercontent.com/electro-smith/libDaisy/master/core/dsy_bootloader_v6_2-extdfu-2000ms.bin)
-2. Connect the Seed to your computer via its built-in USB Micro-B connector
-3. Hold down the BOOT button and press the RESET button once
-4. Open the [Daisy Web Programmer](https://electro-smith.github.io/Programmer/) web app in Chrome
-5. Pair with the Seed as per the instructions on the Web Programmer (should show up as "DFU in FS Mode")
-6. Use the "Browse..." button to select the bootloader binary you downloaded
-7. Program it onto the Seed using the "Program" button.
-
-**IMPORTANT**: DO NOT use the "Flash Bootloader Image" button in the Daisy Web Programmer to program the bootloader.
-That feature of the web programmer uses an older out-of-date version of the Daisy Bootloader that will not work correctly.
-
 ## Compiling the Firmware
 
 First you must build the libraries. For convenience there is a target in the `Makefile` for this, so you
