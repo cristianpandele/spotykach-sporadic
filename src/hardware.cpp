@@ -47,6 +47,8 @@ void Hardware::Init(float sr, size_t blocksize)
 
     seed.Init(true);
 
+    boot_btn_.Init(seed::D2, 0, Switch::TYPE_MOMENTARY, Switch::POLARITY_INVERTED, GPIO::Pull::NOPULL);
+
     // --- LEDs ---
 
     infrasonic::Ws2812::Config led_cfg;
@@ -212,6 +214,7 @@ void Hardware::ProcessAnalogControls()
 
 void Hardware::ProcessDigitalControls()
 {
+    boot_btn_.Debounce();
     shiftreg_.Update();
 }
 
@@ -245,4 +248,9 @@ bool Hardware::GetGateInputAState()
 bool Hardware::GetGateInputBState()
 {
     return !gate_in_b_.Read();
+}
+
+uint32_t Hardware::GetBootButtonHeldTime() const
+{
+    return boot_btn_.TimeHeldMs();
 }

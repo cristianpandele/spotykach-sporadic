@@ -124,6 +124,8 @@ class Hardware
         return GetAnalogControlValue((AnalogControlId)pot_id);
     }
 
+    uint32_t GetBootButtonHeldTime() const;
+
     bool GetClockInputState();
     bool GetGateInputAState();
     bool GetGateInputBState();
@@ -176,6 +178,8 @@ class Hardware
     daisy::GPIO gate_in_b_;
     daisy::GPIO gate_out_a_;
     daisy::GPIO gate_out_b_;
+
+    daisy::Switch boot_btn_;
 
     daisy::AnalogControl controls_[kNumAnalogControls];
     daisy::AnalogControl cvinputs_[kNumCVInputs];
