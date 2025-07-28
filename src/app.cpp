@@ -77,6 +77,26 @@ using namespace spotykach_hwtest;
 
 static AppImpl impl;
 
+#define REBOOT_TO_BOOTLOADER_CMD "reboot"
+#define USB_BUFFER_SIZE 256
+
+char usbBuff[USB_BUFFER_SIZE];
+uint8_t usbBuffIx = 0;
+
+
+static void UsbCallback(uint8_t* buf, uint32_t* len)
+{
+    if (*len > USB_BUFFER_SIZE - usbBuffIx)
+    {
+        Log::PrintLine("USB Callback: Buffer overflow, dropping %d bytes and resetting buffer", *len);
+        usbBuffIx = 0;
+        return;
+    }
+    memcpy(usbBuff + usbBuffIx, buf, *len);
+    usbBuffIx += *len;
+}
+
+
 static void AudioCallback(AudioHandle::InputBuffer  in,
                           AudioHandle::OutputBuffer out,
                           size_t                    size)
@@ -89,9 +109,8 @@ void AppImpl::Init()
     hw.Init(48000, 16);
     hw.StartAdcs();
 
-    // this is a no-op in non-debug builds
-    Log::StartLog(true);
 #if DEBUG
+    Log::StartLog(false);
     log_timer.Init();
 #endif
 
@@ -114,6 +133,8 @@ void AppImpl::Init()
     // Uncomment this if you want to test the SD card -
     // this takes about 10s and is blocking
     // testSDCard();
+
+    hw.seed.usb_handle.SetReceiveCallback(UsbCallback, UsbHandle::FS_EXTERNAL);
 
     auto& audio = hw.seed.audio_handle;
     audio.SetSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
@@ -229,6 +250,28 @@ void AppImpl::logDebugInfo()
     // Log::PrintLine(FLT_FMT(5), FLT_VAR(5, val));
     // uint16_t touch = hw.GetMpr121TouchStates();
     // Log::PrintLine("0x%x", touch);
+    if (usbBuffIx > 0)
+    {
+        // If the buffer contents end with a newline (LF, CR, or CRLF), print the buffer
+        if ((usbBuff[usbBuffIx - 1] == '\n') || (usbBuff[usbBuffIx - 1] == '\r') || (!strncmp((const char*)usbBuff + usbBuffIx - 2, "\r\n", 2)))
+        {
+            Log::PrintLine("USB Callback: %d bytes received", usbBuffIx);
+            for(size_t i = 0; i < usbBuffIx; i++)
+            {
+                Log::Print("%c ", usbBuff[i]);
+            }
+            Log::PrintLine("");
+            Log::PrintLine("===");
+
+            if (strncmp((const char*)usbBuff, REBOOT_TO_BOOTLOADER_CMD, sizeof(REBOOT_TO_BOOTLOADER_CMD)-1) == 0)
+            {
+                Log::PrintLine("Rebooting to bootloader...");
+                System::Delay(500); // Give time for the log to flush
+                System::ResetToBootloader(System::BootloaderMode::DAISY_INFINITE_TIMEOUT);
+            }
+            usbBuffIx = 0; // Reset after processing
+        }
+    }
 }
 #endif
 

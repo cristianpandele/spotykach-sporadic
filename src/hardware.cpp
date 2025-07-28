@@ -183,7 +183,6 @@ void Hardware::Init(float sr, size_t blocksize)
     midi_uart.Init(midi_cfg);
     midi_uart.StartReceive();
 
-
     // -- DAC --
     // Setup for polling write currently-
     // Recommend using DMA for production
