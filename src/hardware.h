@@ -85,13 +85,13 @@ class Hardware
     {
         CV_SIZE_POS_A,
         CV_V_OCT_A,
-        CV_ENV_IN_A,
+        CV_SOS_IN_A,
 
         CV_SPOTYKACH,
 
         CV_SIZE_POS_B,
         CV_V_OCT_B,
-        CV_ENV_IN_B,
+        CV_SOS_IN_B,
 
         CV_LAST
     };

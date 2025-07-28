@@ -168,12 +168,12 @@ void Hardware::Init(float sr, size_t blocksize)
     // The V/Oct inputs will also require at least 2-point (1V and 3V) calibration
     // for linear fit to track V/Oct reasonably well
     cvinputs_[CV_SIZE_POS_A].InitBipolarCv(seed.adc.GetPtr(2), kProcessRate);
-    cvinputs_[CV_V_OCT_A].InitBipolarCv(seed.adc.GetPtr(3), kProcessRate);
-    cvinputs_[CV_ENV_IN_A].InitBipolarCv(seed.adc.GetPtr(4), kProcessRate);
+    cvinputs_[CV_SOS_IN_A].InitBipolarCv(seed.adc.GetPtr(3), kProcessRate);
+    cvinputs_[CV_V_OCT_A].InitBipolarCv(seed.adc.GetPtr(4), kProcessRate);
     cvinputs_[CV_SPOTYKACH].InitBipolarCv(seed.adc.GetPtr(5), kProcessRate);
     cvinputs_[CV_SIZE_POS_B].InitBipolarCv(seed.adc.GetPtr(6), kProcessRate);
-    cvinputs_[CV_V_OCT_B].InitBipolarCv(seed.adc.GetPtr(7), kProcessRate);
-    cvinputs_[CV_ENV_IN_B].InitBipolarCv(seed.adc.GetPtr(8), kProcessRate);
+    cvinputs_[CV_SOS_IN_B].InitBipolarCv(seed.adc.GetPtr(7), kProcessRate);
+    cvinputs_[CV_V_OCT_B].InitBipolarCv(seed.adc.GetPtr(8), kProcessRate);
 
     // --- UART MIDI ---
     MidiUartHandler::Config midi_cfg;

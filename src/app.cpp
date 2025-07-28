@@ -13,7 +13,6 @@ using spotykach::Hardware;
 
 namespace spotykach_hwtest
 {
-
 // SD Card test stuff
 #define TEST_FILE_NAME "test_data"
 SdmmcHandler   sd;
@@ -461,13 +460,13 @@ void AppImpl::drawTestState()
 
     // For these we just add together the 3 CVs on each side and
     // render to drift LEDs
-    float cv_a = hw.GetControlVoltageValue(Hardware::CV_ENV_IN_A);
+    float cv_a = hw.GetControlVoltageValue(Hardware::CV_SOS_IN_A);
     cv_a += hw.GetControlVoltageValue(Hardware::CV_V_OCT_A);
     cv_a += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_A);
     hw.leds.Set(
         Hardware::LED_DRIFT_A, cv_a >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv_a));
 
-    float cv_b = hw.GetControlVoltageValue(Hardware::CV_ENV_IN_B);
+    float cv_b = hw.GetControlVoltageValue(Hardware::CV_SOS_IN_B);
     cv_b += hw.GetControlVoltageValue(Hardware::CV_V_OCT_B);
     cv_b += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_B);
     hw.leds.Set(
