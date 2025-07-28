@@ -1,6 +1,7 @@
 {
   "configurations": [
     {
+      "name": "Launch Debug (no rebuild)",
       "configFiles": [
         "interface/stlink.cfg",
         "target/stm32h7x.cfg"
@@ -12,7 +13,6 @@
       ],
       "executable": "${workspaceRoot}/build/spotykach_hwtest.elf",
       "interface": "swd",
-      "name": "Launch Debug (no rebuild)",
       "openOCDLaunchCommands": [
         "init",
         "reset init",
@@ -31,6 +31,7 @@
       "type": "cortex-debug",
     },
     {
+      "name": "Build and Debug (internal flash only)",
       "configFiles": [
         "interface/stlink.cfg",
         "target/stm32h7x.cfg"
@@ -42,7 +43,6 @@
       ],
       "executable": "${workspaceRoot}/build/spotykach_hwtest.elf",
       "interface": "swd",
-      "name": "Build and Debug (internal flash only)",
       "openOCDLaunchCommands": [
         "init",
         "reset init",
@@ -55,6 +55,35 @@
       ],
       "request": "launch",
       "runToEntryPoint": "main",
+      "servertype": "openocd",
+      "showDevDebugOutput": "both",
+      "svdFile": "${workspaceRoot}/.vscode/STM32H750x.svd",
+      "type": "cortex-debug"
+    },
+    {
+      "name": "Attach",
+      "configFiles": [
+        "interface/stlink.cfg",
+        "target/stm32h7x.cfg"
+      ],
+      "cwd": "${workspaceRoot}",
+      "debuggerArgs": [
+        "-d",
+        "${workspaceRoot}"
+      ],
+      "executable": "${workspaceRoot}/build/spotykach_hwtest.elf",
+      "interface": "swd",
+      "openOCDLaunchCommands": [
+        "init",
+        "reset init",
+        "gdb_breakpoint_override hard"
+      ],
+      "preRestartCommands": [
+        "enable breakpoint",
+        "monitor reset"
+      ],
+      "request": "attach",
+      // "runToEntryPoint": "main",
       "servertype": "openocd",
       "showDevDebugOutput": "both",
       "svdFile": "${workspaceRoot}/.vscode/STM32H750x.svd",
