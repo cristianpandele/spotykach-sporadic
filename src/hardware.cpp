@@ -254,3 +254,8 @@ uint32_t Hardware::GetBootButtonHeldTime() const
 {
     return boot_btn_.TimeHeldMs();
 }
+
+uint32_t Hardware::GetBootButtonReleased() const
+{
+    return boot_btn_.FallingEdge();
+}

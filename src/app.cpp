@@ -127,10 +127,18 @@ void AppImpl::Loop()
 
     while(true)
     {
-        // If boot button held for 3s, reset into bootloader mode for update
+        // If boot button held for 3s, reset into bootloader mode for update.
+        // Otherwise, restart the app.
         if (hw.GetBootButtonHeldTime() >= 3000)
         {
             System::ResetToBootloader(System::BootloaderMode::DAISY_INFINITE_TIMEOUT);
+        }
+        else
+        {
+            if(hw.GetBootButtonReleased())
+            {
+                System::ResetToBootloader(System::BootloaderMode::DAISY_SKIP_TIMEOUT);
+            }
         }
 
         hw.ProcessDigitalControls();

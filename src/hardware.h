@@ -125,6 +125,7 @@ class Hardware
     }
 
     uint32_t GetBootButtonHeldTime() const;
+    uint32_t GetBootButtonReleased() const;
 
     bool GetClockInputState();
     bool GetGateInputAState();
