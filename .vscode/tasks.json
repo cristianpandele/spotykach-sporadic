@@ -2,45 +2,88 @@
   "tasks": [
     // These tasks are used to build the project
     {
-      "command": "make clean; make -j8",
+      "label": "clean_libs_app_&_build_libs_app",
       "group": {
         "isDefault": true,
         "kind": "build"
       },
+      "dependsOrder": "sequence",
       "dependsOn": [
-        "build_libs"
+        "clean_libs",
+        "build_libs",
+        "clean_app",
+        "build_app"
       ],
-      "label": "clean_build",
       "options": {
         "cwd": "${workspaceFolder}"
       },
       "problemMatcher": [
+
         "$gcc"
       ],
-      "type": "shell"
+      "type": "shell",
+      "hide": false
     },
     {
-      "command": "make clean; DEBUG=1 make -j8",
+      "label": "clean_libs_app_&_build_libs_app_debug",
+      "dependsOrder": "sequence",
       "dependsOn": [
-        "build_libs"
+        "clean_libs",
+        "build_libs_debug",
+        "clean_app",
+        "build_app_debug"
       ],
-      "label": "clean_build_debug",
       "options": {
         "cwd": "${workspaceFolder}"
       },
       "problemMatcher": [
         "$gcc"
       ],
-      "type": "shell"
+      "type": "shell",
+      "hide": false
     },
+    {
+      "label": "clean_app_&_build_app",
+      "group": {
+        "isDefault": true,
+        "kind": "build"
+      },
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "clean_app",
+        "build_app"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell",
+      "hide": false
+    },
+    {
+      "label": "clean_app_&_build_app_debug",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "clean_app",
+        "build_app_debug"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell",
+      "hide": false
+    },
+
     //////////////////////////////////////////////////////
-    // Combined tasks for clean building and programming
+    // Cleanup tasks
     {
-      "command": "make program",
-      "dependsOn": [
-        "clean_build"
-      ],
-      "label": "clean_build_and_program",
+      "label": "clean_libs",
+      "command": "make clean-libs",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -50,67 +93,160 @@
       "type": "shell"
     },
     {
-      "command": "make program-dfu",
-      "dependsOn": [
-        "clean_build"
-      ],
-      "label": "clean_build_and_program_dfu",
+      "label": "clean_app",
+      "command": "make clean",
       "options": {
         "cwd": "${workspaceFolder}"
       },
       "problemMatcher": [
         "$gcc"
       ],
-      "type": "shell"
+      "type": "shell",
+      "hide": false
     },
+
+    //////////////////////////////////////////////////////
+    // Combined tasks for cleaning, building and programming
+    {
+      "label": "clean_app_&_build_app_&_program",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "clean_app_&_build",
+        "program"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell",
+      "hide": true
+    },
+    {
+      "label": "clean_app_&_build_app_debug_&_program",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "clean_app_&_build_app_debug",
+        "program"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell",
+      "hide": true
+    },
+    {
+      "label": "clean_app_&_build_app_&_program_dfu",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "clean_app_&_build_app",
+        "program_dfu"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell",
+      "hide": false
+    },
+    {
+      "label": "clean_app_&_build_app_debug_&_program_dfu",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "clean_app_&_build_app_debug",
+        "program_dfu"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell",
+      "hide": false
+    },
+
     //////////////////////////////////////////////////////
     // These tasks are used to program the board using an already built binary
     {
+      "label": "program_dfu",
       "command": "make program-dfu",
-      "label": "program-dfu",
       "problemMatcher": [],
-      "type": "shell"
+      "type": "shell",
+      "hide": false
     },
     {
-      "command": "make program",
       "label": "program",
+      "command": "make program",
       "problemMatcher": [],
-      "type": "shell"
+      "type": "shell",
+      "hide": true
     },
+
     //////////////////////////////////////////////////////
-    // This task builds the libraries libDaisy and daisySP
+    // These tasks build the libraries libDaisy and daisySP - no cleanup
     {
       "label": "build_libs",
-      "dependsOn": [
-        "build_libdaisy",
-        "build_daisysp"
-      ],
+      "command": "make -j8 libs",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": [
         "$gcc"
       ],
+      "type": "shell",
+      "hide": true
     },
     {
-      "command": "make -j8",
+      "label": "build_libs_debug",
+      "command": "DEBUG=1 make -j8 libs",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell",
+      "hide": true
+    },
 
-      "label": "build_libdaisy",
+    //////////////////////////////////////////////////////
+    // These tasks build the app - no cleanup
+    {
+      "label": "build_app",
+      "command": "make -j8",
+      "dependsOn": [
+        "build_libs"
+      ],
       "options": {
-        "cwd": "${workspaceFolder}/lib/libDaisy/"
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": [
         "$gcc"
       ],
-      "type": "shell"
+      "type": "shell",
+      "hide": false
     },
     {
-      "command": "make -j8",
-      "label": "build_daisysp",
+      "label": "build_app_debug",
+      "command": "DEBUG=1 make -j8",
+      "dependsOn": [
+        "build_libs_debug"
+      ],
       "options": {
-        "cwd": "${workspaceFolder}/lib/daisySP/"
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": [
         "$gcc"
       ],
-      "type": "shell"
+      "type": "shell",
+      "hide": false
     },
     //////////////////////////////////////////////////////
   ],
