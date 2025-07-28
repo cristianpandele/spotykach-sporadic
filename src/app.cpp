@@ -20,8 +20,8 @@ FatFSInterface fsi;
 FIL            SDFile;
 
 // Simulate a one-minute 16bit stereo audio file at 48khz (about 11.5 MB)
-constexpr size_t             kAudioDataBytes = 11796480;
-static DSY_SDRAM_BSS uint8_t audiodata[11796480];
+constexpr size_t             kAudioDataBytes = 60 * 1000 * 48 * 2 * sizeof(int16_t);
+static DSY_SDRAM_BSS uint8_t audiodata[kAudioDataBytes];
 
 class AppImpl
 {
