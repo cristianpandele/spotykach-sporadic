@@ -7,14 +7,14 @@
 
 namespace spotykach
 {
-class Hardware
-{
-  public:
-    // LED indexes in order of chain
-    static constexpr uint16_t kNumLedsPerRing = 32;
+  class Hardware
+  {
+    public:
+      // LED indexes in order of chain
+      static constexpr uint16_t kNumLedsPerRing = 32;
 
-    enum LedId : uint16_t
-    {
+      enum LedId : uint16_t
+      {
         LED_SPOTY_PAD,
         LED_ALT_A,
         LED_PLAY_A,
@@ -50,13 +50,13 @@ class Hardware
         LED_ALT_B,
 
         LED_LAST
-    };
+      };
 
-    static constexpr size_t kNumLeds = LED_LAST;
+      static constexpr size_t kNumLeds = LED_LAST;
 
-    // Pots/sliders - these are on muxes
-    enum AnalogControlId : uint16_t
-    {
+      // Pots/sliders - these are on muxes
+      enum AnalogControlId : uint16_t
+      {
         CTRL_SOS_A,
         CTRL_MODFREQ_A,
         CTRL_MOD_AMT_A,
@@ -76,13 +76,13 @@ class Hardware
         CTRL_SPOTYKACH,
 
         CTRL_LAST
-    };
+      };
 
-    static constexpr size_t kNumAnalogControls = CTRL_LAST;
+      static constexpr size_t kNumAnalogControls = CTRL_LAST;
 
-    // These are in order as they are labeled on the schematic
-    enum CvInputId : uint16_t
-    {
+      // These are in order as they are labeled on the schematic
+      enum CvInputId : uint16_t
+      {
         CV_SIZE_POS_A,
         CV_V_OCT_A,
         CV_SOS_IN_A,
@@ -94,99 +94,98 @@ class Hardware
         CV_SOS_IN_B,
 
         CV_LAST
-    };
+      };
 
-    static constexpr size_t kNumCVInputs = CV_LAST;
+      static constexpr size_t kNumCVInputs = CV_LAST;
 
-    Hardware()  = default;
-    ~Hardware() = default;
+      Hardware ()                          = default;
+      ~Hardware ()                         = default;
 
-    void Init(float sr, size_t blocksize);
-    void StartAdcs();
+      void Init (float sr, size_t blocksize);
+      void StartAdcs ();
 
-    // Process the analog controls - do this in audiocallback,
-    // it is not blocking
-    void ProcessAnalogControls();
+      // Process the analog controls - do this in audiocallback,
+      // it is not blocking
+      void ProcessAnalogControls ();
 
-    // Process the shift register, read from Mpr121, etc
-    // This is a blocking call, don't do it in audiocallback
-    void ProcessDigitalControls();
+      // Process the shift register, read from Mpr121, etc
+      // This is a blocking call, don't do it in audiocallback
+      void ProcessDigitalControls ();
 
-    // Unipolar 0.0 - 1.0
-    float GetAnalogControlValue(AnalogControlId id);
+      // Unipolar 0.0 - 1.0
+      float GetAnalogControlValue (AnalogControlId id);
 
-    // Bipolar -1.0 - 1.0 (nominally around 0.0)
-    float GetControlVoltageValue(CvInputId id);
+      // Bipolar -1.0 - 1.0 (nominally around 0.0)
+      float GetControlVoltageValue (CvInputId id);
 
-    // Adapter for direct use as PotMonitor Backend
-    inline float GetPotValue(uint16_t pot_id)
-    {
-        return GetAnalogControlValue((AnalogControlId)pot_id);
-    }
+      // Adapter for direct use as PotMonitor Backend
+      inline float GetPotValue (uint16_t pot_id) { return GetAnalogControlValue((AnalogControlId)pot_id); }
 
-    uint32_t GetBootButtonHeldTime() const;
-    uint32_t GetBootButtonReleased() const;
+      uint32_t GetBootButtonHeldTime () const;
+      uint32_t GetBootButtonReleased () const;
 
-    bool GetClockInputState();
-    bool GetGateInputAState();
-    bool GetGateInputBState();
+      bool GetClockInputState ();
+      bool GetGateInputAState ();
+      bool GetGateInputBState ();
 
-    inline void SetGateOutA(bool state) { gate_out_a_.Write(state); }
-    inline void SetGateOutB(bool state) { gate_out_b_.Write(state); }
+      inline void SetGateOutA (bool state) { gate_out_a_.Write(state); }
 
-    // TODO: I'd recommend abstracting this with more readable enums
-    //       and abstracted bit testing for switches - not just reading raw bytes
-    //       from the shift register (this is just for quick hardware testing code)
-    inline uint8_t GetShiftRegState(uint8_t idx) const
-    {
-        if(idx > 1)
-            return 0;
+      inline void SetGateOutB (bool state) { gate_out_b_.Write(state); }
+
+      // TODO: I'd recommend abstracting this with more readable enums
+      //       and abstracted bit testing for switches - not just reading raw bytes
+      //       from the shift register (this is just for quick hardware testing code)
+      inline uint8_t GetShiftRegState (uint8_t idx) const
+      {
+        if (idx > 1)
+        {
+          return 0;
+        }
         return shiftreg_.Read(idx);
-    }
+      }
 
-    // TODO: same as above, this is just quick code for testing - recommend
-    //       implementing enumerated pad logic internal to hw class
-    inline uint16_t GetMpr121TouchStates() { return mpr121_.Touched(); }
+      // TODO: same as above, this is just quick code for testing - recommend
+      //       implementing enumerated pad logic internal to hw class
+      inline uint16_t GetMpr121TouchStates () { return mpr121_.Touched(); }
 
-    inline void WriteCVOutA(float val)
-    {
-        seed.dac.WriteValue(daisy::DacHandle::Channel::ONE,
-                            __USAT(val * (1 << 12), 12));
-    }
-    inline void WriteCVOutB(float val)
-    {
-        seed.dac.WriteValue(daisy::DacHandle::Channel::TWO,
-                            __USAT(val * (1 << 12), 12));
-    }
+      inline void WriteCVOutA (float val)
+      {
+        seed.dac.WriteValue(daisy::DacHandle::Channel::ONE, __USAT(val * (1 << 12), 12));
+      }
 
-    // Left public for easy direct handle access
-    // but all core peripherals are initialized by this class
-    daisy::DaisySeed seed;
+      inline void WriteCVOutB (float val)
+      {
+        seed.dac.WriteValue(daisy::DacHandle::Channel::TWO, __USAT(val * (1 << 12), 12));
+      }
 
-    // Using device class directly, maybe easier
-    // to wrap inside a helper for color/index management etc
-    infrasonic::Ws2812 leds;
+      // Left public for easy direct handle access
+      // but all core peripherals are initialized by this class
+      daisy::DaisySeed seed;
 
-    daisy::MidiUartHandler midi_uart;
+      // Using device class directly, maybe easier
+      // to wrap inside a helper for color/index management etc
+      infrasonic::Ws2812 leds;
 
-  private:
-    infrasonic::ShiftRegister165 shiftreg_;
+      daisy::MidiUartHandler midi_uart;
 
-    daisy::Mpr121I2C mpr121_;
+    private:
+      infrasonic::ShiftRegister165 shiftreg_;
 
-    daisy::GPIO clock_in_;
-    daisy::GPIO gate_in_a_;
-    daisy::GPIO gate_in_b_;
-    daisy::GPIO gate_out_a_;
-    daisy::GPIO gate_out_b_;
+      daisy::Mpr121I2C mpr121_;
 
-    daisy::Switch boot_btn_;
+      daisy::GPIO clock_in_;
+      daisy::GPIO gate_in_a_;
+      daisy::GPIO gate_in_b_;
+      daisy::GPIO gate_out_a_;
+      daisy::GPIO gate_out_b_;
 
-    daisy::AnalogControl controls_[kNumAnalogControls];
-    daisy::AnalogControl cvinputs_[kNumCVInputs];
+      daisy::Switch boot_btn_;
 
-    Hardware(const Hardware& a)            = delete;
-    Hardware& operator=(const Hardware& a) = delete;
-};
+      daisy::AnalogControl controls_[kNumAnalogControls];
+      daisy::AnalogControl cvinputs_[kNumCVInputs];
 
-} // namespace spotykach
+      Hardware (const Hardware &a)           = delete;
+      Hardware &operator=(const Hardware &a) = delete;
+  };
+
+}    // namespace spotykach

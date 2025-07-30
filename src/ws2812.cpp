@@ -22,170 +22,168 @@
 //
 // -----------------------------------------------------------------------------
 #include "ws2812.h"
-#include <sys/dma.h>
-#include <sys/system.h>
-#include <util/hal_map.h>
 #include <algorithm>
 #include <cmath>
 #include <cmsis_gcc.h>
+#include <sys/dma.h>
+#include <sys/system.h>
+#include <util/hal_map.h>
 
 using namespace daisy;
 using namespace infrasonic;
 
 namespace infrasonic
 {
-// 3 colors * 8 values per LED plus 8 leading/trailing zeros
-static constexpr size_t kPwmOutBufSize = Ws2812::kMaxNumLEDs * 3 * 8 + 16;
-static uint16_t DMA_BUFFER_MEM_SECTION pwm_out_buf[kPwmOutBufSize];
+  // 3 colors * 8 values per LED plus 8 leading/trailing zeros
+  static constexpr size_t                kPwmOutBufSize = Ws2812::kMaxNumLEDs * 3 * 8 + 16;
+  static uint16_t DMA_BUFFER_MEM_SECTION pwm_out_buf[kPwmOutBufSize];
 
-static constexpr uint8_t kDitherBits = 2;
-static_assert(kDitherBits <= 4);
+  static constexpr uint8_t kDitherBits = 2;
+  static_assert(kDitherBits <= 4);
 
-uint32_t get_dma_req(Ws2812::Config::TimerPeripheral periph,
-                     Ws2812::Config::TimerChannel    chn)
-{
-    switch(periph)
+  uint32_t get_dma_req (Ws2812::Config::TimerPeripheral periph, Ws2812::Config::TimerChannel chn)
+  {
+    switch (periph)
     {
-        case TimerHandle::Config::Peripheral::TIM_3:
-            switch(chn)
-            {
-                case Ws2812::Config::TimerChannel::CH1:
-                    return DMA_REQUEST_TIM3_CH1;
-                case Ws2812::Config::TimerChannel::CH2:
-                    return DMA_REQUEST_TIM3_CH2;
-                case Ws2812::Config::TimerChannel::CH3:
-                    return DMA_REQUEST_TIM3_CH3;
-                case Ws2812::Config::TimerChannel::CH4:
-                    return DMA_REQUEST_TIM3_CH4;
-            }
+      case TimerHandle::Config::Peripheral::TIM_3:
+        switch (chn)
+        {
+          case Ws2812::Config::TimerChannel::CH1:
+            return DMA_REQUEST_TIM3_CH1;
+          case Ws2812::Config::TimerChannel::CH2:
+            return DMA_REQUEST_TIM3_CH2;
+          case Ws2812::Config::TimerChannel::CH3:
+            return DMA_REQUEST_TIM3_CH3;
+          case Ws2812::Config::TimerChannel::CH4:
+            return DMA_REQUEST_TIM3_CH4;
+        }
+        break;
+      case TimerHandle::Config::Peripheral::TIM_4:
+        switch (chn)
+        {
+          case Ws2812::Config::TimerChannel::CH1:
+            return DMA_REQUEST_TIM4_CH1;
+          case Ws2812::Config::TimerChannel::CH2:
+            return DMA_REQUEST_TIM4_CH2;
+          case Ws2812::Config::TimerChannel::CH3:
+            return DMA_REQUEST_TIM4_CH3;
+          case Ws2812::Config::TimerChannel::CH4:
+            // Invalid
             break;
-        case TimerHandle::Config::Peripheral::TIM_4:
-            switch(chn)
-            {
-                case Ws2812::Config::TimerChannel::CH1:
-                    return DMA_REQUEST_TIM4_CH1;
-                case Ws2812::Config::TimerChannel::CH2:
-                    return DMA_REQUEST_TIM4_CH2;
-                case Ws2812::Config::TimerChannel::CH3:
-                    return DMA_REQUEST_TIM4_CH3;
-                case Ws2812::Config::TimerChannel::CH4:
-                    // Invalid
-                    break;
-            }
-            break;
-        default: break;
+        }
+        break;
+      default:
+        break;
     }
     return 0;
-}
+  }
 
-/** Private impl class for single static shared instance */
-class Ws2812::Impl
-{
-  public:
-    Impl()  = default;
-    ~Impl() = default;
+  /** Private impl class for single static shared instance */
+  class Ws2812::Impl
+  {
+    public:
+      Impl ()  = default;
+      ~Impl () = default;
 
-    void Init(const Ws2812::Config& config);
+      void Init (const Ws2812::Config &config);
 
-    void Set(uint8_t idx, uint8_t r, uint8_t g, uint8_t b, uint8_t brightness)
-    {
-        if(idx >= num_leds_)
-            return;
+      void Set (uint8_t idx, uint8_t r, uint8_t g, uint8_t b, uint8_t brightness)
+      {
+        if (idx >= num_leds_)
+          return;
         led_data_[idx][0] = r;
         led_data_[idx][1] = g;
         led_data_[idx][2] = b;
         brightness_[idx]  = brightness * blimit_;
-    }
+      }
 
-    void Show();
+      void Show ();
 
-    void SetGamma(float gamma)
-    {
-        for(size_t i = 0; i < 256; i++)
+      void SetGamma (float gamma)
+      {
+        for (size_t i = 0; i < 256; i++)
         {
-            gammaCorrectionLUT_8Bit_[i] = static_cast<uint8_t>(
-                roundf(255.0f * powf(i / 255.0f, gamma)));
+          gammaCorrectionLUT_8Bit_[i] = static_cast<uint8_t>(roundf(255.0f * powf(i / 255.0f, gamma)));
         }
-    }
+      }
 
-    void SetBrightnessLimit(float limit)
-    {
-        blimit_ = std::clamp(limit, 0.1f, 1.0f);
-    }
+      void SetBrightnessLimit (float limit) { blimit_ = std::clamp(limit, 0.1f, 1.0f); }
 
-    static void OnTransferEnd(Ws2812::Impl* impl) { impl->dma_ready_ = true; }
+      static void OnTransferEnd (Ws2812::Impl *impl) { impl->dma_ready_ = true; }
 
-    TimerHandle       timer;
-    DMA_HandleTypeDef timhdma;
+      TimerHandle       timer;
+      DMA_HandleTypeDef timhdma;
 
-  private:
-    uint32_t           timch_;
-    volatile uint32_t* timccr_;
+    private:
+      uint32_t           timch_;
+      volatile uint32_t *timccr_;
 
-    uint8_t  num_leds_;
-    uint16_t zero_period_;
-    uint16_t one_period_;
+      uint8_t  num_leds_;
+      uint16_t zero_period_;
+      uint16_t one_period_;
 
-    uint16_t* dma_buffer_;
-    size_t    dma_buffer_size_;
+      uint16_t *dma_buffer_;
+      size_t    dma_buffer_size_;
 
-    uint8_t led_data_[Ws2812::kMaxNumLEDs][3]; /**< RGB data */
-    uint8_t brightness_[Ws2812::kMaxNumLEDs];
+      uint8_t led_data_[Ws2812::kMaxNumLEDs][3]; /**< RGB data */
+      uint8_t brightness_[Ws2812::kMaxNumLEDs];
 
-    bool dma_ready_;
+      bool dma_ready_;
 
-    uint8_t gammaCorrectionLUT_8Bit_[256];
-    int16_t dither_;
+      uint8_t gammaCorrectionLUT_8Bit_[256];
+      int16_t dither_;
 
-    float blimit_;
+      float blimit_;
 
-    void initPwmDma(const Ws2812::Config& config)
-    {
-        TIM_HandleTypeDef* htim = timer.GetHALHandle();
+      void initPwmDma (const Ws2812::Config &config)
+      {
+        TIM_HandleTypeDef *htim = timer.GetHALHandle();
 
         // This really only works with TIM3 and TIM4
         // TODO: need error handling of some kind
         uint32_t gpio_af;
-        switch(config.tim_periph)
+        switch (config.tim_periph)
         {
-            case Ws2812::Config::TimerPeripheral::TIM_3:
-                gpio_af = GPIO_AF2_TIM3;
-                break;
-            case Ws2812::Config::TimerPeripheral::TIM_4:
-                gpio_af = GPIO_AF2_TIM4;
-                break;
-            default: return;
+          case Ws2812::Config::TimerPeripheral::TIM_3:
+            gpio_af = GPIO_AF2_TIM3;
+            break;
+          case Ws2812::Config::TimerPeripheral::TIM_4:
+            gpio_af = GPIO_AF2_TIM4;
+            break;
+          default:
+            return;
         }
 
         uint16_t dma_id;
-        switch(config.tim_channel)
+        switch (config.tim_channel)
         {
-            case Ws2812::Config::TimerChannel::CH1:
-                timch_  = TIM_CHANNEL_1;
-                timccr_ = &htim->Instance->CCR1;
-                dma_id  = TIM_DMA_ID_CC1;
-                break;
-            case Ws2812::Config::TimerChannel::CH2:
-                timch_  = TIM_CHANNEL_2;
-                timccr_ = &htim->Instance->CCR2;
-                dma_id  = TIM_DMA_ID_CC2;
-                break;
-            case Ws2812::Config::TimerChannel::CH3:
-                timch_  = TIM_CHANNEL_3;
-                timccr_ = &htim->Instance->CCR3;
-                dma_id  = TIM_DMA_ID_CC3;
-                break;
-            case Ws2812::Config::TimerChannel::CH4:
-                timch_  = TIM_CHANNEL_4;
-                timccr_ = &htim->Instance->CCR4;
-                dma_id  = TIM_DMA_ID_CC4;
-                break;
-            default: return;
+          case Ws2812::Config::TimerChannel::CH1:
+            timch_  = TIM_CHANNEL_1;
+            timccr_ = &htim->Instance->CCR1;
+            dma_id  = TIM_DMA_ID_CC1;
+            break;
+          case Ws2812::Config::TimerChannel::CH2:
+            timch_  = TIM_CHANNEL_2;
+            timccr_ = &htim->Instance->CCR2;
+            dma_id  = TIM_DMA_ID_CC2;
+            break;
+          case Ws2812::Config::TimerChannel::CH3:
+            timch_  = TIM_CHANNEL_3;
+            timccr_ = &htim->Instance->CCR3;
+            dma_id  = TIM_DMA_ID_CC3;
+            break;
+          case Ws2812::Config::TimerChannel::CH4:
+            timch_  = TIM_CHANNEL_4;
+            timccr_ = &htim->Instance->CCR4;
+            dma_id  = TIM_DMA_ID_CC4;
+            break;
+          default:
+            return;
         }
 
         uint32_t dmareq = get_dma_req(config.tim_periph, config.tim_channel);
-        if(dmareq == 0)
-            return;
+        if (dmareq == 0)
+          return;
 
         /** Configure Channel */
         TIM_OC_InitTypeDef sConfigOC = {0};
@@ -210,7 +208,7 @@ class Ws2812::Impl
         HAL_TIMEx_ConfigBreakDeadTime(htim, &sBreakDeadTimeConfig);
 
         Pin           tpin = config.tim_pin;
-        GPIO_TypeDef* port = GetHALPort(tpin);
+        GPIO_TypeDef *port = GetHALPort(tpin);
         uint16_t      pin  = GetHALPin(tpin);
 
         /** Start Clock for port (if necessary) */
@@ -230,7 +228,7 @@ class Ws2812::Impl
         HAL_NVIC_EnableIRQ(DMA2_Stream5_IRQn);
 
         // NOTE: Lots of hardcoded stuff here
-        timhdma.Instance = DMA2_Stream5;
+        timhdma.Instance                 = DMA2_Stream5;
 
         timhdma.Init.Request             = dmareq;
         timhdma.Init.Direction           = DMA_MEMORY_TO_PERIPH;
@@ -243,175 +241,169 @@ class Ws2812::Impl
         timhdma.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
         timhdma.Init.MemBurst            = DMA_MBURST_SINGLE;
         timhdma.Init.PeriphBurst         = DMA_PBURST_SINGLE;
-        if(HAL_DMA_Init(&timhdma) != HAL_OK)
+        if (HAL_DMA_Init(&timhdma) != HAL_OK)
         {
-            // something bad
-            asm("bkpt 255");
+          // something bad
+          asm("bkpt 255");
         }
         __HAL_LINKDMA(htim, hdma[dma_id], timhdma);
-    }
+      }
 
-    void populateBits(uint8_t color_val, uint16_t* buff)
-    {
+      void populateBits (uint8_t color_val, uint16_t *buff)
+      {
         uint8_t mask = 0x80;
-        for(int i = 0; i < 8; i++)
+        for (int i = 0; i < 8; i++)
         {
-            buff[i] = (color_val & mask) > 0 ? one_period_ : zero_period_;
-            mask    = mask >> 1;
+          buff[i] = (color_val & mask) > 0 ? one_period_ : zero_period_;
+          mask    = mask >> 1;
         }
-    }
+      }
 
-    bool isDMAReady() { return dma_ready_; }
+      bool isDMAReady () { return dma_ready_; }
 
-    void fillDMABuffer()
-    {
-        for(uint32_t i = 0; i < num_leds_; i++)
+      void fillDMABuffer ()
+      {
+        for (uint32_t i = 0; i < num_leds_; i++)
         {
-            /** Grab G, R, B for filling bytes */
-            // TODO: Alt color order?
-            uint8_t shift = 8 - kDitherBits;
+          /** Grab G, R, B for filling bytes */
+          // TODO: Alt color order?
+          uint8_t shift = 8 - kDitherBits;
 
-            // Apply 8-bit brightness and shift according to dither depth
-            // (i.e. if 2 bits of dither, we shift so multiplication is a 10-bit number)
-            uint16_t g = (led_data_[i][1] * brightness_[i]) >> shift;
-            uint16_t r = (led_data_[i][0] * brightness_[i]) >> shift;
-            uint16_t b = (led_data_[i][2] * brightness_[i]) >> shift;
+          // Apply 8-bit brightness and shift according to dither depth
+          // (i.e. if 2 bits of dither, we shift so multiplication is a 10-bit number)
+          uint16_t g = (led_data_[i][1] * brightness_[i]) >> shift;
+          uint16_t r = (led_data_[i][0] * brightness_[i]) >> shift;
+          uint16_t b = (led_data_[i][2] * brightness_[i]) >> shift;
 
-            // apply dither and truncate
-            g = g > 0 ? __USAT((g + dither_) >> kDitherBits, 8) : 0;
-            r = r > 0 ? __USAT((r + dither_) >> kDitherBits, 8) : 0;
-            b = b > 0 ? __USAT((b + dither_) >> kDitherBits, 8) : 0;
+          // apply dither and truncate
+          g = g > 0 ? __USAT((g + dither_) >> kDitherBits, 8) : 0;
+          r = r > 0 ? __USAT((r + dither_) >> kDitherBits, 8) : 0;
+          b = b > 0 ? __USAT((b + dither_) >> kDitherBits, 8) : 0;
 
-            // gamma correction
-            g = gammaCorrectionLUT_8Bit_[g];
-            r = gammaCorrectionLUT_8Bit_[r];
-            b = gammaCorrectionLUT_8Bit_[b];
+          // gamma correction
+          g                 = gammaCorrectionLUT_8Bit_[g];
+          r                 = gammaCorrectionLUT_8Bit_[r];
+          b                 = gammaCorrectionLUT_8Bit_[b];
 
-            size_t data_index = i * 3 * 8 + 8;
-            populateBits(g, &dma_buffer_[data_index]);
-            populateBits(r, &dma_buffer_[data_index + 8]);
-            populateBits(b, &dma_buffer_[data_index + 16]);
+          size_t data_index = i * 3 * 8 + 8;
+          populateBits(g, &dma_buffer_[data_index]);
+          populateBits(r, &dma_buffer_[data_index + 8]);
+          populateBits(b, &dma_buffer_[data_index + 16]);
         }
 
         dither_ = (dither_ + 1) & ((1 << kDitherBits) - 1);
         // dither_ = rand() & ((1 << kDitherBits) - 1);
-    }
-};
+      }
+  };
 
-static Ws2812::Impl impl;
+  static Ws2812::Impl impl;
 
-} // namespace infrasonic
+}    // namespace infrasonic
 
-void Ws2812::Impl::Init(const Ws2812::Config& config)
+void Ws2812::Impl::Init (const Ws2812::Config &config)
 {
-    SetGamma(2.6f);
+  SetGamma(2.6f);
 
-    TimerHandle::Config tim_cfg;
-    tim_cfg.periph = config.tim_periph;
-    tim_cfg.dir    = TimerHandle::Config::CounterDir::UP;
-    timer.Init(tim_cfg);
+  TimerHandle::Config tim_cfg;
+  tim_cfg.periph = config.tim_periph;
+  tim_cfg.dir    = TimerHandle::Config::CounterDir::UP;
+  timer.Init(tim_cfg);
 
-    uint32_t prescaler         = 4;
-    uint32_t tickspeed         = (System::GetPClk1Freq() * 2) / prescaler;
-    uint32_t target_pulse_freq = 1e9 / config.symbol_length_ns;
-    uint16_t period            = (tickspeed / target_pulse_freq) - 1;
+  uint32_t prescaler         = 4;
+  uint32_t tickspeed         = (System::GetPClk1Freq() * 2) / prescaler;
+  uint32_t target_pulse_freq = 1e9 / config.symbol_length_ns;
+  uint16_t period            = (tickspeed / target_pulse_freq) - 1;
 
-    timer.SetPrescaler(prescaler - 1);
-    timer.SetPeriod(period);
+  timer.SetPrescaler(prescaler - 1);
+  timer.SetPeriod(period);
 
-    initPwmDma(config);
+  initPwmDma(config);
 
-    timer.Start();
+  timer.Start();
 
-    num_leds_ = std::min(config.num_leds, Ws2812::kMaxNumLEDs);
-    zero_period_
-        = period * ((float)config.zero_high_ns / config.symbol_length_ns);
-    one_period_
-        = period * ((float)config.one_high_ns / config.symbol_length_ns);
+  num_leds_        = std::min(config.num_leds, Ws2812::kMaxNumLEDs);
+  zero_period_     = period * ((float)config.zero_high_ns / config.symbol_length_ns);
+  one_period_      = period * ((float)config.one_high_ns / config.symbol_length_ns);
 
-    dma_buffer_      = pwm_out_buf;
-    dma_buffer_size_ = num_leds_ * 3 * 8 + 16;
-    dither_          = 0;
+  dma_buffer_      = pwm_out_buf;
+  dma_buffer_size_ = num_leds_ * 3 * 8 + 16;
+  dither_          = 0;
 
-    blimit_ = 1.0f;
+  blimit_          = 1.0f;
 
-    for(size_t i = 0; i < dma_buffer_size_; i++)
-    {
-        dma_buffer_[i] = 0;
-    }
+  for (size_t i = 0; i < dma_buffer_size_; i++)
+  {
+    dma_buffer_[i] = 0;
+  }
 
-    // Start DMA request ONCE using this HAL method -
-    // from here on just generate the request directly
-    // using HAL_DMA_Start_IT
-    dma_ready_ = false;
-    HAL_TIM_PWM_Start_DMA(
-        timer.GetHALHandle(), timch_, (uint32_t*)dma_buffer_, dma_buffer_size_);
+  // Start DMA request ONCE using this HAL method -
+  // from here on just generate the request directly
+  // using HAL_DMA_Start_IT
+  dma_ready_ = false;
+  HAL_TIM_PWM_Start_DMA(timer.GetHALHandle(), timch_, (uint32_t *)dma_buffer_, dma_buffer_size_);
 }
 
-void Ws2812::Impl::Show()
+void Ws2812::Impl::Show ()
 {
-    if(!isDMAReady())
-        return;
-    dma_ready_ = false;
-    fillDMABuffer();
+  if (!isDMAReady())
+    return;
+  dma_ready_ = false;
+  fillDMABuffer();
 
-    // Just start the new DMA request - don't use
-    // HAL_TIM_PWM_Start_DMA, it's overzealous and leads
-    // to occasional LED blips due to repeated CCR enable
-    HAL_DMA_Start_IT(&timhdma,
-                     (uint32_t)dma_buffer_,
-                     (uint32_t) & (*timccr_),
-                     dma_buffer_size_);
+  // Just start the new DMA request - don't use
+  // HAL_TIM_PWM_Start_DMA, it's overzealous and leads
+  // to occasional LED blips due to repeated CCR enable
+  HAL_DMA_Start_IT(&timhdma, (uint32_t)dma_buffer_, (uint32_t)&(*timccr_), dma_buffer_size_);
 }
 
 // -------
 
-void Ws2812::Init(const Config& config)
+void Ws2812::Init (const Config &config)
 {
-    pimpl_ = &impl;
-    pimpl_->Init(config);
-    num_leds_ = config.num_leds;
-    Clear();
+  pimpl_ = &impl;
+  pimpl_->Init(config);
+  num_leds_ = config.num_leds;
+  Clear();
 }
 
-void Ws2812::SetGamma(float gamma)
+void Ws2812::SetGamma (float gamma)
 {
-    pimpl_->SetGamma(gamma);
+  pimpl_->SetGamma(gamma);
 }
 
-void Ws2812::SetBrightnessLimit(float limit)
+void Ws2812::SetBrightnessLimit (float limit)
 {
-    pimpl_->SetBrightnessLimit(limit);
+  pimpl_->SetBrightnessLimit(limit);
 }
 
-void Ws2812::Set(uint8_t idx, uint8_t r, uint8_t g, uint8_t b, float brightness)
+void Ws2812::Set (uint8_t idx, uint8_t r, uint8_t g, uint8_t b, float brightness)
 {
-    brightness = std::min(std::max(brightness, 0.0f), 1.0f);
-    pimpl_->Set(idx, r, g, b, brightness * 255);
+  brightness = std::min(std::max(brightness, 0.0f), 1.0f);
+  pimpl_->Set(idx, r, g, b, brightness * 255);
 }
 
-void Ws2812::Set(uint8_t idx, uint32_t color, float brightness)
+void Ws2812::Set (uint8_t idx, uint32_t color, float brightness)
 {
-    color = (color & 0x00FFFFFF);
-    Set(idx, color >> 16, color >> 8, color, brightness);
+  color = (color & 0x00FFFFFF);
+  Set(idx, color >> 16, color >> 8, color, brightness);
 }
 
-void Ws2812::Fill(uint32_t color, float brightness)
+void Ws2812::Fill (uint32_t color, float brightness)
 {
-    for(uint8_t i = 0; i < num_leds_; i++)
-    {
-        Set(i, color, brightness);
-    }
+  for (uint8_t i = 0; i < num_leds_; i++)
+  {
+    Set(i, color, brightness);
+  }
 }
 
-void Ws2812::Clear()
+void Ws2812::Clear ()
 {
-    Fill(0);
+  Fill(0);
 }
 
-void Ws2812::Show()
+void Ws2812::Show ()
 {
-    pimpl_->Show();
+  pimpl_->Show();
 }
 
 // ---- C HAL Callbacks ----
@@ -420,14 +412,14 @@ void Ws2812::Show()
 // Should be globally managed along with other timers HAL callbacks and
 // dispatch appropriate user callback based on device configuration.
 
-extern "C" void DMA2_Stream5_IRQHandler(void)
+extern "C" void DMA2_Stream5_IRQHandler (void)
 {
-    HAL_DMA_IRQHandler(&impl.timhdma);
+  HAL_DMA_IRQHandler(&impl.timhdma);
 }
 
-extern "C" void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef* htim)
+extern "C" void HAL_TIM_PWM_PulseFinishedCallback (TIM_HandleTypeDef *htim)
 {
-    Ws2812::Impl::OnTransferEnd(&impl);
+  Ws2812::Impl::OnTransferEnd(&impl);
 }
 
-extern "C" void DMAMUX1_OVR_IRQHandler(void) {}
+extern "C" void DMAMUX1_OVR_IRQHandler (void) { }

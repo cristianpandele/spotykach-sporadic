@@ -103,7 +103,7 @@
     "cSpell.words": [
         "Sysex"
     ],
-    "editor.tabSize": 4,
+    "editor.tabSize": 2,
     "cortex-debug.variableUseNaturalFormat": true,
     "C_Cpp.default.compilerPath": "/usr/local/bin/arm-none-eabi-g++"
 }
