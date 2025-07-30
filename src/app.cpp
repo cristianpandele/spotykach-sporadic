@@ -23,7 +23,7 @@ namespace spotykach_hwtest
 
   // Simulate a one-minute 16bit stereo audio file at 48khz (about 11.5 MB)
   constexpr size_t             kAudioDataBytes = 60 * 1000 * 48 * 2 * sizeof(int16_t);
-  static DSY_SDRAM_BSS uint8_t audiodata[kAudioDataBytes];
+  static DSY_SDRAM_BSS uint8_t audioData[kAudioDataBytes];
 
   // Private class for the application logic
   class AppImpl
@@ -152,7 +152,7 @@ void AppImpl::Init ()
 
 void AppImpl::Loop ()
 {
-  float cvphase = 0.0f;
+  float cvPhase = 0.0f;
 
   while (true)
   {
@@ -210,9 +210,9 @@ void AppImpl::Loop ()
       hw.leds.Show();
 
       // Piggy back on this timer for very rough CV output demo
-      cvphase += 1.0f / 500.0f;
-      cvphase -= floorf(cvphase);
-      float cv = sinf(cvphase * 2.0f * M_PI) * 0.5f + 0.5f;
+      cvPhase += 1.0f / 500.0f;
+      cvPhase -= floorf(cvPhase);
+      float cv = sinf(cvPhase * 2.0f * M_PI) * 0.5f + 0.5f;
       hw.WriteCVOutA(cv);
       hw.WriteCVOutB(cv);
     }
@@ -582,7 +582,7 @@ void AppImpl::testSDCard ()
 
   for (size_t i = 0; i < kAudioDataBytes; i++)
   {
-    audiodata[i] = rand() & 255;
+    audioData[i] = rand() & 255;
   }
 
   // Init SD Card
@@ -612,7 +612,7 @@ void AppImpl::testSDCard ()
     while (offset < kAudioDataBytes)
     {
       len = std::min(kAudioDataBytes - offset, 32768ul);
-      f_write(&SDFile, &audiodata[offset], len, (UINT *)&byteswritten);
+      f_write(&SDFile, &audioData[offset], len, (UINT *)&byteswritten);
       offset += 32768ul;
     }
   }
@@ -637,7 +637,7 @@ void AppImpl::testSDCard ()
     while (offset < kAudioDataBytes)
     {
       FRESULT res;
-      res = f_read(&SDFile, &audiodata[offset], 32768, (UINT *)&bytesread);
+      res = f_read(&SDFile, &audioData[offset], 32768, (UINT *)&bytesread);
       if (res != FR_OK)
       {
         Log::PrintLine("Chunk read failed: %u", res);
