@@ -19,10 +19,13 @@ namespace spotykach_hwtest
   FatFSInterface fsi;
   FIL            SDFile;
 
+  #define PRINT_CPU_LOAD
+
   // Simulate a one-minute 16bit stereo audio file at 48khz (about 11.5 MB)
   constexpr size_t             kAudioDataBytes = 60 * 1000 * 48 * 2 * sizeof(int16_t);
   static DSY_SDRAM_BSS uint8_t audiodata[kAudioDataBytes];
 
+  // Private class for the application logic
   class AppImpl
   {
     public:
@@ -74,6 +77,10 @@ using namespace spotykach_hwtest;
 
 static AppImpl impl;
 
+#if DEBUG
+CpuLoadMeter loadMeter;
+#endif
+
 #define REBOOT_TO_BOOTLOADER_CMD "reboot"
 #define USB_BUFFER_SIZE          256
 
@@ -94,18 +101,19 @@ static void UsbCallback (uint8_t *buf, uint32_t *len)
 
 static void AudioCallback (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
+#if DEBUG
+  loadMeter.OnBlockStart();
+#endif
   impl.ProcessAudio(in, out, size);
+#if DEBUG
+  loadMeter.OnBlockEnd();
+#endif
 }
 
 void AppImpl::Init ()
 {
   hw.Init(48000, 16);
   hw.StartAdcs();
-
-#if DEBUG
-  Log::StartLog(false);
-  log_timer.Init();
-#endif
 
   led_timer.Init();
   midi_timer.Init();
@@ -132,6 +140,13 @@ void AppImpl::Init ()
   auto &audio = hw.seed.audio_handle;
   audio.SetSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
   audio.SetBlockSize(16);
+
+#if DEBUG
+  Log::StartLog(false);
+  log_timer.Init();
+  loadMeter.Init(hw.seed.AudioSampleRate(), hw.seed.AudioBlockSize());
+#endif
+
   audio.Start(AudioCallback);
 }
 
@@ -202,7 +217,7 @@ void AppImpl::Loop ()
       hw.WriteCVOutB(cv);
     }
 #if DEBUG
-    if (log_timer.HasPassedMs(250))
+    if (log_timer.HasPassedMs(500))
     {
       logDebugInfo();
       log_timer.Restart();
@@ -265,6 +280,18 @@ void AppImpl::logDebugInfo ()
       usbBuffIx = 0;    // Reset after processing
     }
   }
+
+#ifdef PRINT_CPU_LOAD
+  // get the current load (smoothed value and peak values)
+  const float avgLoad = loadMeter.GetAvgCpuLoad();
+  const float maxLoad = loadMeter.GetMaxCpuLoad();
+  const float minLoad = loadMeter.GetMinCpuLoad();
+  // print it to the serial connection (as percentages)
+  Log::PrintLine("Processing Load (%%):");
+  Log::PrintLine("Max: " FLT_FMT3, FLT_VAR3(maxLoad * 100.0f));
+  Log::PrintLine("Avg: " FLT_FMT3, FLT_VAR3(avgLoad * 100.0f));
+  Log::PrintLine("Min: " FLT_FMT3, FLT_VAR3(minLoad * 100.0f));
+#endif
 }
 #endif
 
