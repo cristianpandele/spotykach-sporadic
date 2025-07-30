@@ -381,15 +381,15 @@ void AppImpl::drawTestState ()
   // Mode A/B/C switch
   if (sr1.test(2))
   {
-    hw.leds.Set(Hardware::LED_MODE_RIGHT, 0xff0000, 1.0f);
+    hw.leds.Set(Hardware::LED_ROUTING_RIGHT, 0xff0000, 1.0f);
   }
   else if (sr1.test(3))
   {
-    hw.leds.Set(Hardware::LED_MODE_LEFT, 0xff0000, 1.0f);
+    hw.leds.Set(Hardware::LED_ROUTING_LEFT, 0xff0000, 1.0f);
   }
   else
   {
-    hw.leds.Set(Hardware::LED_MODE_CENTER, 0xff0000, 1.0f);
+    hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0xff0000, 1.0f);
   }
 
   // Mod A Type switch

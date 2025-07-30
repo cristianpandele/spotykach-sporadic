@@ -30,10 +30,10 @@ namespace spotykach
         LED_GATE_OUT_A,
         LED_CYCLE_A,
 
-        LED_MODE_CENTER,
-        LED_MODE_LEFT,
+        LED_ROUTING_CENTER,
+        LED_ROUTING_LEFT,
         LED_CLOCK_IN,
-        LED_MODE_RIGHT,
+        LED_ROUTING_RIGHT,
 
         LED_CYCLE_B,
         LED_GATE_OUT_B,
