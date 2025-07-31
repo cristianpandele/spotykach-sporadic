@@ -29,13 +29,29 @@ namespace spotykach_hwtest
   class AppImpl
   {
     public:
+      // Application routing modes
+      enum AppMode
+      {
+        OFF,
+        ROUTING_DUAL_MONO,
+        ROUTING_DUAL_STEREO,
+        ROUTING_GENERATIVE,
+        ROUTING_LAST
+      };
+
       AppImpl ()  = default;
       ~AppImpl () = default;
 
-      void Init ();
-      void Loop ();
+      void init ();
+      void loop ();
 
-      void ProcessAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
+      // Audio processing functions for the Spotykach looper and Sporadic effect
+      void processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
+      void ProcessSpotykachAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size, AppMode mode);
+      void ProcessSporadicAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size, AppMode mode);
+
+      // This is the main audio processing function that will be called from the AudioCallback
+      void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
 
     private:
       Hardware       hw;
@@ -45,6 +61,8 @@ namespace spotykach_hwtest
       UiEventQueue ui_queue;
 
       PotMonitor<Hardware, Hardware::kNumAnalogControls> pot_monitor;
+
+      AppMode currentRoutingMode = AppMode::OFF;
 
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;
@@ -60,22 +78,73 @@ namespace spotykach_hwtest
       void           logDebugInfo ();
 #endif
 
+      void setMode (AppMode mode);
+
       void processUIQueue ();
       void processMidi ();
 
       void drawRainbowRoad ();
-      void drawTestState ();
+
+      void handleControls ();
+      void handleDisplay ();
 
       void testSDCard ();
 
       AppImpl (const AppImpl &a)           = delete;
       AppImpl &operator=(const AppImpl &a) = delete;
   };
+
+  // Private class for Spotykach looper implementation
+  class Spotykach
+  {
+    public:
+      Spotykach ()  = default;
+      ~Spotykach () = default;
+
+      void init ();
+
+      void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
+
+    private:
+      // Reserve two buffers for 15-second Spotykach loopers - 16bit mono audio file at 48khz (about 0.172 MB each)
+      static constexpr size_t       kLooperAudioDataSamples = 15 * 48000 * 1;
+      static DSY_SDRAM_BSS uint16_t looperAudioData[2][kLooperAudioDataSamples];
+
+      // Read and write pointers for the looper buffers
+      uint16_t readIx                         = 0;
+      uint16_t writeIx                        = 0;
+
+      Spotykach (const Spotykach &)           = delete;
+      Spotykach &operator=(const Spotykach &) = delete;
+  };
+
+  // Private class for Sporadic looper implementation
+  class Sporadic
+  {
+    public:
+      Sporadic() = default;
+      ~Sporadic() = default;
+
+      // void init ();
+
+      void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
+
+    private:
+      // Read and write pointers for the looper buffers
+      // uint16_t readIx  = 0;
+      // uint16_t writeIx = 0;
+
+      Sporadic(const Sporadic&)           = delete;
+      Sporadic& operator=(const Sporadic&) = delete;
+  };
 }    // namespace spotykach_hwtest
 
 using namespace spotykach_hwtest;
 
-static AppImpl impl;
+static AppImpl   impl;
+static Spotykach spotykachLooperA;
+static Spotykach spotykachLooperB;
+static Sporadic  sporadic;
 
 #if DEBUG
 CpuLoadMeter loadMeter;
@@ -104,13 +173,13 @@ static void AudioCallback (AudioHandle::InputBuffer in, AudioHandle::OutputBuffe
 #if DEBUG
   loadMeter.OnBlockStart();
 #endif
-  impl.ProcessAudio(in, out, size);
+  impl.processAudio(in, out, size);
 #if DEBUG
   loadMeter.OnBlockEnd();
 #endif
 }
 
-void AppImpl::Init ()
+void AppImpl::init ()
 {
   hw.Init(48000, 16);
   hw.StartAdcs();
@@ -141,6 +210,11 @@ void AppImpl::Init ()
   audio.SetSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
   audio.SetBlockSize(16);
 
+  // Initialize the Spotykach looper
+  spotykachLooperA.init();
+  spotykachLooperB.init();
+  // sporadic.init();
+
 #if DEBUG
   Log::StartLog(false);
   log_timer.Init();
@@ -150,7 +224,17 @@ void AppImpl::Init ()
   audio.Start(AudioCallback);
 }
 
-void AppImpl::Loop ()
+void AppImpl::setMode (AppImpl::AppMode mode)
+{
+  if (mode < AppImpl::ROUTING_DUAL_MONO || mode >= AppImpl::ROUTING_LAST)
+  {
+    Log::PrintLine("Invalid operating mode: %d", mode);
+    return;
+  }
+  currentRoutingMode = mode;
+}
+
+void AppImpl::loop ()
 {
   float cvPhase = 0.0f;
 
@@ -201,12 +285,14 @@ void AppImpl::Loop ()
     if (led_timer.HasPassedMs(2))
     {
       led_timer.Restart();
-      hw.leds.Clear();
 
-      // uncomment this and comment out drawTestState()
-      // for rainbow cycle on all LEDs
+      // Controller part of MVC
+      handleControls();
+
+      // View part of MVC
+      hw.leds.Clear();
       // drawRainbowRoad();
-      drawTestState();
+      handleDisplay();
       hw.leds.Show();
 
       // Piggy back on this timer for very rough CV output demo
@@ -226,12 +312,20 @@ void AppImpl::Loop ()
   }
 }
 
-void AppImpl::ProcessAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
+void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
+{
+  spotykachLooperA.processAudio(in, out, size);
+  spotykachLooperB.processAudio(in, out, size);
+  sporadic.processAudio(in, out, size);
+}
+void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
   hw.ProcessAnalogControls();
 
+#if 0
   std::copy(IN_L, IN_L + size, OUT_L);
   std::copy(IN_R, IN_R + size, OUT_R);
+
 
   // Add test oscillator from MIDI input
   float s;
@@ -246,6 +340,11 @@ void AppImpl::ProcessAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     OUT_L[i] += s;
     OUT_R[i] += s;
   }
+#else
+  // Process the audio through the Spotykach/Sporadic logic
+  // Routing is dependent on currentRoutingMode as indicated by LED_ROUTING
+  processAudioLogic(in, out, size);
+#endif
 }
 
 #if DEBUG
@@ -418,24 +517,27 @@ void AppImpl::handleDisplay()
   }
 
   // --- Switches (Shift registers) ---
-
-  // construct into 8-bit set from inverted bitmask state
-  // (all inputs are inverted due to pullups)
   std::bitset<8> sr1 = ~hw.GetShiftRegState(0);
   std::bitset<8> sr2 = ~hw.GetShiftRegState(1);
 
   // Mode A/B/C switch
-  if (sr1.test(2))
+  if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
   {
     hw.leds.Set(Hardware::LED_ROUTING_RIGHT, 0xff0000, 1.0f);
   }
-  else if (sr1.test(3))
+  else if (currentRoutingMode == AppMode::ROUTING_DUAL_MONO)
   {
     hw.leds.Set(Hardware::LED_ROUTING_LEFT, 0xff0000, 1.0f);
   }
-  else
+  else if (currentRoutingMode == AppMode::ROUTING_DUAL_STEREO)
   {
     hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0xff0000, 1.0f);
+  }
+  else
+  {
+    hw.leds.Set(Hardware::LED_ROUTING_LEFT, 0x000000, 1.0f);
+    hw.leds.Set(Hardware::LED_ROUTING_RIGHT, 0x000000, 1.0f);
+    hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0x000000, 1.0f);
   }
 
   // Mod A Type switch
@@ -711,12 +813,41 @@ void AppImpl::testSDCard ()
 
 // ---------------------
 
+void Spotykach::init ()
+{
+  // Initialize the Spotykach looper pointers
+  readIx  = 0;
+  writeIx = 0;
+}
+
+void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
+{
+  // Process the Spotykach looper audio
+  // This is a placeholder for the actual Spotykach looper logic
+  // For now, just copy the input to the output
+  std::copy(IN_L, IN_L + size, OUT_L);
+  std::copy(IN_R, IN_R + size, OUT_R);
+}
+
+// ---------------------
+
+void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
+{
+  // Process the Sporadic effect audio
+  // This is a placeholder for the actual Sporadic effect logic
+  // For now, just copy the input to the output
+  std::copy(IN_L, IN_L + size, OUT_L);
+  std::copy(IN_R, IN_R + size, OUT_R);
+}
+
+// ---------------------
+
 void Application::Init ()
 {
-  impl.Init();
+  impl.init();
 }
 
 void Application::Loop ()
 {
-  impl.Loop();
+  impl.loop();
 }
