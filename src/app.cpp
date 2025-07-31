@@ -22,7 +22,7 @@ namespace spotykach_hwtest
   #define PRINT_CPU_LOAD
 
   // Simulate a one-minute 16bit stereo audio file at 48khz (about 11.5 MB)
-  constexpr size_t             kAudioDataBytes = 60 * 1000 * 48 * 2 * sizeof(int16_t);
+  constexpr size_t             kAudioDataBytes = 60 * 48000 * 2 * sizeof(int16_t);
   static DSY_SDRAM_BSS uint8_t audioData[kAudioDataBytes];
 
   // Private class for the application logic
@@ -355,7 +355,53 @@ void AppImpl::drawRainbowRoad ()
   }
 }
 
-void AppImpl::drawTestState ()
+void AppImpl::handleControls()
+{
+  // --- Switches (Shift registers) ---
+
+  // construct into 8-bit set from inverted bitmask state
+  // (all inputs are inverted due to pullups)
+  std::bitset<8> sr1 = ~hw.GetShiftRegState(0);
+  // std::bitset<8> sr2 = ~hw.GetShiftRegState(1);
+
+  uint8_t modeChanged = 0;
+
+  // Mode A/B/C switch
+  if (sr1.test(2))
+  {
+    if (currentRoutingMode != AppMode::ROUTING_GENERATIVE)
+    {
+      // Log::PrintLine("Current Mode: %d", currentRoutingMode);
+      setMode(AppMode::ROUTING_GENERATIVE);
+      modeChanged = 1;
+    }
+  }
+  else if (sr1.test(3))
+  {
+    if (currentRoutingMode != AppMode::ROUTING_DUAL_MONO)
+    {
+      // Log::PrintLine("Current Mode: %d", currentRoutingMode);
+      setMode(AppMode::ROUTING_DUAL_MONO);
+      modeChanged = 1;
+    }
+  }
+  else
+  {
+    if (currentRoutingMode != AppMode::ROUTING_DUAL_STEREO)
+    {
+      // Log::PrintLine("Current Mode: %d", currentRoutingMode);
+      setMode(AppMode::ROUTING_DUAL_STEREO);
+      modeChanged = 1;
+    }
+  }
+
+  if (modeChanged)
+  {
+    // Log::PrintLine("Operating mode changed to: %d", currentRoutingMode);
+  }
+}
+
+void AppImpl::handleDisplay()
 {
   // --- Gate I/O ---
   if (hw.GetClockInputState())
