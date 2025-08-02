@@ -2,6 +2,10 @@
 
 namespace spotykach_hwtest
 {
+  // Definitions
+  #define PRINT_CPU_LOAD
+
+  // Application class
   class Application
   {
     public:

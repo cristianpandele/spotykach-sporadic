@@ -1,12 +1,14 @@
 #include "app.h"
 #include "color.h"
 #include "common.h"
+#include "daisysp.h"
 #include "hardware.h"
 #include <bitset>
 #include <cstring>
 #include <daisy_seed.h>
 
 using namespace daisy;
+using namespace daisysp;
 using namespace infrasonic;
 using infrasonic::Log;
 using spotykach::Hardware;
@@ -19,11 +21,22 @@ namespace spotykach_hwtest
   FatFSInterface fsi;
   FIL            SDFile;
 
-  #define PRINT_CPU_LOAD
+  #define SAMPLE_RATE          48000
+  #define BLOCK_SIZE           16
 
   // Simulate a one-minute 16bit stereo audio file at 48khz (about 11.5 MB)
-  constexpr size_t             kAudioDataBytes = 60 * 48000 * 2 * sizeof(int16_t);
+  constexpr size_t             kAudioDataBytes = 60 * SAMPLE_RATE * 2 * sizeof(int16_t);
   static DSY_SDRAM_BSS uint8_t audioData[kAudioDataBytes];
+
+  // Reserve two buffers for 15-second Spotykach loopers for each side - 16bit mono audio file at 48khz (about 0.172 MB each)
+  #define NUMBER_SPOTYKACH_SIDES 1
+  #define NUMBER_CHANNELS_STEREO 2
+  #define NUMBER_CHANNELS_MONO   1
+
+  static constexpr size_t kLooperAudioDataSamples = 15.0f * SAMPLE_RATE * NUMBER_CHANNELS_MONO;
+
+  // static DSY_SDRAM_BSS float   looperAudioData[NUMBER_SPOTYKACH_SIDES][NUMBER_CHANNELS_STEREO[kLooperAudioDataSamples];
+  static DelayLine<float, kLooperAudioDataSamples> DSY_SDRAM_BSS looperAudioData[NUMBER_SPOTYKACH_SIDES][NUMBER_CHANNELS_STEREO];
 
   // Private class for the application logic
   class AppImpl
@@ -106,10 +119,6 @@ namespace spotykach_hwtest
       void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
 
     private:
-      // Reserve two buffers for 15-second Spotykach loopers - 16bit mono audio file at 48khz (about 0.172 MB each)
-      static constexpr size_t       kLooperAudioDataSamples = 15 * 48000 * 1;
-      static DSY_SDRAM_BSS uint16_t looperAudioData[2][kLooperAudioDataSamples];
-
       // Read and write pointers for the looper buffers
       uint16_t readIx                         = 0;
       uint16_t writeIx                        = 0;
@@ -181,7 +190,7 @@ static void AudioCallback (AudioHandle::InputBuffer in, AudioHandle::OutputBuffe
 
 void AppImpl::init ()
 {
-  hw.Init(48000, 16);
+  hw.Init(SAMPLE_RATE, BLOCK_SIZE);
   hw.StartAdcs();
 
   led_timer.Init();
@@ -195,7 +204,7 @@ void AppImpl::init ()
 
   for (size_t i = 0; i < 8; i++)
   {
-    osc[i].Init(48000);
+    osc[i].Init(SAMPLE_RATE);
     osc[i].SetWaveform(daisysp::Oscillator::WAVE_POLYBLEP_TRI);
     osc[i].SetAmp(0.25f);
   }
@@ -208,7 +217,7 @@ void AppImpl::init ()
 
   auto &audio = hw.seed.audio_handle;
   audio.SetSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
-  audio.SetBlockSize(16);
+  audio.SetBlockSize(BLOCK_SIZE);
 
   // Initialize the Spotykach looper
   spotykachLooperA.init();
@@ -315,9 +324,10 @@ void AppImpl::loop ()
 void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
   spotykachLooperA.processAudio(in, out, size);
-  spotykachLooperB.processAudio(in, out, size);
+  // spotykachLooperB.processAudio(in, out, size);
   sporadic.processAudio(in, out, size);
 }
+
 void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
   hw.ProcessAnalogControls();
@@ -818,15 +828,26 @@ void Spotykach::init ()
   // Initialize the Spotykach looper pointers
   readIx  = 0;
   writeIx = 0;
+
+  looperAudioData[0][0].Init();
+  looperAudioData[0][1].Init();
+
+  looperAudioData[0][0].SetDelay((float) SAMPLE_RATE);
+  looperAudioData[0][1].SetDelay((float) SAMPLE_RATE);
 }
 
 void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
   // Process the Spotykach looper audio
-  // This is a placeholder for the actual Spotykach looper logic
-  // For now, just copy the input to the output
-  std::copy(IN_L, IN_L + size, OUT_L);
-  std::copy(IN_R, IN_R + size, OUT_R);
+  // Always record on side A for now, irrespective of the current mode
+  for (size_t i = 0; i < size; ++i)
+  {
+    OUT_L[i] = looperAudioData[0][0].Read();
+    OUT_R[i] = looperAudioData[0][1].Read();
+    //
+    looperAudioData[0][0].Write(IN_L[i]);
+    looperAudioData[0][1].Write(IN_R[i]);
+  }
 }
 
 // ---------------------
@@ -836,8 +857,8 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
   // Process the Sporadic effect audio
   // This is a placeholder for the actual Sporadic effect logic
   // For now, just copy the input to the output
-  std::copy(IN_L, IN_L + size, OUT_L);
-  std::copy(IN_R, IN_R + size, OUT_R);
+  // std::copy(IN_L, IN_L + size, OUT_L);
+  // std::copy(IN_R, IN_R + size, OUT_R);
 }
 
 // ---------------------
