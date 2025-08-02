@@ -5,6 +5,14 @@ namespace spotykach_hwtest
   // Definitions
   #define PRINT_CPU_LOAD
 
+  // Constants
+  constexpr size_t kSampleRate           = 48000;
+  constexpr size_t kBlockSize            = 16;
+
+  constexpr size_t kNumberSpotykachSides = 1;
+  constexpr size_t kNumberChannelsStereo = 2;
+  constexpr size_t kNumberChannelsMono   = 1;
+
   // Application class
   class Application
   {
