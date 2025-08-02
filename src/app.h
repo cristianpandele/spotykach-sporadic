@@ -67,6 +67,7 @@ namespace spotykach_hwtest
 
       PotMonitor<Hardware, Hardware::kNumAnalogControls> pot_monitor;
 
+      bool    routingModeChanged = false;
       AppMode currentRoutingMode = AppMode::OFF;
 
       uint16_t last_pot_moved_a;
@@ -83,7 +84,7 @@ namespace spotykach_hwtest
       void           logDebugInfo ();
 #endif
       // Set the current operating mode of the application
-      void setMode (AppMode mode);
+      void setRoutingMode (AppMode mode);
 
       void processUIQueue ();
       void processMidi ();

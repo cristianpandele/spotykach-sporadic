@@ -114,7 +114,7 @@ void AppImpl::init ()
 
 using EffectMode = Effect::EffectMode;
 
-void AppImpl::setMode (AppImpl::AppMode mode)
+void AppImpl::setRoutingMode (AppImpl::AppMode mode)
 {
   // Pass the mode to the Spotykach looper and Sporadic effect
   if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
@@ -191,6 +191,13 @@ void AppImpl::loop ()
 
       // Controller part of MVC
       handleControls();
+
+      // Apply changes based on the controls readout
+      if (routingModeChanged)
+      {
+        setRoutingMode(currentRoutingMode);
+        routingModeChanged = 0;
+      }
 
       // View part of MVC
       hw.leds.Clear();
@@ -367,39 +374,24 @@ void AppImpl::handleControls ()
   std::bitset<8> sr1 = ~hw.GetShiftRegState(0);
   // std::bitset<8> sr2 = ~hw.GetShiftRegState(1);
 
-  uint8_t modeChanged = 0;
-
   // Mode A/B/C switch
+  AppMode newMode = currentRoutingMode;
   if (sr1.test(2))
   {
-    if (currentRoutingMode != AppMode::ROUTING_GENERATIVE)
-    {
-      // Log::PrintLine("Current Mode: %d", currentRoutingMode);
-      setMode(AppMode::ROUTING_GENERATIVE);
-      modeChanged = 1;
-    }
+    newMode = AppMode::ROUTING_GENERATIVE;
   }
   else if (sr1.test(3))
   {
-    if (currentRoutingMode != AppMode::ROUTING_DUAL_MONO)
-    {
-      // Log::PrintLine("Current Mode: %d", currentRoutingMode);
-      setMode(AppMode::ROUTING_DUAL_MONO);
-      modeChanged = 1;
-    }
+    newMode = AppMode::ROUTING_DUAL_MONO;
   }
   else
   {
-    if (currentRoutingMode != AppMode::ROUTING_DUAL_STEREO)
-    {
-      // Log::PrintLine("Current Mode: %d", currentRoutingMode);
-      setMode(AppMode::ROUTING_DUAL_STEREO);
-      modeChanged = 1;
-    }
+    newMode = AppMode::ROUTING_DUAL_STEREO;
   }
-
-  if (modeChanged)
+  if (newMode != currentRoutingMode)
   {
+    routingModeChanged = true;
+    currentRoutingMode = newMode;
     // Log::PrintLine("Operating mode changed to: %d", currentRoutingMode);
   }
 }
