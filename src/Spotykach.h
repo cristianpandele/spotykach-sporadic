@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Effect.h"
 #include "common.h"
 #include "daisy_seed.h"
 #include "daisysp.h"
@@ -9,7 +10,7 @@ using namespace daisy;
 using namespace spotykach_hwtest;
 
 // Class for Spotykach looper implementation
-class Spotykach
+class Spotykach : public Effect
 {
   public:
     Spotykach ()  = default;
@@ -17,7 +18,7 @@ class Spotykach
 
     void init ();
 
-    void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
+    void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) override;
 
   private:
     // Read and write pointers for the looper buffers
