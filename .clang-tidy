@@ -1,0 +1,30 @@
+Checks: '-*, readability-identifier-naming, bugprone-*, clang-analyzer-*'
+CheckOptions:
+  - { key: readability-identifier-naming.NamespaceCase,                 value: lower_case }
+  - { key: readability-identifier-naming.ClassCase,                     value: lower_case }
+  - { key: readability-identifier-naming.ClassSuffix,                   value: _t         }
+  - { key: readability-identifier-naming.TypedefCase,                   value: lower_case }
+  - { key: readability-identifier-naming.TypedefSuffix,                 value: _t         }
+  - { key: readability-identifier-naming.PrivateMemberSuffix,           value: _          }
+  - { key: readability-identifier-naming.GlobalVariableIgnoredRegexp,   value: "AudioTask_.*", "BSP_.*"," "Button_.*", "CellularTask_.*", "Certs_.*", "DSP_.*", "EEPROM_.*", "EmfTask_.*", "EnvTask_.*", "ErrorCodes_.*", "FLASH_.*", "GPIO_.*", "HMI_.*", "HAL_.*", "JSON_.*", "KTD2026_.*", "MqttAgentTask_.*", "MX_.*", "OtaTask_.*", "PowerCtrl_.*", "RTC_.*", "ShadowTask_.*", "VibrationiTask_.*""}
+  - { key: readability-identifier-naming.StructCase,                    value: camelBack }
+  - { key: readability-identifier-naming.UnionCase,                     value: lower_case }
+  - { key: readability-identifier-naming.EnumCase,                      value: lower_case }
+  - { key: readability-identifier-naming.FunctionCase,                  value: CamelCase  }
+  - { key: readability-identifier-naming.LocalVariableCase,             value: camelBack }
+  - { key: readability-identifier-naming.GlobalVariableCase,            value: camelBack }
+  - { key: readability-identifier-naming.StaticVariableCase,            value: camelBack }
+  - { key: readability-identifier-naming.VariableCase,                  value: camelBack }
+  - { key: readability-identifier-naming.ParameterCase,                 value: camelBack }
+  - { key: readability-identifier-naming.ConstantParameterCase,         value: camelBack }
+  - { key: readability-identifier-naming.PointerParameterCase,          value: camelBack }
+  - { key: readability-identifier-naming.ConstantPointerParameterCase,  value: camelBack }
+  - { key: readability-identifier-naming.LocalConstantCase,  	          value: UPPER_CASE }
+  - { key: readability-identifier-naming.GlobalConstantCase,  	        value: UPPER_CASE }
+  - { key: readability-identifier-naming.StaticConstantCase,  	        value: UPPER_CASE }
+  - { key: readability-identifier-naming.GlobalPointerSuffix,  	        value: _ptr }
+  - { key: readability-identifier-naming.GlobalConstantPointerSuffix,   value: _ptr }
+  - { key: readability-identifier-naming.LocalPointerSuffix,  	        value: _ptr }
+  - { key: readability-identifier-naming.LocalConstantPointerSuffix,    value: _ptr }
+  - { key: readability-identifier-naming.TemplateParameterCase,         value: UPPER_CASE }
+  - { key: ExcludeHeaderFilterRegex,                                    value: ".*" }
