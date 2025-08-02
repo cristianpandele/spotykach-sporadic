@@ -30,8 +30,8 @@ namespace spotykach_hwtest
 }    // namespace spotykach_hwtest
 
 static AppImpl   impl;
-static Spotykach spotykachLooperA;
-static Spotykach spotykachLooperB;
+static Spotykach spotykachLooperA(0);
+static Spotykach spotykachLooperB(1);
 static Sporadic  sporadic;
 
 #if DEBUG

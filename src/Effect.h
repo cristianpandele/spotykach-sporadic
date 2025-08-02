@@ -28,9 +28,10 @@ class Effect
     void         setMode (EffectMode mode);
     virtual void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
 
-  private:
+  protected:
     EffectMode currentMode            = EffectMode::OFF;
 
+  private:
     Effect (const Effect &)           = delete;
     Effect &operator=(const Effect &) = delete;
 };

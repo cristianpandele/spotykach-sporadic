@@ -11,8 +11,8 @@ void Spotykach::init ()
   for (size_t side = 0; side < kNumberSpotykachSides; ++side)
   {
     // Initialize the Spotykach looper pointers
-    std::fill(readIx, readIx + kNumberSpotykachSides, 0.0f);
-    std::fill(writeIx, writeIx + kNumberSpotykachSides, (float)kSampleRate);
+    readIx  = 0;
+    writeIx = (float)kSampleRate;
 
     // Initialize the looper audio data buffers
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
@@ -24,21 +24,51 @@ void Spotykach::init ()
 
 void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
-  // Process the Spotykach looper audio
-  // Always record on side A for now, irrespective of the current mode
+  // Only process channels that are active for the current mode
   for (size_t i = 0; i < size; ++i)
   {
-    for (size_t side = 0; side < 1/* kNumberSpotykachSides */; ++side)
-    {
+    // for (size_t side = 0; side < kNumberSpotykachSides; ++side)
+    // {
       for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
       {
-        out[ch][i] = looperAudioData[0 /*side*/][ch][static_cast<size_t>(readIx[side])];
-        //
-        looperAudioData[0/* side */][ch][static_cast<size_t>(writeIx[side])] = in[ch][i];
-        //
+        // Only process if this channel is active in the current mode
+        if (isChannelActive(ch))
+        {
+          out[ch][i] = looperAudioData[effectSide][ch][static_cast<size_t>(readIx)];
+          looperAudioData[effectSide][ch][static_cast<size_t>(writeIx)] = in[ch][i];
+        }
+        else
+        {
+          out[ch][i] = 0.0f;
+        }
       }
-      readIx[side]  = (static_cast<size_t>(readIx[side]) + 1) % kLooperAudioDataSamples;
-      writeIx[side] = (static_cast<size_t>(writeIx[side]) + 1) % kLooperAudioDataSamples;
+      readIx  = (static_cast<size_t>(readIx) + 1) % kLooperAudioDataSamples;
+      writeIx = (static_cast<size_t>(writeIx) + 1) % kLooperAudioDataSamples;
+    // }
+  }
+}
+
+// Helper to determine if a channel should be processed in the current mode
+bool Spotykach::isChannelActive(size_t ch) const
+{
+  // Example logic: only process left channel in MONO_LEFT, right in MONO_RIGHT, both in STEREO
+  switch (currentMode)
+  {
+    case EffectMode::MONO_LEFT:
+    {
+      return (ch == 0);
+    }
+    case EffectMode::MONO_RIGHT:
+    {
+      return (ch == 1);
+    }
+    case EffectMode::STEREO:
+    {
+      return ((ch == 0 || ch == 1));
+    }
+    default:
+    {
+      return false;
     }
   }
 }
