@@ -1,10 +1,11 @@
 #include "app.h"
+#include "Effect.h"
+#include "Sporadic.h"
+#include "Spotykach.h"
 #include "color.h"
 #include "common.h"
 #include "daisysp.h"
 #include "hardware.h"
-#include "Sporadic.h"
-#include "Spotykach.h"
 #include <bitset>
 #include <cstring>
 #include <daisy_seed.h>
@@ -26,78 +27,7 @@ namespace spotykach_hwtest
   // Simulate a one-minute 16bit stereo audio file at 48khz (about 11.5 MB)
   constexpr size_t             kAudioDataBytes = 60 * kSampleRate * 2 * sizeof(int16_t);
   static DSY_SDRAM_BSS uint8_t audioData[kAudioDataBytes];
-
-  // Private class for the application logic
-  class AppImpl
-  {
-    public:
-      // Application routing modes
-      enum AppMode
-      {
-        OFF,
-        ROUTING_DUAL_MONO,
-        ROUTING_DUAL_STEREO,
-        ROUTING_GENERATIVE,
-        ROUTING_LAST
-      };
-
-      AppImpl ()  = default;
-      ~AppImpl () = default;
-
-      void init ();
-      void loop ();
-
-      // Audio processing functions for the Spotykach looper and Sporadic effect
-      void processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
-      void ProcessSpotykachAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size, AppMode mode);
-      void ProcessSporadicAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size, AppMode mode);
-
-      // This is the main audio processing function that will be called from the AudioCallback
-      void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
-
-    private:
-      Hardware       hw;
-      StopwatchTimer led_timer;
-      StopwatchTimer midi_timer;
-
-      UiEventQueue ui_queue;
-
-      PotMonitor<Hardware, Hardware::kNumAnalogControls> pot_monitor;
-
-      AppMode currentRoutingMode = AppMode::OFF;
-
-      uint16_t last_pot_moved_a;
-      uint16_t last_pot_moved_b;
-
-      bool    test_note_on;
-      bool    midi_in_note_on;
-      uint8_t midi_in_nn;
-
-      daisysp::Oscillator osc[8];
-
-#if DEBUG
-      StopwatchTimer log_timer;
-      void           logDebugInfo ();
-#endif
-
-      void setMode (AppMode mode);
-
-      void processUIQueue ();
-      void processMidi ();
-
-      void drawRainbowRoad ();
-
-      void handleControls ();
-      void handleDisplay ();
-
-      void testSDCard ();
-
-      AppImpl (const AppImpl &a)           = delete;
-      AppImpl &operator=(const AppImpl &a) = delete;
-  };
 }    // namespace spotykach_hwtest
-
-using namespace spotykach_hwtest;
 
 static AppImpl   impl;
 static Spotykach spotykachLooperA;
@@ -182,14 +112,29 @@ void AppImpl::init ()
   audio.Start(AudioCallback);
 }
 
+using EffectMode = Effect::EffectMode;
+
 void AppImpl::setMode (AppImpl::AppMode mode)
 {
-  if (mode < AppImpl::ROUTING_DUAL_MONO || mode >= AppImpl::ROUTING_LAST)
+  // Pass the mode to the Spotykach looper and Sporadic effect
+  if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
   {
-    Log::PrintLine("Invalid operating mode: %d", mode);
-    return;
+    spotykachLooperA.setMode(EffectMode::STEREO);
+    spotykachLooperB.setMode(EffectMode::STEREO);
+    sporadic.setMode(EffectMode::STEREO);
   }
-  currentRoutingMode = mode;
+  else if (currentRoutingMode == AppMode::ROUTING_DUAL_MONO)
+  {
+    spotykachLooperA.setMode(EffectMode::MONO_LEFT);
+    spotykachLooperB.setMode(EffectMode::OFF);
+    sporadic.setMode(EffectMode::MONO_RIGHT);
+  }
+  else if (currentRoutingMode == AppMode::ROUTING_DUAL_STEREO)
+  {
+    spotykachLooperA.setMode(EffectMode::STEREO);
+    spotykachLooperB.setMode(EffectMode::OFF);
+    sporadic.setMode(EffectMode::STEREO);
+  }
 }
 
 void AppImpl::loop ()
@@ -413,7 +358,7 @@ void AppImpl::drawRainbowRoad ()
   }
 }
 
-void AppImpl::handleControls()
+void AppImpl::handleControls ()
 {
   // --- Switches (Shift registers) ---
 
@@ -459,7 +404,7 @@ void AppImpl::handleControls()
   }
 }
 
-void AppImpl::handleDisplay()
+void AppImpl::handleDisplay ()
 {
   // --- Gate I/O ---
   if (hw.GetClockInputState())
