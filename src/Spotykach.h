@@ -7,6 +7,7 @@
 #include "hardware.h"
 
 using namespace daisy;
+using namespace daisysp;
 using namespace spotykach_hwtest;
 
 // Class for Spotykach looper implementation
@@ -20,7 +21,11 @@ class Spotykach : public Effect
 
     void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) override;
 
-    void setSpeed(float s) { speed = s; }
+    void setSpeed (float s)
+    {
+      // Map the pitch to -4..4
+      speed = infrasonic::map(s, 0.0f, 1.0f, -4.0f, 4.0f);
+    }
 
   private:
     // Read and write pointers for the looper buffer

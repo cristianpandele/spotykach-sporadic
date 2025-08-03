@@ -191,28 +191,13 @@ void AppImpl::loop ()
       led_timer.Restart();
 
       // Controller part of MVC
-      handleControls();
-
-      // Set looper speed for both Spotykach loopers
-      spotykachLooper[0].setSpeed(looperPitch[0]);
-      spotykachLooper[1].setSpeed(looperPitch[1]);
+      handleDigitalControls();
 
       // Apply changes based on the controls readout
       if (routingModeChanged)
       {
         setRoutingMode(currentRoutingMode);
         routingModeChanged = 0;
-      }
-
-      for (size_t i = 0; i < kNumberSpotykachSides; i++)
-      {
-        if (looperPitchChanged[i])
-        {
-          // Set the pitch for the Spotykach looper
-          spotykachLooper[0].setSpeed(looperPitch[i]);
-          spotykachLooper[1].setSpeed(looperPitch[i]);
-          looperPitchChanged[i] = false;
-        }
       }
 
       // View part of MVC
@@ -242,7 +227,7 @@ void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::Outpu
 {
   spotykachLooper[0].processAudio(in, out, size);
   // spotykachLooper[1].processAudio(in, out, size);
-  sporadic.processAudio(in, out, size);
+  // sporadic.processAudio(in, out, size);
 }
 
 void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
@@ -268,6 +253,21 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     OUT_R[i] += s;
   }
 #else
+  // Handle the analog controls that affect the audio processing
+  handleAnalogControls();
+
+  // Apply the analog controls to the effects
+  for (size_t i = 0; i < kNumberSpotykachSides; i++)
+  {
+    if (pitchControls[i].isSmoothing())
+    {
+      // Set the pitch for the Spotykach looper
+      spotykachLooper[i].setSpeed(pitchControls[i].getSmoothVal());
+    }
+    // Set the mix for both sides of the Spotykach looper
+    spotykachLooper[i].setMix(mixControls[i]);
+  }
+
   // Process the audio through the Spotykach/Sporadic logic
   // Routing is dependent on currentRoutingMode as indicated by LED_ROUTING
   processAudioLogic(in, out, size);
@@ -381,7 +381,24 @@ void AppImpl::drawRainbowRoad ()
   }
 }
 
-void AppImpl::handleControls ()
+void AppImpl::handleAnalogControls ()
+{
+  // Read and smooth pitch controls for both sides
+  pitchControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_PITCH_A);
+  pitchControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_PITCH_B);
+  // Add the pitch CV values
+  pitchControls[0] += hw.GetControlVoltageValue(Hardware::CV_V_OCT_A);
+  pitchControls[1] += hw.GetControlVoltageValue(Hardware::CV_V_OCT_B);
+
+  // Read the mix controls for both sides
+  mixControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_SOS_A);
+  mixControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_SOS_B);
+  // Add the mix CV values
+  mixControls[0] += hw.GetControlVoltageValue(Hardware::CV_SOS_IN_A);
+  mixControls[1] += hw.GetControlVoltageValue(Hardware::CV_SOS_IN_B);
+}
+
+void AppImpl::handleDigitalControls ()
 {
   // --- Switches (Shift registers) ---
 
@@ -410,16 +427,6 @@ void AppImpl::handleControls ()
     currentRoutingMode = newMode;
     // Log::PrintLine("Operating mode changed to: %d", currentRoutingMode);
   }
-
-  // Read and smooth pitch controls for both sides
-  float pitchA = hw.GetAnalogControlValue(Hardware::CTRL_PITCH_A);
-  float pitchB = hw.GetAnalogControlValue(Hardware::CTRL_PITCH_B);
-  // Smooth using fonepole
-  daisysp::fonepole(looperPitch[0], pitchA, .0002f);
-  daisysp::fonepole(looperPitch[1], pitchB, .0002f);
-  // Map to -4..4
-  looperPitch[0] = infrasonic::map(looperPitch[0], 0.0f, 1.0f, -4.0f, 4.0f);
-  looperPitch[1] = infrasonic::map(looperPitch[1], 0.0f, 1.0f, -4.0f, 4.0f);
 }
 
 void AppImpl::handleDisplay ()
@@ -553,10 +560,13 @@ void AppImpl::handleDisplay ()
   }
 
   // LED RINGS / POTS
-  const uint16_t ring_val_a =
-    hw.GetAnalogControlValue((Hardware::AnalogControlId)last_pot_moved_a) * Hardware::kNumLedsPerRing;
-  const uint16_t ring_val_b =
-    hw.GetAnalogControlValue((Hardware::AnalogControlId)last_pot_moved_b) * Hardware::kNumLedsPerRing;
+  // const uint16_t ring_val_a =
+  //   hw.GetAnalogControlValue((Hardware::AnalogControlId)last_pot_moved_a) * Hardware::kNumLedsPerRing;
+  // const uint16_t ring_val_b =
+  //   hw.GetAnalogControlValue((Hardware::AnalogControlId)last_pot_moved_b) * Hardware::kNumLedsPerRing;
+  const uint16_t ring_val_a = pitchControls[0].getSmoothVal() * Hardware::kNumLedsPerRing;
+  const uint16_t ring_val_b = pitchControls[1].getSmoothVal() * Hardware::kNumLedsPerRing;
+
   for (uint16_t i = 0; i < Hardware::kNumLedsPerRing; i++)
   {
     // start at bottom, wrap clockwise

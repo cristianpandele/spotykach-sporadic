@@ -35,6 +35,15 @@ namespace spotykach_hwtest
         return *this;
       }
 
+      // Overload the += operator to add to the target value
+      SmoothValue &operator+=(float v)
+      {
+        targetValue += v;
+        // Check if the value is undergoing smoothing
+        setSmoothing();
+        return *this;
+      }
+
       // Get the smoothed value
       float getSmoothVal ()
       {
@@ -127,8 +136,11 @@ namespace spotykach_hwtest
       bool    routingModeChanged                      = false;
       AppMode currentRoutingMode                      = AppMode::OFF;
 
-      // Smooth looper pitch for each side
-      SmoothValue looperPitch[kNumberSpotykachSides] = { SmoothValue(150.0f, kSampleRate), SmoothValue(50.0f, kSampleRate) };
+      // Mix controls for the two sides
+      float   mixControls[kNumberSpotykachSides]     = { 0.5f };
+
+      // Smooth pitch for each side
+      SmoothValue pitchControls[kNumberSpotykachSides] = { SmoothValue(150.0f, kSampleRate), SmoothValue(150.0f, kSampleRate) };
 
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;
@@ -151,7 +163,8 @@ namespace spotykach_hwtest
 
       void drawRainbowRoad ();
 
-      void handleControls ();
+      void handleAnalogControls ();
+      void handleDigitalControls ();
       void handleDisplay ();
 
       void testSDCard ();
