@@ -67,8 +67,11 @@ namespace spotykach_hwtest
 
       PotMonitor<Hardware, Hardware::kNumAnalogControls> pot_monitor;
 
-      bool    routingModeChanged = false;
-      AppMode currentRoutingMode = AppMode::OFF;
+      bool    routingModeChanged                      = false;
+      AppMode currentRoutingMode                      = AppMode::OFF;
+
+      bool  looperPitchChanged[kNumberSpotykachSides] = {false};
+      float looperPitch[kNumberSpotykachSides]        = {0.0f};
 
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;

@@ -20,10 +20,13 @@ class Spotykach : public Effect
 
     void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) override;
 
+    void setSpeed(float s) { speed = s; }
+
   private:
     // Read and write pointers for the looper buffer
     float readIx  = 0;
     float writeIx = 0;
+    float speed   = 1.0f;
 
     bool    isChannelActive (size_t ch) const;
     uint8_t effectSide                      = 0;    // Current side being processed (0 or 1)

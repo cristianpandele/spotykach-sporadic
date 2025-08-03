@@ -30,8 +30,7 @@ namespace spotykach_hwtest
 }    // namespace spotykach_hwtest
 
 static AppImpl   impl;
-static Spotykach spotykachLooperA(0);
-static Spotykach spotykachLooperB(1);
+static Spotykach spotykachLooper[2] = {Spotykach(0), Spotykach(1)};
 static Sporadic  sporadic;
 
 #if DEBUG
@@ -99,8 +98,10 @@ void AppImpl::init ()
   audio.SetBlockSize(kBlockSize);
 
   // Initialize the Spotykach looper
-  spotykachLooperA.init();
-  spotykachLooperB.init();
+  for (size_t i = 0; i < kNumberSpotykachSides; i++)
+  {
+    spotykachLooper[i].init();
+  }
   // sporadic.init();
 
 #if DEBUG
@@ -119,20 +120,20 @@ void AppImpl::setRoutingMode (AppImpl::AppMode mode)
   // Pass the mode to the Spotykach looper and Sporadic effect
   if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
   {
-    spotykachLooperA.setMode(EffectMode::STEREO);
-    spotykachLooperB.setMode(EffectMode::STEREO);
+    spotykachLooper[0].setMode(EffectMode::STEREO);
+    spotykachLooper[1].setMode(EffectMode::STEREO);
     sporadic.setMode(EffectMode::STEREO);
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_MONO)
   {
-    spotykachLooperA.setMode(EffectMode::MONO_LEFT);
-    spotykachLooperB.setMode(EffectMode::OFF);
+    spotykachLooper[0].setMode(EffectMode::MONO_LEFT);
+    spotykachLooper[1].setMode(EffectMode::OFF);
     sporadic.setMode(EffectMode::MONO_RIGHT);
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_STEREO)
   {
-    spotykachLooperA.setMode(EffectMode::STEREO);
-    spotykachLooperB.setMode(EffectMode::OFF);
+    spotykachLooper[0].setMode(EffectMode::STEREO);
+    spotykachLooper[1].setMode(EffectMode::OFF);
     sporadic.setMode(EffectMode::STEREO);
   }
 }
@@ -192,11 +193,26 @@ void AppImpl::loop ()
       // Controller part of MVC
       handleControls();
 
+      // Set looper speed for both Spotykach loopers
+      spotykachLooper[0].setSpeed(looperPitch[0]);
+      spotykachLooper[1].setSpeed(looperPitch[1]);
+
       // Apply changes based on the controls readout
       if (routingModeChanged)
       {
         setRoutingMode(currentRoutingMode);
         routingModeChanged = 0;
+      }
+
+      for (size_t i = 0; i < kNumberSpotykachSides; i++)
+      {
+        if (looperPitchChanged[i])
+        {
+          // Set the pitch for the Spotykach looper
+          spotykachLooper[0].setSpeed(looperPitch[i]);
+          spotykachLooper[1].setSpeed(looperPitch[i]);
+          looperPitchChanged[i] = false;
+        }
       }
 
       // View part of MVC
@@ -224,8 +240,8 @@ void AppImpl::loop ()
 
 void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
-  spotykachLooperA.processAudio(in, out, size);
-  // spotykachLooperB.processAudio(in, out, size);
+  spotykachLooper[0].processAudio(in, out, size);
+  // spotykachLooper[1].processAudio(in, out, size);
   sporadic.processAudio(in, out, size);
 }
 
@@ -372,7 +388,6 @@ void AppImpl::handleControls ()
   // construct into 8-bit set from inverted bitmask state
   // (all inputs are inverted due to pullups)
   std::bitset<8> sr1 = ~hw.GetShiftRegState(0);
-  // std::bitset<8> sr2 = ~hw.GetShiftRegState(1);
 
   // Mode A/B/C switch
   AppMode newMode = currentRoutingMode;
@@ -388,12 +403,23 @@ void AppImpl::handleControls ()
   {
     newMode = AppMode::ROUTING_DUAL_STEREO;
   }
+
   if (newMode != currentRoutingMode)
   {
     routingModeChanged = true;
     currentRoutingMode = newMode;
     // Log::PrintLine("Operating mode changed to: %d", currentRoutingMode);
   }
+
+  // Read and smooth pitch controls for both sides
+  float pitchA = hw.GetAnalogControlValue(Hardware::CTRL_PITCH_A);
+  float pitchB = hw.GetAnalogControlValue(Hardware::CTRL_PITCH_B);
+  // Smooth using fonepole
+  daisysp::fonepole(looperPitch[0], pitchA, .0002f);
+  daisysp::fonepole(looperPitch[1], pitchB, .0002f);
+  // Map to -4..4
+  looperPitch[0] = infrasonic::map(looperPitch[0], 0.0f, 1.0f, -4.0f, 4.0f);
+  looperPitch[1] = infrasonic::map(looperPitch[1], 0.0f, 1.0f, -4.0f, 4.0f);
 }
 
 void AppImpl::handleDisplay ()
