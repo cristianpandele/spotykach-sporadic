@@ -14,6 +14,63 @@ namespace spotykach_hwtest
   constexpr size_t kNumberChannelsStereo = 2;
   constexpr size_t kNumberChannelsMono   = 1;
 
+  // SmoothValue class for smoothing parameter changes
+  class SmoothValue
+  {
+    public:
+      SmoothValue (float smoothTimeMs, float sampleRate)
+      {
+        smoothing    = false;
+        currentValue = 0.0f;
+        targetValue  = 0.0f;
+        filterCoeff  = 100000.0f / (smoothTimeMs * sampleRate);
+      }
+
+      // Overload assignment to set targetValue
+      SmoothValue &operator=(float v)
+      {
+        targetValue = v;
+        // Check if the value is undergoing smoothing
+        setSmoothing();
+        return *this;
+      }
+
+      // Get the smoothed value
+      float getSmoothVal ()
+      {
+        daisysp::fonepole(currentValue, targetValue, filterCoeff);
+        // Check if the value is undergoing smoothing
+        setSmoothing();
+        return currentValue;
+      }
+
+      // Get the target value
+      float getTargetVal () const { return targetValue; }
+
+      // Check if the value has smoothing
+      bool isSmoothing () const { return smoothing; }
+
+    private:
+      bool  smoothing;
+      float currentValue;
+      float targetValue;
+      float filterCoeff;
+
+      // Determine if the value has smoothing
+      void setSmoothing ()
+      {
+        // If the current value is more that 1% away from the target, mark as smoothing
+        if (std::abs(currentValue - targetValue) / (std::abs(targetValue) > 0.01f))
+        {
+          smoothing = true;
+        }
+        else
+        {
+          smoothing = false;
+        }
+      }
+  };
+
   // Application class
   class Application
   {
@@ -70,8 +127,8 @@ namespace spotykach_hwtest
       bool    routingModeChanged                      = false;
       AppMode currentRoutingMode                      = AppMode::OFF;
 
-      bool  looperPitchChanged[kNumberSpotykachSides] = {false};
-      float looperPitch[kNumberSpotykachSides]        = {0.0f};
+      // Smooth looper pitch for each side
+      SmoothValue looperPitch[kNumberSpotykachSides] = { SmoothValue(150.0f, kSampleRate), SmoothValue(50.0f, kSampleRate) };
 
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;
