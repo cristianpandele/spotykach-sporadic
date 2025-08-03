@@ -31,6 +31,7 @@ class Spotykach : public Effect
     // Read and write pointers for the looper buffer
     float readIx  = 0;
     float writeIx = 0;
+    // Speed of looper heads
     float speed   = 1.0f;
 
     bool    isChannelActive (size_t ch) const;

@@ -133,6 +133,7 @@ namespace spotykach_hwtest
 
       PotMonitor<Hardware, Hardware::kNumAnalogControls> pot_monitor;
 
+      // Routing mode changed flag and current routing mode
       bool    routingModeChanged                      = false;
       AppMode currentRoutingMode                      = AppMode::OFF;
 

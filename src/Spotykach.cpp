@@ -39,8 +39,10 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
           float frac = rIdx - idx0;
           float s0 = looperAudioData[effectSide][ch][idx0];
           float s1 = looperAudioData[effectSide][ch][idx1];
-          // Linear interpolation
+          // Linear interpolation when between two samples
           out[ch][i] = infrasonic::lerp(s0, s1, frac);
+          // Linear interpolation between dry input and looper output (when not in recording playback mode)
+          out[ch][i] = infrasonic::lerp(in[ch][i], out[ch][i], mix);
 
           // Write input sample at fractional index
           size_t wIdx0                             = static_cast<size_t>(writeIx);
