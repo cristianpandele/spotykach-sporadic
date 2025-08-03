@@ -27,24 +27,38 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
   // Only process channels that are active for the current mode
   for (size_t i = 0; i < size; ++i)
   {
-    // for (size_t side = 0; side < kNumberSpotykachSides; ++side)
-    // {
       for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
       {
         // Only process if this channel is active in the current mode
         if (isChannelActive(ch))
         {
-          out[ch][i] = looperAudioData[effectSide][ch][static_cast<size_t>(readIx)];
-          looperAudioData[effectSide][ch][static_cast<size_t>(writeIx)] = in[ch][i];
+          // Fractional read index
+          float rIdx = readIx;
+          size_t idx0 = static_cast<size_t>(rIdx);
+          size_t idx1 = (idx0 + 1) % kLooperAudioDataSamples;
+          float frac = rIdx - idx0;
+          float s0 = looperAudioData[effectSide][ch][idx0];
+          float s1 = looperAudioData[effectSide][ch][idx1];
+          // Linear interpolation
+          out[ch][i] = s0 * (1.0f - frac) + s1 * frac;
+
+          // Write input sample at fractional index
+          size_t wIdx0                             = static_cast<size_t>(writeIx);
+          looperAudioData[effectSide][ch][wIdx0]   = (writeIx - wIdx0) * in[ch][i];
+          looperAudioData[effectSide][ch][wIdx0+1] = (1.0f - (writeIx - wIdx0)) * in[ch][i];
         }
         else
         {
           out[ch][i] = 0.0f;
         }
       }
-      readIx  = (static_cast<size_t>(readIx) + 1) % kLooperAudioDataSamples;
-      writeIx = (static_cast<size_t>(writeIx) + 1) % kLooperAudioDataSamples;
-    // }
+      // Advance and wrap read/write indexes, preserving fractional part
+      readIx += 1.0f;
+      if (readIx >= kLooperAudioDataSamples)
+        readIx -= kLooperAudioDataSamples;
+      writeIx += 1.0f;
+      if (writeIx >= kLooperAudioDataSamples)
+        writeIx -= kLooperAudioDataSamples;
   }
 }
 
