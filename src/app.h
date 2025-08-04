@@ -152,8 +152,9 @@ namespace spotykach_hwtest
       SmoothValue pitchControls[kNumberSpotykachSides] = { SmoothValue(150.0f, kSampleRate), SmoothValue(150.0f, kSampleRate) };
 
       // Position knob and position/size switch state for each side
-      float positionControls[kNumberSpotykachSides] = {0.0f, 0.0f};
-      SizePosSwitchState sizePosSwitch[kNumberSpotykachSides] = {SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
+      SmoothValue        positionControls[kNumberSpotykachSides] = {SmoothValue(250.0f, kSampleRate),
+                                                                    SmoothValue(250.0f, kSampleRate)};
+      SizePosSwitchState sizePosSwitch[kNumberSpotykachSides]    = {SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
 
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;

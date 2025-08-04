@@ -27,12 +27,15 @@ class Spotykach : public Effect
       speed = infrasonic::map(s, 0.0f, 1.0f, -4.0f, 4.0f);
     }
 
+    void setPosition(float p);
+
   private:
     // Read and write pointers for the looper buffer
     float readIx  = 0;
     float writeIx = 0;
     // Speed of looper heads
-    float speed   = 1.0f;
+    float speed    = 1.0f;
+    float position = 0.0f;
 
     bool    isChannelActive (size_t ch) const;
     uint8_t effectSide                      = 0;    // Current side being processed (0 or 1)

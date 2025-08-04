@@ -77,6 +77,22 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
   }
 }
 
+void Spotykach::setPosition(float p)
+{
+  // Map p in (0,1) to (0, 2*kSampleRate)
+  position = infrasonic::map(p, 0.0f, 1.0f, 0.0f, 2.0f * kSampleRate);
+  // Set readIx to be writeIx - position, wrapping if needed
+  readIx = writeIx - position - kBlockSize;
+  if(readIx < 0)
+  {
+    readIx += kLooperAudioDataSamples;
+  }
+  else if(readIx >= kLooperAudioDataSamples)
+  {
+    readIx -= kLooperAudioDataSamples;
+  }
+}
+
 // Helper to determine if a channel should be processed in the current mode
 bool Spotykach::isChannelActive(size_t ch) const
 {

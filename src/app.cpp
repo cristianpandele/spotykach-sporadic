@@ -259,13 +259,18 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
   // Apply the analog controls to the effects
   for (size_t i = 0; i < kNumberSpotykachSides; i++)
   {
+    // Set the pitch for both sides
     if (pitchControls[i].isSmoothing())
     {
-      // Set the pitch for the Spotykach looper
       spotykachLooper[i].setSpeed(pitchControls[i].getSmoothVal());
     }
-    // Set the mix for both sides of the Spotykach looper
+    // Set the mix for both sides
     spotykachLooper[i].setMix(mixControls[i]);
+    // Set the position for both sides
+    if (positionControls[i].isSmoothing())
+    {
+      spotykachLooper[i].setPosition(positionControls[i].getSmoothVal());
+    }
   }
 
   // Process the audio through the Spotykach/Sporadic logic
@@ -617,35 +622,31 @@ void AppImpl::handleDisplay ()
   //   hw.GetAnalogControlValue((Hardware::AnalogControlId)last_pot_moved_a) * Hardware::kNumLedsPerRing;
   // const uint16_t ring_val_b =
   //   hw.GetAnalogControlValue((Hardware::AnalogControlId)last_pot_moved_b) * Hardware::kNumLedsPerRing;
-  const uint16_t ring_val_a = pitchControls[0].getSmoothVal() * Hardware::kNumLedsPerRing;
-  const uint16_t ring_val_b = pitchControls[1].getSmoothVal() * Hardware::kNumLedsPerRing;
+  const uint16_t ring_lower[2] = {positionControls[0].getSmoothVal() * Hardware::kNumLedsPerRing,
+                                  positionControls[1].getSmoothVal() * Hardware::kNumLedsPerRing};
+  const uint16_t ring_upper[2] = {pitchControls[0].getSmoothVal() * Hardware::kNumLedsPerRing,
+                                  pitchControls[1].getSmoothVal() * Hardware::kNumLedsPerRing};
 
   for (uint16_t i = 0; i < Hardware::kNumLedsPerRing; i++)
   {
-    // start at bottom, wrap clockwise
-    uint16_t ledidx_a = Hardware::LED_RING_A;
-    uint16_t ledidx_b = Hardware::LED_RING_B;
-    // = is_on_left ? Hardware::LED_RING_A : Hardware::LED_RING_B;
-    if (i <= 16)
+    for (size_t side = 0; side < kNumberSpotykachSides; side++)
     {
-      ledidx_a += (Hardware::kNumLedsPerRing / 2) - i;
-      ledidx_b += (Hardware::kNumLedsPerRing / 2) - i;
-    }
-    else
-    {
-      ledidx_a += Hardware::kNumLedsPerRing - 1;
-      ledidx_a -= (i - (Hardware::kNumLedsPerRing / 2 + 1));
+      // start at bottom, wrap clockwise
+      uint16_t ledIx = (side == 0) ? Hardware::LED_RING_A : Hardware::LED_RING_B;
 
-      ledidx_b += Hardware::kNumLedsPerRing - 1;
-      ledidx_b -= (i - (Hardware::kNumLedsPerRing / 2 + 1));
-    }
-    if (ring_val_a > i)
-    {
-      hw.leds.Set(ledidx_a, 0x00ff00, 0.5f);
-    }
-    if (ring_val_b > i)
-    {
-      hw.leds.Set(ledidx_b, 0x00ff00, 0.5f);
+      if (i <= 16)
+      {
+        ledIx += (Hardware::kNumLedsPerRing / 2) - i;
+      }
+      else
+      {
+        ledIx += Hardware::kNumLedsPerRing - 1;
+        ledIx -= (i - (Hardware::kNumLedsPerRing / 2 + 1));
+      }
+      if (i >= ring_lower[side] && i < ring_upper[side])
+      {
+        hw.leds.Set(ledIx, 0x00ff00, 0.5f);
+      }
     }
   }
 
