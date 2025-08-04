@@ -142,11 +142,12 @@ namespace spotykach_hwtest
       PotMonitor<Hardware, Hardware::kNumAnalogControls> pot_monitor;
 
       // Routing mode changed flag and current routing mode
-      bool    routingModeChanged                      = false;
-      AppMode currentRoutingMode                      = AppMode::OFF;
+      bool    routingModeChanged = false;
+      AppMode currentRoutingMode = AppMode::OFF;
 
       // Mix controls for the two sides
-      float   mixControls[kNumberSpotykachSides]     = { 0.5f };
+      SmoothValue mixControls[kNumberSpotykachSides] = {SmoothValue(25.0f, kSampleRate),
+                                                        SmoothValue(25.0f, kSampleRate)};
 
       // Smooth pitch for each side
       SmoothValue pitchControls[kNumberSpotykachSides] = { SmoothValue(150.0f, kSampleRate), SmoothValue(150.0f, kSampleRate) };
