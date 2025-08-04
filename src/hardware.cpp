@@ -130,7 +130,7 @@ void Hardware::Init (float sr, size_t blocksize)
   controls_[CTRL_POS_A].Init(seed.adc.GetMuxPtr(0, 6), kProcessRate, false, false, kPotSmoothTime);
   controls_[CTRL_PITCH_A].Init(seed.adc.GetMuxPtr(0, 2), kProcessRate, false, false, kPotSmoothTime);
   controls_[CTRL_SIZE_A].Init(seed.adc.GetMuxPtr(0, 5), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_ENV_A].Init(seed.adc.GetMuxPtr(0, 4), kProcessRate, false, false, kPotSmoothTime);
+  controls_[CTRL_SHAPE_A].Init(seed.adc.GetMuxPtr(0, 4), kProcessRate, false, false, kPotSmoothTime);
 
   controls_[CTRL_SOS_B].Init(seed.adc.GetMuxPtr(1, 0), kProcessRate, false, false, kPotSmoothTime);
   controls_[CTRL_MODFREQ_B].Init(seed.adc.GetMuxPtr(1, 4), kProcessRate, false, false, kPotSmoothTime);
@@ -138,7 +138,7 @@ void Hardware::Init (float sr, size_t blocksize)
   controls_[CTRL_POS_B].Init(seed.adc.GetMuxPtr(1, 1), kProcessRate, false, false, kPotSmoothTime);
   controls_[CTRL_PITCH_B].Init(seed.adc.GetMuxPtr(1, 2), kProcessRate, false, false, kPotSmoothTime);
   controls_[CTRL_SIZE_B].Init(seed.adc.GetMuxPtr(1, 3), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_ENV_B].Init(seed.adc.GetMuxPtr(1, 5), kProcessRate, false, false, kPotSmoothTime);
+  controls_[CTRL_SHAPE_B].Init(seed.adc.GetMuxPtr(1, 5), kProcessRate, false, false, kPotSmoothTime);
 
   controls_[CTRL_SPOTYKACH].Init(seed.adc.GetMuxPtr(1, 7), kProcessRate, false, false, kPotSmoothTime);
 

@@ -150,12 +150,22 @@ namespace spotykach_hwtest
                                                         SmoothValue(25.0f, kSampleRate)};
 
       // Smooth pitch for each side
-      SmoothValue pitchControls[kNumberSpotykachSides] = { SmoothValue(150.0f, kSampleRate), SmoothValue(150.0f, kSampleRate) };
+      SmoothValue pitchControls[kNumberSpotykachSides] = {SmoothValue(75.0f, kSampleRate),
+                                                          SmoothValue(75.0f, kSampleRate)};
 
-      // Position knob and position/size switch state for each side
-      SmoothValue        positionControls[kNumberSpotykachSides] = {SmoothValue(250.0f, kSampleRate),
-                                                                    SmoothValue(250.0f, kSampleRate)};
-      SizePosSwitchState sizePosSwitch[kNumberSpotykachSides]    = {SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
+      // Position knob for each side
+      SmoothValue positionControls[kNumberSpotykachSides] = {SmoothValue(150.0f, kSampleRate),
+                                                             SmoothValue(150.0f, kSampleRate)};
+      // Position/size switch state for each side
+      SizePosSwitchState sizePosSwitch[kNumberSpotykachSides] = {SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
+
+      // Size controls for each side
+      SmoothValue sizeControls[kNumberSpotykachSides] = {SmoothValue(250.0f, kSampleRate),
+                                                         SmoothValue(150.0f, kSampleRate)};
+
+      // Shape controls for each side
+      SmoothValue shapeControls[kNumberSpotykachSides] = {SmoothValue(250.0f, kSampleRate),
+                                                          SmoothValue(150.0f, kSampleRate)};
 
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;
@@ -163,6 +173,12 @@ namespace spotykach_hwtest
       bool    test_note_on;
       bool    midi_in_note_on;
       uint8_t midi_in_nn;
+
+      // Modulator instances for each side
+      Modulator modulator[kNumberSpotykachSides] = {
+        Modulator(modulationTypes[0], ModulationEngine::kNumModTypes, kSampleRate),
+        Modulator(modulationTypes[1], ModulationEngine::kNumModTypes, kSampleRate)
+      };
 
       daisysp::Oscillator osc[8];
 

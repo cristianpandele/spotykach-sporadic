@@ -63,7 +63,7 @@ namespace spotykach
         CTRL_SIZE_A,
         CTRL_PITCH_A,
         CTRL_POS_A,
-        CTRL_ENV_A,
+        CTRL_SHAPE_A,
 
         CTRL_SOS_B,
         CTRL_MODFREQ_B,
@@ -71,7 +71,7 @@ namespace spotykach
         CTRL_SIZE_B,
         CTRL_PITCH_B,
         CTRL_POS_B,
-        CTRL_ENV_B,
+        CTRL_SHAPE_B,
 
         CTRL_SPOTYKACH,
 

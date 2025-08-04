@@ -271,6 +271,16 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     {
       spotykachLooper[i].setPosition(positionControls[i].getSmoothVal());
     }
+    // Set the size for both sides
+    if (sizeControls[i].isSmoothing())
+    {
+      spotykachLooper[i].setSize(sizeControls[i].getSmoothVal());
+    }
+    // Set the shape for both sides
+    if (shapeControls[i].isSmoothing())
+    {
+      spotykachLooper[i].setShape(shapeControls[i].getSmoothVal());
+    }
   }
 
   // Process the audio through the Spotykach/Sporadic logic
@@ -335,9 +345,9 @@ void AppImpl::processUIQueue ()
     auto event = ui_queue.GetAndRemoveNextEvent();
     if (event.type == UiEventQueue::Event::EventType::potMoved)
     {
-      if (event.asPotMoved.id <= Hardware::CTRL_ENV_A)
+      if (event.asPotMoved.id <= Hardware::CTRL_SHAPE_A)
         last_pot_moved_a = event.asPotMoved.id;
-      else if (event.asPotMoved.id <= Hardware::CTRL_ENV_B)
+      else if (event.asPotMoved.id <= Hardware::CTRL_SHAPE_B)
         last_pot_moved_b = event.asPotMoved.id;
     }
   }
@@ -413,6 +423,22 @@ void AppImpl::handleAnalogControls ()
   {
     positionControls[1] += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_B);
   }
+
+  // Read the size knobs and CVs
+  sizeControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_SIZE_A);
+  sizeControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_SIZE_B);
+  if ((sizePosSwitch[0] == SizePosSwitchState::SIZE) || (sizePosSwitch[0] == SizePosSwitchState::BOTH))
+  {
+    sizeControls[0] += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_A);
+  }
+  if ((sizePosSwitch[1] == SizePosSwitchState::SIZE) || (sizePosSwitch[1] == SizePosSwitchState::BOTH))
+  {
+    sizeControls[1] += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_B);
+  }
+
+  // Read the shape knobs
+  shapeControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_SHAPE_A);
+  shapeControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_SHAPE_B);
 }
 
 void AppImpl::handleDigitalControls ()

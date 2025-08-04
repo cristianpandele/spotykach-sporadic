@@ -32,6 +32,10 @@ class Effect
 
     virtual void setPosition (float p) { position = p; }
 
+    virtual void setSize (float s) { size = s; }
+
+    virtual void setShape (float s) { shape = s; }
+
     virtual void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
 
   protected:
@@ -45,6 +49,12 @@ class Effect
 
     // Position control
     float position = 0.0f;
+
+    // Size control
+    float size = 0.0f;
+
+    // Shape control
+    float shape = 0.0f;
 
   private:
     Effect (const Effect &)           = delete;
