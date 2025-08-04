@@ -105,17 +105,17 @@ void Spotykach::setPosition(float p)
 bool Spotykach::isChannelActive(size_t ch) const
 {
   // Example logic: only process left channel in MONO_LEFT, right in MONO_RIGHT, both in STEREO
-  switch (currentMode)
+  switch (channelConfig)
   {
-    case EffectMode::MONO_LEFT:
+    case ChannelConfig::MONO_LEFT:
     {
       return (ch == 0);
     }
-    case EffectMode::MONO_RIGHT:
+    case ChannelConfig::MONO_RIGHT:
     {
       return (ch == 1);
     }
-    case EffectMode::STEREO:
+    case ChannelConfig::STEREO:
     {
       return ((ch == 0 || ch == 1));
     }

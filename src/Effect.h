@@ -13,19 +13,30 @@ using namespace daisy;
 class Effect
 {
   public:
-    enum EffectMode
+    enum ChannelConfig
     {
       OFF,
       MONO_LEFT,
       MONO_RIGHT,
       STEREO,
+      CH_CONFIG_LAST
+    };
+
+    enum EffectMode
+    {
+      MODE_1,
+      MODE_2,
+      MODE_3,
       MODE_LAST
     };
 
     Effect ()          = default;
     virtual ~Effect () = default;
 
-    void setMode (EffectMode mode);
+    void setChannelConfig (ChannelConfig mode);
+
+    virtual void setMode (EffectMode m);
+
     virtual void setMix (float m) { mix = m; }
 
     virtual void setPitch (float p) { pitch = p; }
@@ -39,7 +50,8 @@ class Effect
     virtual void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
 
   protected:
-    EffectMode currentMode            = EffectMode::OFF;
+    // Channel configuration for the effect
+    ChannelConfig channelConfig = ChannelConfig::OFF;
 
     // Mix control
     float mix = 0.5f;
@@ -55,6 +67,9 @@ class Effect
 
     // Shape control
     float shape = 0.0f;
+
+    // Current effect mode
+    EffectMode mode = MODE_1;
 
   private:
     Effect (const Effect &)           = delete;

@@ -29,6 +29,15 @@ class Spotykach : public Effect
 
     void setPosition (float p) override;
 
+    // Override the EffectMode enum to define specific modes for Spotykach
+    enum EffectMode
+    {
+      REEL = 0,
+      SLICE = 1,
+      DRIFT = 2,
+      MODE_LAST
+    };
+
   private:
     // Read and write pointers for the looper buffer
     float readIx  = 0;

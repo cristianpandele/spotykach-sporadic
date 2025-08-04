@@ -4,14 +4,25 @@
 
 using infrasonic::Log;
 
-void Effect::setMode (EffectMode mode)
+void Effect::setChannelConfig (ChannelConfig mode)
 {
-  if (mode < EffectMode::OFF || mode >= EffectMode::MODE_LAST)
+  if (mode < ChannelConfig::OFF || mode >= ChannelConfig::CH_CONFIG_LAST)
   {
     Log::PrintLine("Invalid operating mode: %d", mode);
     return;
   }
-  currentMode = mode;
+  channelConfig = mode;
+}
+
+void Effect::setMode (EffectMode m)
+{
+  if (m < EffectMode::MODE_1 || m >= EffectMode::MODE_LAST)
+  {
+    Log::PrintLine("Invalid effect mode: %d", m);
+    return;
+  }
+  // Set the effect mode
+  mode = m;
 }
 
 void Effect::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)

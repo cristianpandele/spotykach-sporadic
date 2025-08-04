@@ -113,28 +113,28 @@ void AppImpl::init ()
   audio.Start(AudioCallback);
 }
 
-using EffectMode = Effect::EffectMode;
+using ChannelConfig = Effect::ChannelConfig;
 
 void AppImpl::setRoutingMode (AppImpl::AppMode mode)
 {
   // Pass the mode to the Spotykach looper and Sporadic effect
   if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
   {
-    spotykachLooper[0].setMode(EffectMode::STEREO);
-    spotykachLooper[1].setMode(EffectMode::STEREO);
-    sporadic.setMode(EffectMode::STEREO);
+    spotykachLooper[0].setChannelConfig(ChannelConfig::STEREO);
+    spotykachLooper[1].setChannelConfig(ChannelConfig::STEREO);
+    sporadic.setChannelConfig(ChannelConfig::STEREO);
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_MONO)
   {
-    spotykachLooper[0].setMode(EffectMode::MONO_LEFT);
-    spotykachLooper[1].setMode(EffectMode::OFF);
-    sporadic.setMode(EffectMode::MONO_RIGHT);
+    spotykachLooper[0].setChannelConfig(ChannelConfig::MONO_LEFT);
+    spotykachLooper[1].setChannelConfig(ChannelConfig::OFF);
+    sporadic.setChannelConfig(ChannelConfig::MONO_RIGHT);
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_STEREO)
   {
-    spotykachLooper[0].setMode(EffectMode::STEREO);
-    spotykachLooper[1].setMode(EffectMode::OFF);
-    sporadic.setMode(EffectMode::STEREO);
+    spotykachLooper[0].setChannelConfig(ChannelConfig::STEREO);
+    spotykachLooper[1].setChannelConfig(ChannelConfig::OFF);
+    sporadic.setChannelConfig(ChannelConfig::STEREO);
   }
 }
 
@@ -198,6 +198,15 @@ void AppImpl::loop ()
       {
         setRoutingMode(currentRoutingMode);
         routingModeChanged = 0;
+      }
+
+      for (size_t i = 0; i < kNumberSpotykachSides; i++)
+      {
+        if (effectModeChanged[i])
+        {
+          spotykachLooper[i].setMode(currentEffectMode[i]);
+          effectModeChanged[i] = false;
+        }
       }
 
       // View part of MVC
@@ -499,6 +508,45 @@ void AppImpl::handleDigitalControls ()
   {
     sizePosSwitch[1] = SizePosSwitchState::BOTH;
   }
+
+  // Mode A switch (sr1 bits 6,7)
+  EffectMode newEffectMode[2];
+  if (sr1.test(6))
+  {
+    newEffectMode[0] = EffectMode::MODE_3;
+  }
+  else if (sr1.test(7))
+  {
+    newEffectMode[0] = EffectMode::MODE_1;
+  }
+  else
+  {
+    newEffectMode[0] = EffectMode::MODE_2;
+  }
+
+  // Mode B switch (sr2 bits 2,3)
+  if (sr2.test(2))
+  {
+    newEffectMode[1] = EffectMode::MODE_3;
+  }
+  else if (sr2.test(3))
+  {
+    newEffectMode[1] = EffectMode::MODE_1;
+  }
+  else
+  {
+    newEffectMode[1] = EffectMode::MODE_2;
+  }
+
+  for (size_t i = 0; i < kNumberSpotykachSides; i++)
+  {
+    if (newEffectMode[i] != currentEffectMode[i])
+    {
+      effectModeChanged[i] = true;
+      currentEffectMode[i] = newEffectMode[i];
+      // Log::PrintLine("Effect mode changed for side %d to: %d", i, currentEffectMode[i]);
+    }
+  }
 }
 
 void AppImpl::handleDisplay ()
@@ -556,11 +604,11 @@ void AppImpl::handleDisplay ()
   }
 
   // Mode A switch
-  if (sr1.test(6))
+  if (currentEffectMode[0] == EffectMode::MODE_3)
   {
     hw.leds.Set(Hardware::LED_ORBIT_A, 0x00ff00, 1.0f);
   }
-  else if (sr1.test(7))
+  else if (currentEffectMode[0] == EffectMode::MODE_1)
   {
     hw.leds.Set(Hardware::LED_ORBIT_A, 0x0000ff, 1.0f);
   }
@@ -604,11 +652,11 @@ void AppImpl::handleDisplay ()
   }
 
   // Mode B switch
-  if (sr2.test(2))
+  if (currentEffectMode[1] == EffectMode::MODE_3)
   {
     hw.leds.Set(Hardware::LED_ORBIT_B, 0x00ff00, 1.0f);
   }
-  else if (sr2.test(3))
+  else if (currentEffectMode[1] == EffectMode::MODE_1)
   {
     hw.leds.Set(Hardware::LED_ORBIT_B, 0x0000ff, 1.0f);
   }

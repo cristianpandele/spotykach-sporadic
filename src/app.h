@@ -1,5 +1,6 @@
 #pragma once
 #include "hardware.h"
+#include "Effect.h"
 #include <daisy_seed.h>
 namespace spotykach_hwtest
 {
@@ -166,6 +167,11 @@ namespace spotykach_hwtest
       // Shape controls for each side
       SmoothValue shapeControls[kNumberSpotykachSides] = {SmoothValue(250.0f, kSampleRate),
                                                           SmoothValue(150.0f, kSampleRate)};
+
+      // Mode switch changed flag and current effect mode for each side
+      using EffectMode                                    = Effect::EffectMode;
+      bool       effectModeChanged[kNumberSpotykachSides] = {false, false};
+      EffectMode currentEffectMode[kNumberSpotykachSides] = {EffectMode::MODE_1, EffectMode::MODE_1};
 
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;
