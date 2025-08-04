@@ -82,7 +82,15 @@ void Spotykach::setPosition(float p)
   // Map p in (0,1) to (0, 2*kSampleRate)
   position = infrasonic::map(p, 0.0f, 1.0f, 0.0f, 2.0f * kSampleRate);
   // Set readIx to be writeIx - position, wrapping if needed
-  readIx = writeIx - position - kBlockSize;
+  if (speed < 0)
+  {
+    readIx = writeIx + std::abs(position) + kBlockSize;
+  }
+  else
+  {
+    readIx = writeIx - (position + kBlockSize);
+  }
+  //
   if(readIx < 0)
   {
     readIx += kLooperAudioDataSamples;

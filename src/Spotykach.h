@@ -21,13 +21,13 @@ class Spotykach : public Effect
 
     void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) override;
 
-    void setSpeed (float s)
+    void setPitch (float s) override
     {
       // Map the pitch to -4..4
       speed = infrasonic::map(s, 0.0f, 1.0f, -4.0f, 4.0f);
     }
 
-    void setPosition(float p);
+    void setPosition (float p) override;
 
   private:
     // Read and write pointers for the looper buffer

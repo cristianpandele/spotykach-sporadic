@@ -262,7 +262,7 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     // Set the pitch for both sides
     if (pitchControls[i].isSmoothing())
     {
-      spotykachLooper[i].setSpeed(pitchControls[i].getSmoothVal());
+      spotykachLooper[i].setPitch(pitchControls[i].getSmoothVal());
     }
     // Set the mix for both sides
     spotykachLooper[i].setMix(mixControls[i]);
