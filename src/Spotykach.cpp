@@ -57,14 +57,23 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
       // Advance and wrap read/write indexes, preserving fractional part
       readIx += speed;
       if (readIx >= kLooperAudioDataSamples)
+      {
         readIx -= kLooperAudioDataSamples;
+      }
       else if (readIx < 0)
+      {
         readIx += kLooperAudioDataSamples;
+      }
+      //
       writeIx += speed;
       if (writeIx >= kLooperAudioDataSamples)
+      {
         writeIx -= kLooperAudioDataSamples;
+      }
       else if (writeIx < 0)
+      {
         writeIx += kLooperAudioDataSamples;
+      }
   }
 }
 
