@@ -396,6 +396,18 @@ void AppImpl::handleAnalogControls ()
   // Add the mix CV values
   mixControls[0] += hw.GetControlVoltageValue(Hardware::CV_SOS_IN_A);
   mixControls[1] += hw.GetControlVoltageValue(Hardware::CV_SOS_IN_B);
+
+  // Read the position knobs and CVs
+  positionControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_POS_A);
+  positionControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_POS_B);
+  if ((sizePosSwitch[0] == SizePosSwitchState::POSITION) || (sizePosSwitch[0] == SizePosSwitchState::BOTH))
+  {
+    positionControls[0] += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_A);
+  }
+  if ((sizePosSwitch[1] == SizePosSwitchState::POSITION) || (sizePosSwitch[1] == SizePosSwitchState::BOTH))
+  {
+    positionControls[1] += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_B);
+  }
 }
 
 void AppImpl::handleDigitalControls ()
@@ -405,6 +417,7 @@ void AppImpl::handleDigitalControls ()
   // construct into 8-bit set from inverted bitmask state
   // (all inputs are inverted due to pullups)
   std::bitset<8> sr1 = ~hw.GetShiftRegState(0);
+  std::bitset<8> sr2 = ~hw.GetShiftRegState(1);
 
   // Mode A/B/C switch
   AppMode newMode = currentRoutingMode;
@@ -426,6 +439,34 @@ void AppImpl::handleDigitalControls ()
     routingModeChanged = true;
     currentRoutingMode = newMode;
     // Log::PrintLine("Operating mode changed to: %d", currentRoutingMode);
+  }
+
+  // Size/Pos A switch
+  if (sr1.test(4))
+  {
+    sizePosSwitch[0] = SizePosSwitchState::SIZE;
+  }
+  else if (sr1.test(5))
+  {
+    sizePosSwitch[0] = SizePosSwitchState::POSITION;
+  }
+  else
+  {
+    sizePosSwitch[0] = SizePosSwitchState::BOTH;
+  }
+
+  // Size/Pos B switch
+  if (sr2.test(0))
+  {
+    sizePosSwitch[1] = SizePosSwitchState::SIZE;
+  }
+  else if (sr2.test(1))
+  {
+    sizePosSwitch[1] = SizePosSwitchState::POSITION;
+  }
+  else
+  {
+    sizePosSwitch[1] = SizePosSwitchState::BOTH;
   }
 }
 
@@ -497,18 +538,24 @@ void AppImpl::handleDisplay ()
     hw.leds.Set(Hardware::LED_ORBIT_A, 0xff0000, 1.0f);
   }
 
-  // Size/Pos A switch
-  if (sr1.test(4))
+  // Size/Pos A switch LED
+  switch (sizePosSwitch[0])
   {
-    hw.leds.Set(Hardware::LED_REV_A, 0x00ff00, 1.0f);
-  }
-  else if (sr1.test(5))
-  {
-    hw.leds.Set(Hardware::LED_REV_A, 0x0000ff, 1.0f);
-  }
-  else
-  {
-    hw.leds.Set(Hardware::LED_REV_A, 0xff0000, 1.0f);
+    case SizePosSwitchState::SIZE:
+    {
+      hw.leds.Set(Hardware::LED_REV_A, 0x00ff00, 1.0f);
+      break;
+    }
+    case SizePosSwitchState::POSITION:
+    {
+      hw.leds.Set(Hardware::LED_REV_A, 0x0000ff, 1.0f);
+      break;
+    }
+    case SizePosSwitchState::BOTH:
+    {
+      hw.leds.Set(Hardware::LED_REV_A, 0xff0000, 1.0f);
+      break;
+    }
   }
 
   // Mod B Type switch
@@ -539,18 +586,24 @@ void AppImpl::handleDisplay ()
     hw.leds.Set(Hardware::LED_ORBIT_B, 0xff0000, 1.0f);
   }
 
-  // Size/Pos B switch
-  if (sr2.test(0))
+  // Size/Pos B switch LED
+  switch (sizePosSwitch[1])
   {
-    hw.leds.Set(Hardware::LED_REV_B, 0x00ff00, 1.0f);
-  }
-  else if (sr2.test(1))
-  {
-    hw.leds.Set(Hardware::LED_REV_B, 0x0000ff, 1.0f);
-  }
-  else
-  {
-    hw.leds.Set(Hardware::LED_REV_B, 0xff0000, 1.0f);
+    case SizePosSwitchState::SIZE:
+    {
+      hw.leds.Set(Hardware::LED_REV_B, 0x00ff00, 1.0f);
+      break;
+    }
+    case SizePosSwitchState::POSITION:
+    {
+      hw.leds.Set(Hardware::LED_REV_B, 0x0000ff, 1.0f);
+      break;
+    }
+    case SizePosSwitchState::BOTH:
+    {
+      hw.leds.Set(Hardware::LED_REV_B, 0xff0000, 1.0f);
+      break;
+    }
   }
 
   // Manual tempo tap switch

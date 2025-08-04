@@ -14,6 +14,14 @@ namespace spotykach_hwtest
   constexpr size_t kNumberChannelsStereo = 2;
   constexpr size_t kNumberChannelsMono   = 1;
 
+  // Enum for Size/Pos switch position
+  enum SizePosSwitchState
+  {
+    SIZE,
+    POSITION,
+    BOTH
+  };
+
   // SmoothValue class for smoothing parameter changes
   class SmoothValue
   {
@@ -142,6 +150,10 @@ namespace spotykach_hwtest
 
       // Smooth pitch for each side
       SmoothValue pitchControls[kNumberSpotykachSides] = { SmoothValue(150.0f, kSampleRate), SmoothValue(150.0f, kSampleRate) };
+
+      // Position knob and position/size switch state for each side
+      float positionControls[kNumberSpotykachSides] = {0.0f, 0.0f};
+      SizePosSwitchState sizePosSwitch[kNumberSpotykachSides] = {SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
 
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;
