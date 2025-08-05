@@ -211,6 +211,10 @@ void AppImpl::loop ()
           modulator[i].setModType(currentModType[i]);
           modTypeChanged[i] = false;
         }
+
+        /////////
+        // Piggy back on this timer (500 Hz, roughly /100 times slower than the sample rate) for very rough CV output demo
+        modCv[i] = modulator[i].process();
       }
 
       // View part of MVC
@@ -298,14 +302,10 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     // Apply the analog controls to the modulators
     for (size_t i = 0; i < kNumberSpotykachSides; i++)
     {
-      modulator[i].setFrequency(modulationFreq[i].getSmoothVal());
+      // We are rendering the modulator output at 500 Hz, roughly /100 times slower than the sample rate
+      // so we need to scale the frequency by 100.0f
+      modulator[i].setFrequency(modulationFreq[i].getSmoothVal() * 100.0f);
       modulator[i].setAmplitude(modulationAmount[i].getSmoothVal());
-    }
-    /////////
-    // Get the next modulator samples
-    for (size_t sample = 0; sample < size; sample++)
-    {
-      modCv[i] = modulator[i].process();
     }
   }
 
