@@ -547,6 +547,46 @@ void AppImpl::handleDigitalControls ()
       // Log::PrintLine("Effect mode changed for side %d to: %d", i, currentEffectMode[i]);
     }
   }
+
+  // Mod type A switch (sr1 bits 0,1)
+  using ModType = ModulationEngine::ModType;
+  ModType newModType[2];
+  if (sr1.test(0))
+  {
+    newModType[0] = modulationTypes[0][2];
+  }
+  else if (sr1.test(1))
+  {
+    newModType[0] = modulationTypes[0][0];
+  }
+  else
+  {
+    newModType[0] = modulationTypes[0][1];
+  }
+
+  // Mod type B switch (sr2 bits 4,5)
+  if (sr2.test(4))
+  {
+    newModType[1] = modulationTypes[1][2];
+  }
+  else if (sr2.test(5))
+  {
+    newModType[1] = modulationTypes[1][0];
+  }
+  else
+  {
+    newModType[1] = modulationTypes[1][1];
+  }
+
+  for (size_t i = 0; i < kNumberSpotykachSides; i++)
+  {
+    if (newModType[i] != currentModType[i])
+    {
+      modTypeChanged[i] = true;
+      currentModType[i] = newModType[i];
+      // Log::PrintLine("Modulator type changed for side %d to: %d", i, currentModType[i]);
+    }
+  }
 }
 
 void AppImpl::handleDisplay ()
@@ -566,7 +606,6 @@ void AppImpl::handleDisplay ()
   }
 
   // --- Switches (Shift registers) ---
-  std::bitset<8> sr1 = ~hw.GetShiftRegState(0);
   std::bitset<8> sr2 = ~hw.GetShiftRegState(1);
 
   // Mode A/B/C switch
@@ -589,18 +628,25 @@ void AppImpl::handleDisplay ()
     hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0x000000, 1.0f);
   }
 
-  // Mod A Type switch
-  if (sr1.test(0))
+  // Mod A Type switch LED
+  using ModType = ModulationEngine::ModType;
+  switch (currentModType[0])
   {
-    hw.leds.Set(Hardware::LED_CYCLE_A, 0x00ff00, 1.0f);
-  }
-  else if (sr1.test(1))
-  {
-    hw.leds.Set(Hardware::LED_CYCLE_A, 0x0000ff, 1.0f);
-  }
-  else
-  {
-    hw.leds.Set(Hardware::LED_CYCLE_A, 0xff0000, 1.0f);
+    case ModType::ENV_FOLLOWER:
+    {
+      hw.leds.Set(Hardware::LED_CYCLE_A, 0x00ff00, 1.0f);
+      break;
+    }
+    case ModType::S_H:
+    {
+      hw.leds.Set(Hardware::LED_CYCLE_A, 0x0000ff, 1.0f);
+      break;
+    }
+    default:
+    {
+      hw.leds.Set(Hardware::LED_CYCLE_A, 0xff0000, 1.0f);
+      break;
+    }
   }
 
   // Mode A switch
@@ -637,18 +683,24 @@ void AppImpl::handleDisplay ()
     }
   }
 
-  // Mod B Type switch
-  if (sr2.test(4))
+  // Mod B Type switch LED
+  switch (currentModType[1])
   {
-    hw.leds.Set(Hardware::LED_CYCLE_B, 0x00ff00, 1.0f);
-  }
-  else if (sr2.test(5))
-  {
-    hw.leds.Set(Hardware::LED_CYCLE_B, 0x0000ff, 1.0f);
-  }
-  else
-  {
-    hw.leds.Set(Hardware::LED_CYCLE_B, 0xff0000, 1.0f);
+    case ModType::ENV_FOLLOWER:
+    {
+      hw.leds.Set(Hardware::LED_CYCLE_B, 0x00ff00, 1.0f);
+      break;
+    }
+    case ModType::SINE:
+    {
+      hw.leds.Set(Hardware::LED_CYCLE_B, 0x0000ff, 1.0f);
+      break;
+    }
+    default:
+    {
+      hw.leds.Set(Hardware::LED_CYCLE_B, 0xff0000, 1.0f);
+      break;
+    }
   }
 
   // Mode B switch

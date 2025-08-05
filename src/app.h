@@ -1,6 +1,7 @@
 #pragma once
 #include "hardware.h"
 #include "Effect.h"
+#include "Modulation.h"
 #include <daisy_seed.h>
 namespace spotykach_hwtest
 {
@@ -134,6 +135,13 @@ namespace spotykach_hwtest
       void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
 
     private:
+      using ModType = ModulationEngine::ModType;
+      static constexpr ModType modulationTypes[kNumberSpotykachSides][ModulationEngine::kNumModTypes] =
+        {
+          {ModType::ENV_FOLLOWER,  ModType::S_H, ModType::SQUARE},
+          {ModType::ENV_FOLLOWER, ModType::SINE,    ModType::SAW},
+        };
+
       Hardware       hw;
       StopwatchTimer led_timer;
       StopwatchTimer midi_timer;
@@ -173,6 +181,11 @@ namespace spotykach_hwtest
       bool       effectModeChanged[kNumberSpotykachSides] = {false, false};
       EffectMode currentEffectMode[kNumberSpotykachSides] = {EffectMode::MODE_1, EffectMode::MODE_1};
 
+      // Mod type switch flag and current mod type for each side
+      bool                      modTypeChanged[kNumberSpotykachSides] = {false, false};
+      ModType currentModType[kNumberSpotykachSides] = {ModType::ENV_FOLLOWER,
+                                                       ModType::ENV_FOLLOWER};
+
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;
 
@@ -182,8 +195,8 @@ namespace spotykach_hwtest
 
       // Modulator instances for each side
       Modulator modulator[kNumberSpotykachSides] = {
-        Modulator(modulationTypes[0], ModulationEngine::kNumModTypes, kSampleRate),
-        Modulator(modulationTypes[1], ModulationEngine::kNumModTypes, kSampleRate)
+        Modulator(modulationTypes[0], ModulationEngine::kNumModTypes),
+        Modulator(modulationTypes[1], ModulationEngine::kNumModTypes)
       };
 
       daisysp::Oscillator osc[8];

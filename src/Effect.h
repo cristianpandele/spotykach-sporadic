@@ -1,12 +1,6 @@
 #pragma once
 
-// #include "common.h"
 #include "daisy_seed.h"
-// #include "daisysp.h"
-// #include "app.h"
-
-// using namespace spotykach;
-// using namespace spotykach_hwtest;
 using namespace daisy;
 
 // Base class for Effect implementation
