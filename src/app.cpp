@@ -242,8 +242,8 @@ void AppImpl::loop ()
 void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
   spotykachLooper[0].processAudio(in, out, size);
-  // spotykachLooper[1].processAudio(in, out, size);
-  // sporadic.processAudio(in, out, size);
+  spotykachLooper[1].processAudio(in, out, size);
+  sporadic.processAudio(in, out, size);
 }
 
 void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)

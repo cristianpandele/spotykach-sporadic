@@ -24,6 +24,15 @@ void Spotykach::init ()
 
 void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
+  // Pass-through if mode is not MODE_1 or channelConfig is not MONO_LEFT, MONO_RIGHT, or STEREO
+  if ((mode != MODE_1) ||
+      (channelConfig == ChannelConfig::OFF || channelConfig >= ChannelConfig::CH_CONFIG_LAST))
+  {
+    std::copy(IN_L, IN_L + size, OUT_L);
+    std::copy(IN_R, IN_R + size, OUT_R);
+    return;
+  }
+
   // Only process channels that are active for the current mode
   for (size_t i = 0; i < size; ++i)
   {
