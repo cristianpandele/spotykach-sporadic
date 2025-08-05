@@ -148,14 +148,9 @@ namespace spotykach
       //       implementing enumerated pad logic internal to hw class
       inline uint16_t GetMpr121TouchStates () { return mpr121_.Touched(); }
 
-      inline void WriteCVOutA (float val)
+      inline void WriteCVOut (size_t channel, float val)
       {
-        seed.dac.WriteValue(daisy::DacHandle::Channel::ONE, __USAT(val * (1 << 12), 12));
-      }
-
-      inline void WriteCVOutB (float val)
-      {
-        seed.dac.WriteValue(daisy::DacHandle::Channel::TWO, __USAT(val * (1 << 12), 12));
+        seed.dac.WriteValue(static_cast<daisy::DacHandle::Channel>(channel), __USAT(val * (1 << 12), 12));
       }
 
       // Left public for easy direct handle access

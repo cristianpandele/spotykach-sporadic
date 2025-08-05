@@ -140,8 +140,6 @@ void AppImpl::setRoutingMode (AppImpl::AppMode mode)
 
 void AppImpl::loop ()
 {
-  float cvPhase = 0.0f;
-
   while (true)
   {
     // If boot button held for 3s, reset into bootloader mode for update.
@@ -207,6 +205,12 @@ void AppImpl::loop ()
           spotykachLooper[i].setMode(currentEffectMode[i]);
           effectModeChanged[i] = false;
         }
+
+        if (modTypeChanged[i])
+        {
+          modulator[i].setModType(currentModType[i]);
+          modTypeChanged[i] = false;
+        }
       }
 
       // View part of MVC
@@ -216,11 +220,10 @@ void AppImpl::loop ()
       hw.leds.Show();
 
       // Piggy back on this timer for very rough CV output demo
-      cvPhase += 1.0f / 500.0f;
-      cvPhase -= floorf(cvPhase);
-      float cv = sinf(cvPhase * 2.0f * M_PI) * 0.5f + 0.5f;
-      hw.WriteCVOutA(cv);
-      hw.WriteCVOutB(cv);
+      for (size_t i = 0; i < kNumberSpotykachSides; i++)
+      {
+        hw.WriteCVOut(i, modCv[i]);
+      }
     }
 #if DEBUG
     if (log_timer.HasPassedMs(500))
@@ -265,9 +268,10 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
   // Handle the analog controls that affect the audio processing
   handleAnalogControls();
 
-  // Apply the analog controls to the effects
   for (size_t i = 0; i < kNumberSpotykachSides; i++)
   {
+    /////////
+    // Apply the analog controls to the effects
     // Set the pitch for both sides
     if (pitchControls[i].isSmoothing())
     {
@@ -299,7 +303,10 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     }
     /////////
     // Get the next modulator samples
-    modCv[i] = modulator[i].process();
+    for (size_t sample = 0; sample < size; sample++)
+    {
+      modCv[i] = modulator[i].process();
+    }
   }
 
   // Process the audio through the Spotykach/Sporadic logic

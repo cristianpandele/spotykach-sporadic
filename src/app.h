@@ -136,10 +136,10 @@ namespace spotykach_hwtest
 
     private:
       using ModType = ModulationEngine::ModType;
-      static constexpr ModType modulationTypes[kNumberSpotykachSides][ModulationEngine::kNumModTypes] =
+      static constexpr ModType modulationTypes[kNumberSpotykachSides][ModulationEngine::kNumModsPerSide] =
         {
           {ModType::ENV_FOLLOWER,  ModType::S_H, ModType::SQUARE},
-          {ModType::ENV_FOLLOWER, ModType::SINE,    ModType::SAW},
+          {ModType::ENV_FOLLOWER, ModType::SINE,    ModType::RAMP},
         };
 
       Hardware       hw;
@@ -191,8 +191,11 @@ namespace spotykach_hwtest
 
       // Mod type switch flag and current mod type for each side
       bool                      modTypeChanged[kNumberSpotykachSides] = {false, false};
-      ModType currentModType[kNumberSpotykachSides] = {ModType::ENV_FOLLOWER,
-                                                       ModType::ENV_FOLLOWER};
+      ModType currentModType[kNumberSpotykachSides] = {ModType::MOD_TYPE_LAST,
+                                                       ModType::MOD_TYPE_LAST};
+
+      // Modulator CV value for each side
+      float    modCv[kNumberSpotykachSides] = {0.0f};
 
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;
@@ -203,8 +206,8 @@ namespace spotykach_hwtest
 
       // Modulator instances for each side
       Modulator modulator[kNumberSpotykachSides] = {
-        Modulator(modulationTypes[0], ModulationEngine::kNumModTypes),
-        Modulator(modulationTypes[1], ModulationEngine::kNumModTypes)
+        Modulator(modulationTypes[0], ModulationEngine::kNumModsPerSide, kSampleRate),
+        Modulator(modulationTypes[1], ModulationEngine::kNumModsPerSide, kSampleRate)
       };
 
       daisysp::Oscillator osc[8];
