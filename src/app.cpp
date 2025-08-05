@@ -290,6 +290,16 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     {
       spotykachLooper[i].setShape(shapeControls[i].getSmoothVal());
     }
+    /////////
+    // Apply the analog controls to the modulators
+    for (size_t i = 0; i < kNumberSpotykachSides; i++)
+    {
+      modulator[i].setFrequency(modulationFreq[i].getSmoothVal());
+      modulator[i].setAmplitude(modulationAmount[i].getSmoothVal());
+    }
+    /////////
+    // Get the next modulator samples
+    modCv[i] = modulator[i].process();
   }
 
   // Process the audio through the Spotykach/Sporadic logic
@@ -448,6 +458,14 @@ void AppImpl::handleAnalogControls ()
   // Read the shape knobs
   shapeControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_SHAPE_A);
   shapeControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_SHAPE_B);
+
+  // Read the modulation amount knobs
+  modulationAmount[0] = hw.GetAnalogControlValue(Hardware::CTRL_MOD_AMT_A);
+  modulationAmount[1] = hw.GetAnalogControlValue(Hardware::CTRL_MOD_AMT_B);
+
+  // Read the modulation frequency knobs
+  modulationFreq[0] = hw.GetAnalogControlValue(Hardware::CTRL_MOD_FREQ_A);
+  modulationFreq[1] = hw.GetAnalogControlValue(Hardware::CTRL_MOD_FREQ_B);
 }
 
 void AppImpl::handleDigitalControls ()
@@ -630,21 +648,22 @@ void AppImpl::handleDisplay ()
 
   // Mod A Type switch LED
   using ModType = ModulationEngine::ModType;
+  float modLedBrightness = modulationAmount[0].getSmoothVal();
   switch (currentModType[0])
   {
     case ModType::ENV_FOLLOWER:
     {
-      hw.leds.Set(Hardware::LED_CYCLE_A, 0x00ff00, 1.0f);
+      hw.leds.Set(Hardware::LED_CYCLE_A, 0x00ff00, modLedBrightness);
       break;
     }
     case ModType::S_H:
     {
-      hw.leds.Set(Hardware::LED_CYCLE_A, 0x0000ff, 1.0f);
+      hw.leds.Set(Hardware::LED_CYCLE_A, 0x0000ff, modLedBrightness);
       break;
     }
     default:
     {
-      hw.leds.Set(Hardware::LED_CYCLE_A, 0xff0000, 1.0f);
+      hw.leds.Set(Hardware::LED_CYCLE_A, 0xff0000, modLedBrightness);
       break;
     }
   }
@@ -684,21 +703,22 @@ void AppImpl::handleDisplay ()
   }
 
   // Mod B Type switch LED
+  modLedBrightness = modulationAmount[1].getSmoothVal();
   switch (currentModType[1])
   {
     case ModType::ENV_FOLLOWER:
     {
-      hw.leds.Set(Hardware::LED_CYCLE_B, 0x00ff00, 1.0f);
+      hw.leds.Set(Hardware::LED_CYCLE_B, 0x00ff00, modLedBrightness);
       break;
     }
     case ModType::SINE:
     {
-      hw.leds.Set(Hardware::LED_CYCLE_B, 0x0000ff, 1.0f);
+      hw.leds.Set(Hardware::LED_CYCLE_B, 0x0000ff, modLedBrightness);
       break;
     }
     default:
     {
-      hw.leds.Set(Hardware::LED_CYCLE_B, 0xff0000, 1.0f);
+      hw.leds.Set(Hardware::LED_CYCLE_B, 0xff0000, modLedBrightness);
       break;
     }
   }

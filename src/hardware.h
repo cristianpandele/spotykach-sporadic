@@ -58,7 +58,7 @@ namespace spotykach
       enum AnalogControlId : uint16_t
       {
         CTRL_SOS_A,
-        CTRL_MODFREQ_A,
+        CTRL_MOD_FREQ_A,
         CTRL_MOD_AMT_A,
         CTRL_SIZE_A,
         CTRL_PITCH_A,
@@ -66,7 +66,7 @@ namespace spotykach
         CTRL_SHAPE_A,
 
         CTRL_SOS_B,
-        CTRL_MODFREQ_B,
+        CTRL_MOD_FREQ_B,
         CTRL_MOD_AMT_B,
         CTRL_SIZE_B,
         CTRL_PITCH_B,

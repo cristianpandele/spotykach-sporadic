@@ -176,6 +176,14 @@ namespace spotykach_hwtest
       SmoothValue shapeControls[kNumberSpotykachSides] = {SmoothValue(250.0f, kSampleRate),
                                                           SmoothValue(150.0f, kSampleRate)};
 
+      // Modulation amount controls for each side
+      SmoothValue modulationAmount[kNumberSpotykachSides] = {SmoothValue(75.0f, kSampleRate),
+                                                              SmoothValue(75.0f, kSampleRate)};
+
+      // Modulation frequency controls for each side
+      SmoothValue modulationFreq[kNumberSpotykachSides] = {SmoothValue(75.0f, kSampleRate),
+                                                            SmoothValue(75.0f, kSampleRate)};
+
       // Mode switch changed flag and current effect mode for each side
       using EffectMode                                    = Effect::EffectMode;
       bool       effectModeChanged[kNumberSpotykachSides] = {false, false};
