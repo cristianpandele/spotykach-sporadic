@@ -46,6 +46,12 @@ class Spotykach : public Effect
 
     void setPosition (float p) override;
 
+    void setState(State s) { state_ = s; }
+
+    void setFeedback (float fb) { feedback_ = std::clamp(fb, 0.0f, 0.99f); }
+
+    void setRecord (bool r) { record_ = r; }
+
     // Override the EffectMode enum to define specific modes for Spotykach
     enum EffectMode
     {
@@ -61,8 +67,13 @@ class Spotykach : public Effect
     float writeIx_ = 0;
     // Speed of looper heads
     float speed_ = 1.0f;
-    // Position knob value
-    float   position_   = 0.0f;
+    // Feedback amount for overdub
+    float feedback_ = 0.0f;
+    // Record flag
+    bool record_ = false;
+
+    // Spotykach effect state
+    State state_ = OFF;
     // Current side being processed (0 or 1)
     uint8_t effectSide_ = 0;
 
