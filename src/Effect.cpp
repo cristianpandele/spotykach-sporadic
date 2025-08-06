@@ -11,7 +11,7 @@ void Effect::setChannelConfig (ChannelConfig mode)
     Log::PrintLine("Invalid operating mode: %d", mode);
     return;
   }
-  channelConfig = mode;
+  channelConfig_ = mode;
 }
 
 void Effect::setMode (EffectMode m)
@@ -22,13 +22,13 @@ void Effect::setMode (EffectMode m)
     return;
   }
   // Set the effect mode
-  mode = m;
+  mode_ = m;
 }
 
-void Effect::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
+void Effect::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
   // Process the effect audio
   // This is a placeholder for the actual effect logic, just copy the input to the output
-  std::copy(IN_L, IN_L + size, OUT_L);
-  std::copy(IN_R, IN_R + size, OUT_R);
+  std::copy(IN_L, IN_L + blockSize, OUT_L);
+  std::copy(IN_R, IN_R + blockSize, OUT_R);
 }

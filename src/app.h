@@ -129,10 +129,10 @@ namespace spotykach_hwtest
       void loop ();
 
       // Audio processing functions for the Spotykach looper and Sporadic effect
-      void processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
+      void processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize);
 
       // This is the main audio processing function that will be called from the AudioCallback
-      void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size);
+      void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize);
 
     private:
       using ModType = ModulationEngine::ModType;

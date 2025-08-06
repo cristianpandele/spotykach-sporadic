@@ -15,7 +15,7 @@ class Sporadic : public Effect
     Sporadic ()  = default;
     ~Sporadic () = default;
 
-    void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) override;
+    void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
 
   private:
     Sporadic (const Sporadic &)           = delete;

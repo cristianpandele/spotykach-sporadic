@@ -55,12 +55,12 @@ static void UsbCallback (uint8_t *buf, uint32_t *len)
   usbBuffIx += *len;
 }
 
-static void AudioCallback (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
+static void AudioCallback (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
 #if DEBUG
   loadMeter.OnBlockStart();
 #endif
-  impl.processAudio(in, out, size);
+  impl.processAudio(in, out, blockSize);
 #if DEBUG
   loadMeter.OnBlockEnd();
 #endif
@@ -239,25 +239,25 @@ void AppImpl::loop ()
   }
 }
 
-void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
+void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
-  spotykachLooper[0].processAudio(in, out, size);
-  spotykachLooper[1].processAudio(in, out, size);
-  sporadic.processAudio(in, out, size);
+  spotykachLooper[0].processAudio(in, out, blockSize);
+  spotykachLooper[1].processAudio(in, out, blockSize);
+  sporadic.processAudio(in, out, blockSize);
 }
 
-void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
+void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
   hw.ProcessAnalogControls();
 
 #if 0
-  std::copy(IN_L, IN_L + size, OUT_L);
-  std::copy(IN_R, IN_R + size, OUT_R);
+  std::copy(IN_L, IN_L + blockSize, OUT_L);
+  std::copy(IN_R, IN_R + blockSize, OUT_R);
 
 
   // Add test oscillator from MIDI input
   float s;
-  for (size_t i = 0; i < size; i++)
+  for (size_t i = 0; i < blockSize; i++)
   {
     s = 0.0f;
     for (size_t j = 0; j < 8; j++)
@@ -311,7 +311,7 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
 
   // Process the audio through the Spotykach/Sporadic logic
   // Routing is dependent on currentRoutingMode as indicated by LED_ROUTING
-  processAudioLogic(in, out, size);
+  processAudioLogic(in, out, blockSize);
 #endif
 }
 

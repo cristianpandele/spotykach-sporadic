@@ -14,17 +14,17 @@ using namespace spotykach_hwtest;
 class Spotykach : public Effect
 {
   public:
-    Spotykach (uint8_t side) : effectSide(side) {}
+    Spotykach (uint8_t side) : effectSide_(side) {}
     ~Spotykach () = default;
 
     void init ();
 
-    void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) override;
+    void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
 
     void setPitch (float s) override
     {
       // Map the pitch to -4..4
-      speed = infrasonic::map(s, 0.0f, 1.0f, -4.0f, 4.0f);
+      speed_ = infrasonic::map(s, 0.0f, 1.0f, -4.0f, 4.0f);
     }
 
     void setPosition (float p) override;
@@ -40,14 +40,16 @@ class Spotykach : public Effect
 
   private:
     // Read and write pointers for the looper buffer
-    float readIx  = 0;
-    float writeIx = 0;
+    float readIx_  = 0;
+    float writeIx_ = 0;
     // Speed of looper heads
-    float speed    = 1.0f;
-    float position = 0.0f;
+    float speed_ = 1.0f;
+    // Position knob value
+    float   position_   = 0.0f;
+    // Current side being processed (0 or 1)
+    uint8_t effectSide_ = 0;
 
     bool    isChannelActive (size_t ch) const;
-    uint8_t effectSide                      = 0;    // Current side being processed (0 or 1)
 
     Spotykach (const Spotykach &)           = delete;
     Spotykach &operator=(const Spotykach &) = delete;

@@ -1,13 +1,13 @@
 #include "app.h"
 #include "Sporadic.h"
 
-void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) override
+void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
-  // Pass-through if channelConfig is not MONO_LEFT, MONO_RIGHT, or STEREO
-  if (channelConfig == ChannelConfig::OFF || channelConfig >= ChannelConfig::CH_CONFIG_LAST)
+  // Pass-through if channelConfig_ is not MONO_LEFT, MONO_RIGHT, or STEREO
+  if (channelConfig_ == ChannelConfig::OFF || channelConfig_ >= ChannelConfig::CH_CONFIG_LAST)
   {
-    std::copy(IN_L, IN_L + size, OUT_L);
-    std::copy(IN_R, IN_R + size, OUT_R);
+    std::copy(IN_L, IN_L + blockSize, OUT_L);
+    std::copy(IN_R, IN_R + blockSize, OUT_R);
     return;
   }
 
