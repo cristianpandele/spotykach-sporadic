@@ -41,6 +41,10 @@ class Effect
 
     virtual void setShape (float s) { shape_ = s; }
 
+    virtual void setReverse (bool r) { reverse_ = r; }
+
+    virtual void setPlay (bool p) { play_ = p; }
+
     virtual void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize);
 
   protected:
@@ -61,6 +65,12 @@ class Effect
 
     // Shape control
     float shape_ = 0.0f;
+
+    // Reverse playback flag
+    bool reverse_ = false;
+
+    // Play flag
+    bool play_ = false;
 
     // Current effect mode
     EffectMode mode_ = MODE_1;

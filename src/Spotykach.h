@@ -21,11 +21,28 @@ class Spotykach : public Effect
 
     void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
 
-    void setPitch (float s) override
+    void setPitch (float s) override;
+
+    void setPlay (bool p) override;
+
+    void setReverse (bool r) override;
+
+#if DEBUG
+    float getPitch () const
     {
-      // Map the pitch to -4..4
-      speed_ = infrasonic::map(s, 0.0f, 1.0f, -4.0f, 4.0f);
+      return speed_;
     }
+
+    float getReadIx () const
+    {
+      return readIx_;
+    }
+
+    float getWriteIx () const
+    {
+      return writeIx_;
+    }
+#endif // DEBUG
 
     void setPosition (float p) override;
 

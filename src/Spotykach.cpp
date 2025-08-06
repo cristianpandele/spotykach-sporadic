@@ -15,7 +15,110 @@ void Spotykach::init ()
   // Initialize the looper audio data buffers
   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
-    std::fill(looperAudioData[effectSide_][ch], looperAudioData[effectSide_][ch] + kLooperAudioDataSamples, 0.0f);
+    if (isChannelActive(ch))
+    {
+      std::fill(looperAudioData[effectSide_][ch], looperAudioData[effectSide_][ch] + kLooperAudioDataSamples, 0.0f);
+    }
+  }
+}
+
+void Spotykach::setPitch (float s)
+{
+  // Map the pitch to 0..4
+  speed_ = infrasonic::map(s, 0.0f, 1.0f, 0.0f, 4.0f);
+  if (reverse_)
+  {
+    // Reverse playback, set speed to negative
+    speed_ = -std::abs(speed_);
+  }
+  else
+  {
+    // Normal playback, set speed to positive
+    speed_ = std::abs(speed_);
+  }
+}
+
+void Spotykach::updateReadIndexPosition (float p)
+{
+  // Set readIx_ to be writeIx_ - position_, wrapping if needed
+  if (speed_ < 0)
+  {
+    readIx_ = writeIx_ + (position_ + std::abs(speed_ * kBlockSize));
+  }
+  else
+  {
+    readIx_ = writeIx_ - (position_ + std::abs(speed_ * kBlockSize));
+  }
+  //
+  if (readIx_ < 0)
+  {
+    readIx_ += kLooperAudioDataSamples;
+  }
+  else if (readIx_ >= kLooperAudioDataSamples)
+  {
+    readIx_ -= kLooperAudioDataSamples;
+  }
+}
+
+void Spotykach::setPosition (float p)
+{
+  // Map p in (0,1) to (0, 2*kSampleRate)
+  position_ = infrasonic::map(p, 0.0f, 1.0f, 0.0f, 2.0f * kSampleRate);
+
+  updateReadIndexPosition(position_);
+}
+
+void Spotykach::setPlay (bool p)
+{
+  play_ = p;
+
+  switch (state_)
+  {
+    case OFF:
+    {
+      if (play_)
+      {
+        state_ = ECHO;
+        // Clear the audio buffers
+        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+        {
+          if (isChannelActive(ch))
+          {
+            std::fill(looperAudioData[effectSide_][ch], looperAudioData[effectSide_][ch] + kLooperAudioDataSamples, 0.0f);
+          }
+        }
+      }
+      break;
+    }
+    case ECHO:
+    {
+      if (!play_)
+      {
+        // If stopped playing, return to OFF state
+        state_ = OFF;
+        break;
+      }
+    }
+    default:
+    {
+      // Other states do not change on play toggle
+      break;
+    }
+  }
+}
+
+void Spotykach::setReverse (bool r)
+{
+  reverse_ = r;
+  if (reverse_)
+  {
+    // Reverse playback, set speed to negative
+    speed_ = -std::abs(speed_);
+  }
+  else
+  {
+    // Normal playback, set speed to positive
+    speed_ = std::abs(speed_);
   }
 }
 

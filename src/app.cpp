@@ -212,6 +212,18 @@ void AppImpl::loop ()
           modTypeChanged[i] = false;
         }
 
+        if (reverseStateChanged[i])
+        {
+          spotykachLooper[i].setReverse(currentReverseState[i]);
+          reverseStateChanged[i] = false;
+        }
+
+        if (playStateChanged[i])
+        {
+          spotykachLooper[i].setPlay(currentPlayState[i]);
+          playStateChanged[i] = false;
+        }
+
         /////////
         // Piggy back on this timer (500 Hz, roughly /100 times slower than the sample rate) for very rough CV output demo
         modCv[i] = modulator[i].process();

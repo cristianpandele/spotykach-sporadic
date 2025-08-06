@@ -232,13 +232,33 @@ namespace spotykach_hwtest
 
       // Mode switch changed flag and current effect mode for each side
       using EffectMode                                    = Effect::EffectMode;
-      bool       effectModeChanged[kNumberSpotykachSides] = {false, false};
+      bool       effectModeChanged[kNumberSpotykachSides] = {false};
       EffectMode currentEffectMode[kNumberSpotykachSides] = {EffectMode::MODE_1, EffectMode::MODE_1};
 
       // Mod type switch flag and current mod type for each side
-      bool                      modTypeChanged[kNumberSpotykachSides] = {false, false};
+      bool    modTypeChanged[kNumberSpotykachSides] = {false};
       ModType currentModType[kNumberSpotykachSides] = {ModType::MOD_TYPE_LAST,
                                                        ModType::MOD_TYPE_LAST};
+
+      // Reverse flag for each side
+      bool reverseStateChanged[kNumberSpotykachSides] = {false};
+      bool currentReverseState[kNumberSpotykachSides] = {false};
+
+      // Play flag for each side
+      bool playStateChanged[kNumberSpotykachSides] = {false};
+      bool currentPlayState[kNumberSpotykachSides] = {false};
+
+      // Alt + Play flag for each side
+      bool altPlayStateChanged[kNumberSpotykachSides] = {false};
+      bool currentAltPlayState[kNumberSpotykachSides] = {false};
+
+      // Spotykach + Play flag for each side
+      bool spotyPlayStateChanged[kNumberSpotykachSides] = {false};
+      bool currentSpotyPlayState[kNumberSpotykachSides] = {false};
+
+      // Pad touch states
+      std::bitset<16> padTouchStates;
+      std::bitset<16> padTouchStatesPrev;
 
       // Modulator CV value for each side
       float    modCv[kNumberSpotykachSides] = {0.0f};
