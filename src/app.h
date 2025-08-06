@@ -24,70 +24,115 @@ namespace spotykach_hwtest
     BOTH
   };
 
-  // SmoothValue class for smoothing parameter changes
-  class SmoothValue
+  // Utils class
+  using ChannelConfig = Effect::ChannelConfig;
+  class Utils
   {
     public:
-      SmoothValue (float smoothTimeMs, float sampleRate)
+      // Function to test if a touchpad state has changed
+      static bool hasTouchStateChanged(const std::bitset<16> &current, const std::bitset<16> &previous, size_t index)
       {
-        smoothing    = false;
-        currentValue = 0.0f;
-        targetValue  = 0.0f;
-        filterCoeff  = 100000.0f / (smoothTimeMs * sampleRate);
+        // Check if the state at the given index has changed
+        return current.test(index) != previous.test(index);
       }
 
-      // Overload assignment to set targetValue
-      SmoothValue &operator=(float v)
+      // Function to test if a touchpad state has changed to pressed
+      static bool hasTouchStateChangedToPressed(const std::bitset<16> &current, const std::bitset<16> &previous, size_t index)
       {
-        targetValue = v;
-        // Check if the value is undergoing smoothing
-        setSmoothing();
-        return *this;
+        // Check if the state at the given index has changed
+        return current.test(index) && !previous.test(index);
       }
 
-      // Overload the += operator to add to the target value
-      SmoothValue &operator+=(float v)
+      // Function to test if a touchpad state has changed to released
+      static bool hasTouchStateChangedToReleased(const std::bitset<16> &current, const std::bitset<16> &previous, size_t index)
       {
-        targetValue += v;
-        // Check if the value is undergoing smoothing
-        setSmoothing();
-        return *this;
+        // Check if the state at the given index has changed
+        return !current.test(index) && previous.test(index);
       }
 
-      // Get the smoothed value
-      float getSmoothVal ()
+      // Function to test if the Alt pad is pressed
+      static bool isAltPadPressed(const std::bitset<16> &current)
       {
-        daisysp::fonepole(currentValue, targetValue, filterCoeff);
-        // Check if the value is undergoing smoothing
-        setSmoothing();
-        return currentValue;
+        // Check if the Alt pad (index 11) is pressed
+        return current.test(11);
       }
 
-      // Get the target value
-      float getTargetVal () const { return targetValue; }
-
-      // Check if the value has smoothing
-      bool isSmoothing () const { return smoothing; }
-
-    private:
-      bool  smoothing;
-      float currentValue;
-      float targetValue;
-      float filterCoeff;
-
-      // Determine if the value has smoothing
-      void setSmoothing ()
+      // Function to test if the Spotykach pad is pressed
+      static bool isSpotykachPadPressed(const std::bitset<16> &current)
       {
-        // If the current value is more that 1% away from the target, mark as smoothing
-        if (std::abs(currentValue - targetValue) / (std::abs(targetValue) > 0.01f))
-        {
-          smoothing = true;
-        }
-        else
-        {
-          smoothing = false;
-        }
+        // Check if the Spotykach pad (index 10) is pressed
+        return current.test(10);
       }
+
+      // SmoothValue class for smoothing parameter changes
+      class SmoothValue
+      {
+        public:
+          SmoothValue (float smoothTimeMs, float sampleRate)
+          {
+            smoothing_    = false;
+            currentValue_ = 0.0f;
+            targetValue_  = 0.0f;
+            // Frequency for smoothing these values is
+            filterCoeff_  = 100.0f * (1000.0f / (smoothTimeMs * sampleRate));
+          }
+
+          // Overload assignment to set targetValue
+          SmoothValue &operator=(float v)
+          {
+            float oldValue = currentValue_;
+            targetValue_ = v;
+            // Check if the value is undergoing smoothing
+            setSmoothing(oldValue, targetValue_);
+            return *this;
+          }
+
+          // Overload the += operator to add to the target value
+          SmoothValue &operator+=(float v)
+          {
+            float oldValue = currentValue_;
+            targetValue_ += v;
+            // Check if the value is undergoing smoothing
+            setSmoothing(oldValue, targetValue_);
+            return *this;
+          }
+
+          // Get the smoothed value
+          float getSmoothVal ()
+          {
+            float oldValue = currentValue_;
+            daisysp::fonepole(currentValue_, targetValue_, filterCoeff_);
+            // Check if the value is undergoing smoothing
+            setSmoothing(oldValue, currentValue_);
+            return currentValue_;
+          }
+
+          // Get the target value
+          float getTargetVal () const { return targetValue_; }
+
+          // Check if the value has smoothing
+          bool isSmoothing () const { return smoothing_; }
+
+          private:
+            bool  smoothing_;
+            float currentValue_;
+            float targetValue_;
+            float filterCoeff_;
+
+            // Determine if the value has smoothing
+            void setSmoothing (float oldValue, float currentValue)
+            {
+              // If the current value is more that 1% away from the target, mark as smoothing
+              if (std::abs((currentValue - oldValue) / oldValue) > 0.01f)
+              {
+                smoothing_ = true;
+              }
+              else
+              {
+                smoothing_ = false;
+              }
+            }
+      };
   };
 
   // Application class
@@ -155,6 +200,7 @@ namespace spotykach_hwtest
       AppMode currentRoutingMode = AppMode::OFF;
 
       // Mix controls for the two sides
+      using SmoothValue = Utils::SmoothValue;
       SmoothValue mixControls[kNumberSpotykachSides] = {SmoothValue(25.0f, kSampleRate),
                                                         SmoothValue(25.0f, kSampleRate)};
 
