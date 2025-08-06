@@ -624,6 +624,97 @@ void AppImpl::handleDigitalControls ()
       // Log::PrintLine("Modulator type changed for side %d to: %d", i, currentModType[i]);
     }
   }
+
+  // Touch controls
+  padTouchStates = hw.GetMpr121TouchStates();
+
+  if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 1))
+  {
+    // REV_A
+    reverseStateChanged[0] = true;
+    currentReverseState[0] = !currentReverseState[0];
+    // Log::PrintLine("Reverse state changed for side 0 to: %d", currentReverseState[0]);
+  }
+
+  if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 8))
+  {
+    // REV_B
+    reverseStateChanged[1] = true;
+    currentReverseState[1] = !currentReverseState[1];
+    // Log::PrintLine("Reverse state changed for side 1 to: %d", currentReverseState[1]);
+  }
+
+  if ((Utils::isAltPadPressed(padTouchStates)) &&
+      (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 0)))
+  {
+    // ALT + PLAY_A
+    altPlayStateChanged[0] = true;
+    currentAltPlayState[0] = !currentAltPlayState[0];
+    // Log::PrintLine("Alt+Play state changed for side 0 to: %d", currentAltPlayState[0]);
+  }
+  else if ((Utils::isSpotykachPadPressed(padTouchStates)) &&
+           (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 0)))
+  {
+    // SPOTYKACH + PLAY_A
+    spotyPlayStateChanged[0] = true;
+    currentSpotyPlayState[0] = !currentSpotyPlayState[0];
+    // Log::PrintLine("Spotykach+Play state changed for side 0 to: %d", currentSpotyPlayState[0]);
+
+    // If the effect on this side is Spotykach, reset the looper
+    if ((currentRoutingMode >= AppMode::ROUTING_DUAL_MONO) &&
+        (currentRoutingMode < AppMode::ROUTING_LAST))
+    {
+      reverseStateChanged[0] = true;
+      currentReverseState[0] = false;
+      playStateChanged[0]    = true;
+      currentPlayState[0]    = false;
+      // Log::PrintLine("Spotykach looper reset for side 0");
+    }
+  }
+  else if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 0))
+  {
+    // PLAY_A
+    playStateChanged[0] = true;
+    currentPlayState[0] = !currentPlayState[0];
+    // Log::PrintLine("Play state changed for side 0 to: %d", currentPlayState[0]);
+  }
+
+  if ((Utils::isAltPadPressed(padTouchStates)) &&
+      (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 9)))
+  {
+    // ALT + PLAY_B
+    altPlayStateChanged[1] = true;
+    currentAltPlayState[1] = !currentAltPlayState[1];
+    // Log::PrintLine("Alt+Play state changed for side 1 to: %d", currentAltPlayState[1]);
+  }
+  else if ((Utils::isSpotykachPadPressed(padTouchStates)) &&
+           (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 9)))
+  {
+    // SPOTYKACH + PLAY_B
+    spotyPlayStateChanged[1] = true;
+    currentSpotyPlayState[1] = !currentSpotyPlayState[1];
+    // Log::PrintLine("Spotykach+Play state changed for side 1 to: %d", currentSpotyPlayState[1]);
+
+    // If the effect on this side is Spotykach, reset the looper
+    if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
+    {
+      reverseStateChanged[1] = true;
+      currentReverseState[1] = false;
+      playStateChanged[1]    = true;
+      currentPlayState[1]    = false;
+      // Log::PrintLine("Spotykach looper reset for side 1");
+    }
+  }
+  else if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 9))
+  {
+    // PLAY_B
+    playStateChanged[1] = true;
+    currentPlayState[1] = !currentPlayState[1];
+    // Log::PrintLine("Play state changed for side 1 to: %d", currentPlayState[1]);
+  }
+
+  // Update the previous touch states
+  padTouchStatesPrev = padTouchStates;
 }
 
 void AppImpl::handleDisplay ()
@@ -702,24 +793,24 @@ void AppImpl::handleDisplay ()
   }
 
   // Size/Pos A switch LED
-  switch (sizePosSwitch[0])
-  {
-    case SizePosSwitchState::SIZE:
-    {
-      hw.leds.Set(Hardware::LED_REV_A, 0x00ff00, 1.0f);
-      break;
-    }
-    case SizePosSwitchState::POSITION:
-    {
-      hw.leds.Set(Hardware::LED_REV_A, 0x0000ff, 1.0f);
-      break;
-    }
-    case SizePosSwitchState::BOTH:
-    {
-      hw.leds.Set(Hardware::LED_REV_A, 0xff0000, 1.0f);
-      break;
-    }
-  }
+  // switch (sizePosSwitch[0])
+  // {
+  //   case SizePosSwitchState::SIZE:
+  //   {
+  //     hw.leds.Set(Hardware::LED_REV_A, 0x00ff00, 1.0f);
+  //     break;
+  //   }
+  //   case SizePosSwitchState::POSITION:
+  //   {
+  //     hw.leds.Set(Hardware::LED_REV_A, 0x0000ff, 1.0f);
+  //     break;
+  //   }
+  //   case SizePosSwitchState::BOTH:
+  //   {
+  //     hw.leds.Set(Hardware::LED_REV_A, 0xff0000, 1.0f);
+  //     break;
+  //   }
+  // }
 
   // Mod B Type switch LED
   modLedBrightness = modulationAmount[1].getSmoothVal();
@@ -757,24 +848,24 @@ void AppImpl::handleDisplay ()
   }
 
   // Size/Pos B switch LED
-  switch (sizePosSwitch[1])
-  {
-    case SizePosSwitchState::SIZE:
-    {
-      hw.leds.Set(Hardware::LED_REV_B, 0x00ff00, 1.0f);
-      break;
-    }
-    case SizePosSwitchState::POSITION:
-    {
-      hw.leds.Set(Hardware::LED_REV_B, 0x0000ff, 1.0f);
-      break;
-    }
-    case SizePosSwitchState::BOTH:
-    {
-      hw.leds.Set(Hardware::LED_REV_B, 0xff0000, 1.0f);
-      break;
-    }
-  }
+  // switch (sizePosSwitch[1])
+  // {
+  //   case SizePosSwitchState::SIZE:
+  //   {
+  //     hw.leds.Set(Hardware::LED_REV_B, 0x00ff00, 1.0f);
+  //     break;
+  //   }
+  //   case SizePosSwitchState::POSITION:
+  //   {
+  //     hw.leds.Set(Hardware::LED_REV_B, 0x0000ff, 1.0f);
+  //     break;
+  //   }
+  //   case SizePosSwitchState::BOTH:
+  //   {
+  //     hw.leds.Set(Hardware::LED_REV_B, 0xff0000, 1.0f);
+  //     break;
+  //   }
+  // }
 
   // Manual tempo tap switch
   if (sr2.test(6))
@@ -841,29 +932,42 @@ void AppImpl::handleDisplay ()
     hw.leds.Set(Hardware::LED_SPOTY_PAD, 0xff0000);
 
   // --- TOUCH PADS ---
+  for (size_t i = 0; i < kNumberSpotykachSides; i++)
+  {
+    // Reverse touchpad
+    if (currentReverseState[i])
+    {
+      // If the reverse state is on, set the LED to white
+      hw.leds.Set((i == 0) ? Hardware::LED_REV_A : Hardware::LED_REV_B, 0x0000ff, 1.0f);
+    }
+    else
+    {
+      // If the reverse state is off, set the LED to black
+      hw.leds.Set((i == 0) ? Hardware::LED_REV_A : Hardware::LED_REV_B, 0x000000, 1.0f);
+    }
+    // Play touchpad
+    if (currentPlayState[i])
+    {
+      // If the play state is on, set the LED to white
+      hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x00ff00, 1.0f);
+    }
+    // Alt + Play touchpad
+    else if (currentAltPlayState[i])
+    {
+      hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0xff0000, 1.0f);
+    }
+    else
+    {
+      // If the play state is off, set the LED to black
+      hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x000000, 1.0f);
+    }
+  }
 
   // These will override the corresponding LED of the touchpad with WHITE if the pad
   // is being pressed, otherwise default behavior from above
-  std::bitset<16> touch = hw.GetMpr121TouchStates();
-
-  // Mapping from pad bit position (electrode) to LED
-  // for illuminating on touch for test purposes
-  // Bit position acts as index into array
-  constexpr Hardware::LedId kPadMapping[12] = {Hardware::LED_PLAY_A,
-                                               Hardware::LED_REV_A,
-                                               Hardware::LED_ORBIT_A,
-                                               Hardware::LED_DRIFT_A,
-                                               Hardware::LED_CYCLE_A,
-                                               Hardware::LED_CYCLE_B,
-                                               Hardware::LED_DRIFT_B,
-                                               Hardware::LED_ORBIT_B,
-                                               Hardware::LED_REV_B,
-                                               Hardware::LED_PLAY_B,
-                                               Hardware::LED_SPOTY_PAD,
-                                               Hardware::LED_ALT_A};
   for (uint16_t i = 0; i < 12; i++)
   {
-    if (touch.test(i))
+    if (padTouchStates.test(i))
     {
       hw.leds.Set(kPadMapping[i], 0xffffff);
       if (i == 11)

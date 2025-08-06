@@ -2,6 +2,8 @@
 #include "hardware.h"
 #include "Effect.h"
 #include "Modulation.h"
+#include "hardware.h"
+#include <bitset>
 #include <daisy_seed.h>
 namespace spotykach_hwtest
 {
@@ -166,6 +168,22 @@ namespace spotykach_hwtest
         ROUTING_GENERATIVE,
         ROUTING_LAST
       };
+
+      // Mapping from pad bit position (electrode) to LED
+      // for illuminating on touch for test purposes
+      // Bit position acts as index into array
+      static constexpr Hardware::LedId kPadMapping[12] = {Hardware::LED_PLAY_A,
+                                                          Hardware::LED_REV_A,
+                                                          Hardware::LED_ORBIT_A,
+                                                          Hardware::LED_DRIFT_A,
+                                                          Hardware::LED_CYCLE_A,
+                                                          Hardware::LED_CYCLE_B,
+                                                          Hardware::LED_DRIFT_B,
+                                                          Hardware::LED_ORBIT_B,
+                                                          Hardware::LED_REV_B,
+                                                          Hardware::LED_PLAY_B,
+                                                          Hardware::LED_SPOTY_PAD,
+                                                          Hardware::LED_ALT_A};
 
       AppImpl ()  = default;
       ~AppImpl () = default;
