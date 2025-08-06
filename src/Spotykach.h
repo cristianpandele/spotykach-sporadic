@@ -14,6 +14,14 @@ using namespace spotykach_hwtest;
 class Spotykach : public Effect
 {
   public:
+    enum State
+    {
+      OFF,
+      ECHO,
+      ARMED,
+      RECORDING,
+      LOOP_PLAYBACK
+    };
     Spotykach (uint8_t side) : effectSide_(side) {}
     ~Spotykach () = default;
 
@@ -44,13 +52,14 @@ class Spotykach : public Effect
     }
 #endif // DEBUG
 
+    void updateReadIndexPosition (float p);
     void setPosition (float p) override;
 
     void setState(State s) { state_ = s; }
 
     void setFeedback (float fb) { feedback_ = std::clamp(fb, 0.0f, 0.99f); }
 
-    void setRecord (bool r) { record_ = r; }
+    void setRecord (bool r);
 
     // Override the EffectMode enum to define specific modes for Spotykach
     enum EffectMode
@@ -77,7 +86,7 @@ class Spotykach : public Effect
     // Current side being processed (0 or 1)
     uint8_t effectSide_ = 0;
 
-    bool    isChannelActive (size_t ch) const;
+    bool isChannelActive (size_t ch) const;
 
     Spotykach (const Spotykach &)           = delete;
     Spotykach &operator=(const Spotykach &) = delete;

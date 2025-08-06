@@ -78,6 +78,7 @@ void Spotykach::setPlay (bool p)
     {
       if (play_)
       {
+        // Log::PrintLine("Switching to ECHO state");
         state_ = ECHO;
         // Clear the audio buffers
         for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
@@ -95,13 +96,43 @@ void Spotykach::setPlay (bool p)
       if (!play_)
       {
         // If stopped playing, return to OFF state
+        // Log::PrintLine("Switching to OFF state");
         state_ = OFF;
-        break;
       }
+      break;
     }
     default:
     {
       // Other states do not change on play toggle
+      break;
+    }
+  }
+}
+
+void Spotykach::setRecord (bool r)
+{
+  record_ = r;
+
+  switch (state_)
+  {
+    case RECORDING:
+    {
+      if (!record_)
+      {
+        // If recording, switch to LOOP_PLAYBACK state
+        // Log::PrintLine("Switching to LOOP_PLAYBACK state");
+        state_ = LOOP_PLAYBACK;
+      }
+      break;
+    }
+    default:
+    {
+      // Reset read and write indices
+      readIx_  = 0;
+      writeIx_ = 0;
+      // Switch to RECORDING state
+      // Log::PrintLine("Switching to RECORDING state");
+      state_ = RECORDING;
       break;
     }
   }
@@ -128,85 +159,182 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
   if ((mode_ != MODE_1) ||
       (channelConfig_ == ChannelConfig::OFF || channelConfig_ >= ChannelConfig::CH_CONFIG_LAST))
   {
-    std::copy(IN_L, IN_L + blockSize, OUT_L);
-    std::copy(IN_R, IN_R + blockSize, OUT_R);
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        std::copy(in[ch], in[ch] + blockSize, out[ch]);
+      }
+    }
     return;
   }
-
-  // Only process channels that are active for the current mode
-  for (size_t i = 0; i < size; ++i)
+  switch (state_)
   {
+    case OFF:
+    case ARMED:
+    {
+      // Reset heads to 0
+      readIx_ = writeIx_ = 0.0f;
       for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
       {
         // Only process if this channel is active in the current mode
         if (isChannelActive(ch))
         {
-          // Fractional read index
-          float rIdx = readIx;
-          size_t idx0 = static_cast<size_t>(rIdx);
-          size_t idx1 = (idx0 + 1) % kLooperAudioDataSamples;
-          float frac = rIdx - idx0;
-          float s0 = looperAudioData[effectSide][ch][idx0];
-          float s1 = looperAudioData[effectSide][ch][idx1];
-          // Linear interpolation when between two samples
-          out[ch][i] = infrasonic::lerp(s0, s1, frac);
-          // Linear interpolation between dry input and looper output (when not in recording playback mode)
-          out[ch][i] = infrasonic::lerp(in[ch][i], out[ch][i], mix);
-
-          // Write input sample at fractional index
-          size_t wIdx0                             = static_cast<size_t>(writeIx);
-          looperAudioData[effectSide][ch][wIdx0]   = (writeIx - wIdx0) * in[ch][i];
-          looperAudioData[effectSide][ch][wIdx0+1] = (1.0f - (writeIx - wIdx0)) * in[ch][i];
+          std::copy(in[ch], in[ch] + blockSize, out[ch]);
         }
-        else
+      }
+      return;
+    }
+    ///////////////
+    case ECHO:
+    {
+      for (size_t i = 0; i < blockSize; ++i)
+      {
+        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
         {
+          // Only process if this channel is active in the current mode
+          if (isChannelActive(ch))
+          {
+            // Neighbouring sample indices
+            size_t rIdx0 = static_cast<size_t>(readIx_);
+            size_t rIdx1 = (rIdx0 + 1) % kLooperAudioDataSamples;
+            // Fractional part for interpolation
+            float frac = readIx_ - rIdx0;
+            // Neighbouring samples
+            float s0 = looperAudioData[effectSide_][ch][rIdx0];
+            float s1 = looperAudioData[effectSide_][ch][rIdx1];
+            // Linear interpolation when between the two samples
+            float loopOut = infrasonic::lerp(s0, s1, frac);
+            // Mix the input with the loop output
+            out[ch][i] = infrasonic::lerp(in[ch][i], loopOut, mix_);
+
+            // Feedback/overdub
+            size_t wIdx0                            = static_cast<size_t>(writeIx_);
+            size_t wIdx1                            = static_cast<size_t>((wIdx0 + 1) % kLooperAudioDataSamples);
+            float  old0                             = looperAudioData[effectSide_][ch][wIdx0];
+            float  old1                             = looperAudioData[effectSide_][ch][wIdx1];
+            looperAudioData[effectSide_][ch][wIdx0] = in[ch][i] + feedback_ * old0;
+            looperAudioData[effectSide_][ch][wIdx1] = in[ch][i] + feedback_ * old1;
+          }
+          else
+          {
+            out[ch][i] = 0.0f;
+          }
+        }
+        writeIx_ += 1.0f; // reverse_ ? -1.0f : 1.0f;
+        if (writeIx_ >= kLooperAudioDataSamples)
+        {
+          writeIx_ -= kLooperAudioDataSamples;
+        }
+        else if (writeIx_ < 0)
+        {
+          writeIx_ += kLooperAudioDataSamples;
+        }
+        readIx_ += speed_;
+        if (readIx_ >= kLooperAudioDataSamples)
+        {
+          readIx_ -= kLooperAudioDataSamples;
+        }
+        else if (readIx_ < 0)
+        {
+          readIx_ += kLooperAudioDataSamples;
+        }
+      }
+      // If the read index will have caught up to the write index in the next block, we need to update it
+      // Update readIx_ based on writeIx_ and position_
+      if (speed_ < 0)
+      {
+        if (readIx_ < writeIx_ + std::abs(speed_ * blockSize))
+        {
+          updateReadIndexPosition(position_);
+        }
+      }
+      else
+      {
+        if (readIx_ > writeIx_ - std::abs(speed_ * blockSize))
+        {
+          updateReadIndexPosition(position_);
+        }
+      }
+      return;
+    }
+    ///////////////
+    case RECORDING:
+    {
+      for (size_t i = 0; i < blockSize; ++i)
+      {
+        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+        {
+          // Only process if this channel is active in the current mode
+          if (isChannelActive(ch))
+          {
+            // Neighbouring sample indices
+            size_t rIdx0 = static_cast<size_t>(readIx_);
+            size_t rIdx1 = (rIdx0 + 1) % kLooperAudioDataSamples;
+            // Fractional part for interpolation
+            float frac = readIx_ - rIdx0;
+            // Neighbouring samples
+            float s0 = looperAudioData[effectSide_][ch][rIdx0];
+            float s1 = looperAudioData[effectSide_][ch][rIdx1];
+            // Linear interpolation when between the two samples
+            float loopOut = infrasonic::lerp(s0, s1, frac);
+            // Mix the input with the loop output
+            out[ch][i]                              = infrasonic::lerp(in[ch][i], loopOut, mix_);
+
+            size_t wIdx0                            = static_cast<size_t>(writeIx_);
+            float  old                              = looperAudioData[effectSide_][ch][wIdx0];
+            looperAudioData[effectSide_][ch][wIdx0] = in[ch][i] + feedback_ * old;
+            looperAudioData[effectSide_][ch][(wIdx0 + 1) % kLooperAudioDataSamples] =
+              in[ch][i] + feedback_ * looperAudioData[effectSide_][ch][(wIdx0 + 1) % kLooperAudioDataSamples];
+          }
           out[ch][i] = 0.0f;
         }
+        writeIx_ += speed_;
+        if (writeIx_ >= kLooperAudioDataSamples)
+          writeIx_ -= kLooperAudioDataSamples;
+        else if (writeIx_ < 0)
+          writeIx_ += kLooperAudioDataSamples;
       }
-      // Advance and wrap read/write indexes, preserving fractional part
-      readIx += speed;
-      if (readIx >= kLooperAudioDataSamples)
+      return;
+    }
+    ///////////////
+    case LOOP_PLAYBACK:
+    {
+      for (size_t i = 0; i < blockSize; ++i)
       {
-        readIx -= kLooperAudioDataSamples;
+        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+        {
+          // Only process if this channel is active in the current mode
+          if (isChannelActive(ch))
+          {
+            // Neighbouring sample indices
+            size_t rIdx0 = static_cast<size_t>(readIx_);
+            size_t rIdx1 = (rIdx0 + 1) % kLooperAudioDataSamples;
+            // Fractional part for interpolation
+            float frac = readIx_ - rIdx0;
+            // Neighbouring samples
+            float s0 = looperAudioData[effectSide_][ch][rIdx0];
+            float s1 = looperAudioData[effectSide_][ch][rIdx1];
+            // Linear interpolation when between the two samples
+            float loopOut = infrasonic::lerp(s0, s1, frac);
+            // Mix the input with the loop output
+            out[ch][i] = infrasonic::lerp(in[ch][i], loopOut, mix_);
+          }
+          else
+          {
+            out[ch][i] = 0.0f;
+          }
+        }
+        // Advance read, write follows read
+        readIx_ += speed_;
+        if (readIx_ >= kLooperAudioDataSamples)
+          readIx_ -= kLooperAudioDataSamples;
+        else if (readIx_ < 0)
+          readIx_ += kLooperAudioDataSamples;
+        writeIx_ = readIx_;
       }
-      else if (readIx < 0)
-      {
-        readIx += kLooperAudioDataSamples;
-      }
-      //
-      writeIx += speed;
-      if (writeIx >= kLooperAudioDataSamples)
-      {
-        writeIx -= kLooperAudioDataSamples;
-      }
-      else if (writeIx < 0)
-      {
-        writeIx += kLooperAudioDataSamples;
-      }
-  }
-}
-
-void Spotykach::setPosition(float p)
-{
-  // Map p in (0,1) to (0, 2*kSampleRate)
-  position_ = infrasonic::map(p, 0.0f, 1.0f, 0.0f, 2.0f * kSampleRate);
-  // Set readIx_ to be writeIx_ - position_, wrapping if needed
-  if (speed_ < 0)
-  {
-    readIx_ = writeIx_ + std::abs(position_) + kBlockSize;
-  }
-  else
-  {
-    readIx_ = writeIx_ - (position_ + kBlockSize);
-  }
-  //
-  if(readIx_ < 0)
-  {
-    readIx_ += kLooperAudioDataSamples;
-  }
-  else if(readIx_ >= kLooperAudioDataSamples)
-  {
-    readIx_ -= kLooperAudioDataSamples;
+      return;
+    }
   }
 }
 

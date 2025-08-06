@@ -1,5 +1,4 @@
 #pragma once
-#include "hardware.h"
 #include "Effect.h"
 #include "Modulation.h"
 #include "hardware.h"
@@ -75,7 +74,7 @@ namespace spotykach_hwtest
             smoothing_    = false;
             currentValue_ = 0.0f;
             targetValue_  = 0.0f;
-            // Frequency for smoothing these values is
+            // Frequency for smoothing these values is 500 Hz - roughly 100 times slower than the sample rate
             filterCoeff_  = 100.0f * (1000.0f / (smoothTimeMs * sampleRate));
           }
 

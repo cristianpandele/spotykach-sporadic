@@ -218,6 +218,35 @@ void AppImpl::loop ()
           reverseStateChanged[i] = false;
         }
 
+        if (altPlayStateChanged[i])
+        {
+          spotykachLooper[i].setRecord(currentAltPlayState[i]);
+          altPlayStateChanged[i] = false;
+        }
+        else if (spotyPlayStateChanged[i])
+        {
+          // If the effect on this side is Spotykach, reset the looper
+          if ((i == 0) &&
+              (currentRoutingMode >= AppMode::ROUTING_DUAL_MONO) && (currentRoutingMode < AppMode::ROUTING_LAST))
+          {
+            reverseStateChanged[0] = true;
+            currentReverseState[0] = false;
+            playStateChanged[0]    = true;
+            currentPlayState[0]    = false;
+            // Log::PrintLine("Spotykach looper reset for side 0");
+          }
+
+          // If the effect on this side is Spotykach, reset the looper
+          if ((i == 1) &&
+              (currentRoutingMode == AppMode::ROUTING_GENERATIVE))
+          {
+            reverseStateChanged[1] = true;
+            currentReverseState[1] = false;
+            playStateChanged[1]    = true;
+            currentPlayState[1]    = false;
+            // Log::PrintLine("Spotykach looper reset for side 1");
+          }
+        }
         if (playStateChanged[i])
         {
           spotykachLooper[i].setPlay(currentPlayState[i]);
@@ -294,7 +323,10 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
       spotykachLooper[i].setPitch(pitchControls[i].getSmoothVal());
     }
     // Set the mix for both sides
-    spotykachLooper[i].setMix(mixControls[i].getSmoothVal());
+    if (mixControls[i].isSmoothing())
+    {
+      spotykachLooper[i].setMix(mixControls[i].getSmoothVal());
+    }
     // Set the position for both sides
     if (positionControls[i].isSmoothing())
     {
@@ -659,17 +691,6 @@ void AppImpl::handleDigitalControls ()
     spotyPlayStateChanged[0] = true;
     currentSpotyPlayState[0] = !currentSpotyPlayState[0];
     // Log::PrintLine("Spotykach+Play state changed for side 0 to: %d", currentSpotyPlayState[0]);
-
-    // If the effect on this side is Spotykach, reset the looper
-    if ((currentRoutingMode >= AppMode::ROUTING_DUAL_MONO) &&
-        (currentRoutingMode < AppMode::ROUTING_LAST))
-    {
-      reverseStateChanged[0] = true;
-      currentReverseState[0] = false;
-      playStateChanged[0]    = true;
-      currentPlayState[0]    = false;
-      // Log::PrintLine("Spotykach looper reset for side 0");
-    }
   }
   else if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 0))
   {
@@ -694,16 +715,6 @@ void AppImpl::handleDigitalControls ()
     spotyPlayStateChanged[1] = true;
     currentSpotyPlayState[1] = !currentSpotyPlayState[1];
     // Log::PrintLine("Spotykach+Play state changed for side 1 to: %d", currentSpotyPlayState[1]);
-
-    // If the effect on this side is Spotykach, reset the looper
-    if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
-    {
-      reverseStateChanged[1] = true;
-      currentReverseState[1] = false;
-      playStateChanged[1]    = true;
-      currentPlayState[1]    = false;
-      // Log::PrintLine("Spotykach looper reset for side 1");
-    }
   }
   else if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 9))
   {
@@ -945,16 +956,16 @@ void AppImpl::handleDisplay ()
       // If the reverse state is off, set the LED to black
       hw.leds.Set((i == 0) ? Hardware::LED_REV_A : Hardware::LED_REV_B, 0x000000, 1.0f);
     }
+    // Alt + Play touchpad
+    if (currentAltPlayState[i])
+    {
+      hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0xff0000, 1.0f);
+    }
     // Play touchpad
-    if (currentPlayState[i])
+    else if (currentPlayState[i])
     {
       // If the play state is on, set the LED to white
       hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x00ff00, 1.0f);
-    }
-    // Alt + Play touchpad
-    else if (currentAltPlayState[i])
-    {
-      hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0xff0000, 1.0f);
     }
     else
     {
