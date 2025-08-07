@@ -81,30 +81,27 @@ namespace spotykach_hwtest
           // Overload assignment to set targetValue
           SmoothValue &operator=(float v)
           {
-            float oldValue = currentValue_;
             targetValue_ = v;
             // Check if the value is undergoing smoothing
-            setSmoothing(oldValue, targetValue_);
+            setSmoothing(targetValue_, currentValue_);
             return *this;
           }
 
           // Overload the += operator to add to the target value
           SmoothValue &operator+=(float v)
           {
-            float oldValue = currentValue_;
             targetValue_ += v;
             // Check if the value is undergoing smoothing
-            setSmoothing(oldValue, targetValue_);
+            setSmoothing(targetValue_, currentValue_);
             return *this;
           }
 
           // Get the smoothed value
           float getSmoothVal ()
           {
-            float oldValue = currentValue_;
             daisysp::fonepole(currentValue_, targetValue_, filterCoeff_);
             // Check if the value is undergoing smoothing
-            setSmoothing(oldValue, currentValue_);
+            setSmoothing(targetValue_, currentValue_);
             return currentValue_;
           }
 
@@ -123,7 +120,7 @@ namespace spotykach_hwtest
             // Determine if the value has smoothing
             void setSmoothing (float oldValue, float currentValue)
             {
-              // If the current value is more that 1% away from the target, mark as smoothing
+              // If the current value is more that 1% away from the old value, mark as smoothing
               if (std::abs((currentValue - oldValue) / oldValue) > 0.01f)
               {
                 smoothing_ = true;
