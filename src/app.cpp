@@ -777,7 +777,7 @@ void AppImpl::handleDisplay ()
 
   // Mod A Type switch LED
   using ModType = ModulationEngine::ModType;
-  float modLedBrightness = modulationAmount[0].getSmoothVal();
+  float modLedBrightness = modCv[0]; //modulationAmount[0].getSmoothVal();
   switch (currentModType[0])
   {
     case ModType::ENV_FOLLOWER:
@@ -832,7 +832,7 @@ void AppImpl::handleDisplay ()
   // }
 
   // Mod B Type switch LED
-  modLedBrightness = modulationAmount[1].getSmoothVal();
+  modLedBrightness = modCv[1]; //modulationAmount[1].getSmoothVal();
   switch (currentModType[1])
   {
     case ModType::ENV_FOLLOWER:
