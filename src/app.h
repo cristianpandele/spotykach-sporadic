@@ -221,6 +221,9 @@ namespace spotykach_hwtest
       SmoothValue mixControls[kNumberSpotykachSides] = {SmoothValue(25.0f, kSampleRate),
                                                         SmoothValue(25.0f, kSampleRate)};
 
+      // Mix control alt latch for the two sides
+      bool mixAltLatch[kNumberSpotykachSides] = {false};
+
       // Smooth pitch for each side
       SmoothValue pitchControls[kNumberSpotykachSides] = {SmoothValue(75.0f, kSampleRate),
                                                           SmoothValue(75.0f, kSampleRate)};
@@ -246,6 +249,9 @@ namespace spotykach_hwtest
       // Modulation frequency controls for each side
       SmoothValue modulationFreq[kNumberSpotykachSides] = {SmoothValue(75.0f, kSampleRate),
                                                             SmoothValue(75.0f, kSampleRate)};
+
+      // Modulation frequency alt latch for each side
+      bool modFreqAltLatch[2] = {false};
 
       // Mode switch changed flag and current effect mode for each side
       using EffectMode                                    = Effect::EffectMode;

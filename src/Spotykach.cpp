@@ -60,6 +60,19 @@ void Spotykach::updateReadIndexPosition (float p)
   }
 }
 
+void Spotykach::setMix (float m, bool altLatch)
+{
+  // If alt latch is pressed, set feedback instead of mix
+  if (altLatch)
+  {
+    setFeedback(m);
+  }
+  else
+  {
+    mix_ = m;
+  }
+}
+
 void Spotykach::setPosition (float p)
 {
   // Map p in (0,1) to (0, 2*kSampleRate)

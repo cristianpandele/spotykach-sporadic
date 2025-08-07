@@ -29,6 +29,8 @@ class Spotykach : public Effect
 
     void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
 
+    void setMix (float m, bool altLatch);
+
     void setPitch (float s) override;
 
     void setPlay (bool p) override;

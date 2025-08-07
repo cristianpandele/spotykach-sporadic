@@ -325,7 +325,7 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     // Set the mix for both sides
     if (mixControls[i].isSmoothing())
     {
-      spotykachLooper[i].setMix(mixControls[i].getSmoothVal());
+      spotykachLooper[i].setMix(mixControls[i].getSmoothVal(), mixAltLatch[i]);
     }
     // Set the position for both sides
     if (positionControls[i].isSmoothing())
@@ -348,7 +348,7 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     {
       // We are rendering the modulator output at 500 Hz, roughly /100 times slower than the sample rate
       // so we need to scale the frequency by 100.0f
-      modulator[i].setFrequency(modulationFreq[i].getSmoothVal() * 100.0f);
+      modulator[i].setFrequency(modulationFreq[i].getSmoothVal() * 100.0f, modFreqAltLatch[i]);
       modulator[i].setAmplitude(modulationAmount[i].getSmoothVal());
     }
   }
@@ -415,7 +415,15 @@ void AppImpl::processUIQueue ()
     auto event = ui_queue.GetAndRemoveNextEvent();
     if (event.type == UiEventQueue::Event::EventType::potMoved)
     {
-      if (event.asPotMoved.id <= Hardware::CTRL_SHAPE_A)
+      if (event.asPotMoved.id == Hardware::CTRL_MOD_FREQ_A)
+        modFreqAltLatch[0] = Utils::isAltPadPressed(padTouchStates);
+      else if (event.asPotMoved.id == Hardware::CTRL_MOD_FREQ_B)
+        modFreqAltLatch[1] = Utils::isAltPadPressed(padTouchStates);
+      else if (event.asPotMoved.id == Hardware::CTRL_SOS_A)
+        mixAltLatch[0] = Utils::isAltPadPressed(padTouchStates);
+      else if (event.asPotMoved.id == Hardware::CTRL_SOS_B)
+        mixAltLatch[1] = Utils::isAltPadPressed(padTouchStates);
+      else if (event.asPotMoved.id <= Hardware::CTRL_SHAPE_A)
         last_pot_moved_a = event.asPotMoved.id;
       else if (event.asPotMoved.id <= Hardware::CTRL_SHAPE_B)
         last_pot_moved_b = event.asPotMoved.id;

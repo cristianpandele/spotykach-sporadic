@@ -47,7 +47,7 @@ class ModulationEngine
 
     void setAmplitude (float amp);
 
-    void setFrequency (float freq);
+    void setFrequency (float freq, bool altFactor);
 
     size_t mapWaveformsToOscIndex (ModulationEngine::ModType waveform);
 
