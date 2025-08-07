@@ -236,11 +236,11 @@ namespace spotykach_hwtest
 
       // Size controls for each side
       SmoothValue sizeControls[kNumberSpotykachSides] = {SmoothValue(250.0f, kSampleRate),
-                                                         SmoothValue(150.0f, kSampleRate)};
+                                                         SmoothValue(250.0f, kSampleRate)};
 
       // Shape controls for each side
       SmoothValue shapeControls[kNumberSpotykachSides] = {SmoothValue(250.0f, kSampleRate),
-                                                          SmoothValue(150.0f, kSampleRate)};
+                                                          SmoothValue(250.0f, kSampleRate)};
 
       // Modulation amount controls for each side
       SmoothValue modulationAmount[kNumberSpotykachSides] = {SmoothValue(75.0f, kSampleRate),

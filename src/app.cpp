@@ -907,9 +907,9 @@ void AppImpl::handleDisplay ()
   //   hw.GetAnalogControlValue((Hardware::AnalogControlId)last_pot_moved_a) * Hardware::kNumLedsPerRing;
   // const uint16_t ring_val_b =
   //   hw.GetAnalogControlValue((Hardware::AnalogControlId)last_pot_moved_b) * Hardware::kNumLedsPerRing;
-  const uint16_t ring_lower[2] = {positionControls[0].getSmoothVal() * Hardware::kNumLedsPerRing,
-                                  positionControls[1].getSmoothVal() * Hardware::kNumLedsPerRing};
-  const uint16_t ring_upper[2] = {pitchControls[0].getSmoothVal() * Hardware::kNumLedsPerRing,
+  const uint16_t ringLowerLayer[2] = {(1.0f - positionControls[0].getSmoothVal()) * Hardware::kNumLedsPerRing,
+                                      (1.0f - positionControls[1].getSmoothVal()) * Hardware::kNumLedsPerRing};
+  const uint16_t ringUpperLayer[2] = {pitchControls[0].getSmoothVal() * Hardware::kNumLedsPerRing,
                                   pitchControls[1].getSmoothVal() * Hardware::kNumLedsPerRing};
 
   for (uint16_t i = 0; i < Hardware::kNumLedsPerRing; i++)
@@ -928,9 +928,26 @@ void AppImpl::handleDisplay ()
         ledIx += Hardware::kNumLedsPerRing - 1;
         ledIx -= (i - (Hardware::kNumLedsPerRing / 2 + 1));
       }
-      if (i >= ring_lower[side] && i < ring_upper[side])
+      // If the effect on this side is Spotykach, display the position and pitch controls
+      if (((side == 0) && (currentRoutingMode >= AppMode::ROUTING_DUAL_MONO) && (currentRoutingMode < AppMode::ROUTING_LAST)) ||
+          ((side == 1) && (currentRoutingMode == AppMode::ROUTING_GENERATIVE)))
       {
-        hw.leds.Set(ledIx, 0x00ff00, 0.5f);
+        if(spotykachLooper[side].getState() == Spotykach::ECHO)
+        {
+          // Set the LED color based on the position and pitch controls
+          if (positionControls[side].isSmoothing())
+          {
+            if (i > ringLowerLayer[side])
+            {
+              hw.leds.Set(ledIx, 0xffff00, 0.5f);
+            }
+            continue;
+          }
+        }
+        if (i < ringUpperLayer[side])
+        {
+          hw.leds.Set(ledIx, 0x00ff00, 0.5f);
+        }
       }
     }
   }
