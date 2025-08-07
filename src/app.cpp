@@ -279,13 +279,14 @@ void AppImpl::loop ()
         hw.WriteCVOut(i, modCv[i]);
       }
     }
-#if DEBUG
     if (log_timer.HasPassedMs(500))
     {
+      playLedPhase = !playLedPhase;
+#if DEBUG
       logDebugInfo();
+#endif
       log_timer.Restart();
     }
-#endif
   }
 }
 
@@ -973,24 +974,32 @@ void AppImpl::handleDisplay ()
       // If the reverse state is off, set the LED to black
       hw.leds.Set((i == 0) ? Hardware::LED_REV_A : Hardware::LED_REV_B, 0x000000, 1.0f);
     }
-    // Alt + Play touchpad
-    if (currentAltPlayState[i])
+    // Alternating phase for PLAY LEDs
+    if (playLedPhase)
     {
-      hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0xff0000, 1.0f);
-    }
-    // Play touchpad
-    else if (currentPlayState[i])
-    {
-      // If the play state is on, set the LED to white
-      hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x00ff00, 1.0f);
+      // Phase 1: Alt + Play touchpad
+      if (currentAltPlayState[i])
+      {
+        hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0xff0000, 1.0f);
+      }
+      else
+      {
+        hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x000000, 1.0f);
+      }
     }
     else
     {
-      // If the play state is off, set the LED to black
-      hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x000000, 1.0f);
+      // Phase 2: Play touchpad
+      if (currentPlayState[i])
+      {
+        hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x00ff00, 1.0f);
+      }
+      else
+      {
+        hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x000000, 1.0f);
+      }
     }
   }
-
   // These will override the corresponding LED of the touchpad with WHITE if the pad
   // is being pressed, otherwise default behavior from above
   for (uint16_t i = 0; i < 12; i++)

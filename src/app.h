@@ -286,6 +286,9 @@ namespace spotykach_hwtest
       // Modulator CV value for each side
       float    modCv[kNumberSpotykachSides] = {0.0f};
 
+      // LED Phase for blinking LEDs
+      uint8_t playLedPhase = 0;
+
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;
 
