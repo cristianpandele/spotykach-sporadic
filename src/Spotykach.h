@@ -61,7 +61,10 @@ class Spotykach : public Effect
 
     void setFeedback (float fb) { feedback_ = std::clamp(fb, 0.0f, 0.99f); }
 
-    void setRecord (bool r);
+    void setAltPlay (bool r);
+    void setSpotyPlay (bool s);
+
+    State getState () const { return state_; }
 
     // Override the EffectMode enum to define specific modes for Spotykach
     enum EffectMode

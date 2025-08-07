@@ -220,7 +220,7 @@ void AppImpl::loop ()
 
         if (altPlayStateChanged[i])
         {
-          spotykachLooper[i].setRecord(currentAltPlayState[i]);
+          spotykachLooper[i].setAltPlay(currentAltPlayState[i]);
           altPlayStateChanged[i] = false;
         }
         else if (spotyPlayStateChanged[i])
@@ -229,10 +229,13 @@ void AppImpl::loop ()
           if ((i == 0) &&
               (currentRoutingMode >= AppMode::ROUTING_DUAL_MONO) && (currentRoutingMode < AppMode::ROUTING_LAST))
           {
-            reverseStateChanged[0] = true;
-            currentReverseState[0] = false;
-            playStateChanged[0]    = true;
-            currentPlayState[0]    = false;
+            spotykachLooper[i].setSpotyPlay(currentSpotyPlayState[i]);
+            reverseStateChanged[0]   = true;
+            currentReverseState[0]   = false;
+            playStateChanged[0]      = true;
+            currentPlayState[0]      = false;
+            altPlayStateChanged[0]   = true;
+            currentAltPlayState[0]   = false;
             // Log::PrintLine("Spotykach looper reset for side 0");
           }
 
@@ -240,12 +243,18 @@ void AppImpl::loop ()
           if ((i == 1) &&
               (currentRoutingMode == AppMode::ROUTING_GENERATIVE))
           {
-            reverseStateChanged[1] = true;
-            currentReverseState[1] = false;
-            playStateChanged[1]    = true;
-            currentPlayState[1]    = false;
+            spotykachLooper[i].setSpotyPlay(currentSpotyPlayState[i]);
+            reverseStateChanged[1]   = true;
+            currentReverseState[1]   = false;
+            playStateChanged[1]      = true;
+            currentPlayState[1]      = false;
+            altPlayStateChanged[1]   = true;
+            currentAltPlayState[1]   = false;
             // Log::PrintLine("Spotykach looper reset for side 1");
           }
+          // Reset the currentSpotyPlayState to false
+          currentSpotyPlayState[i] = false;
+          spotyPlayStateChanged[i] = false;
         }
         if (playStateChanged[i])
         {

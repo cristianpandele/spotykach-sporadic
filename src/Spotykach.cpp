@@ -75,13 +75,31 @@ void Spotykach::setMix (float m, bool altLatch)
 
 void Spotykach::setPosition (float p)
 {
-  // Map p in (0,1) to (0, 2*kSampleRate)
-  position_ = infrasonic::map(p, 0.0f, 1.0f, 0.0f, 2.0f * kSampleRate);
+  switch (state_)
+  {
+    case OFF:
+    case ARMED:
+    case RECORDING:
+    {
+      // Do not change position in these states
+      return;
+    }
+    case ECHO:
+    {
+      // Update the read index based on the position of the write index
+      // Map p in (0,1) to (0, 2*kSampleRate)
+      position_ = infrasonic::map(p, 0.0f, 1.0f, 0.0f, 2.0f * kSampleRate);
+      updateReadIndexPosition(position_);
+    }
+    case LOOP_PLAYBACK:
+      // Update read index based on the new position value
+      // TODO
+      break;
+  }
 
-  updateReadIndexPosition(position_);
 }
 
-void Spotykach::setPlay (bool p)
+void Spotykach::setPlay(bool p)
 {
   play_ = p;
 
@@ -122,7 +140,7 @@ void Spotykach::setPlay (bool p)
   }
 }
 
-void Spotykach::setRecord (bool r)
+void Spotykach::setAltPlay (bool r)
 {
   record_ = r;
 
@@ -140,14 +158,29 @@ void Spotykach::setRecord (bool r)
     }
     default:
     {
-      // Reset read and write indices
-      readIx_  = 0;
-      writeIx_ = 0;
-      // Switch to RECORDING state
-      // Log::PrintLine("Switching to RECORDING state");
-      state_ = RECORDING;
-      break;
+      if (record_)
+      {
+        // Reset read and write indices
+        readIx_  = 0;
+        writeIx_ = 0;
+        // Switch to RECORDING state
+        // Log::PrintLine("Switching to RECORDING state");
+        state_ = RECORDING;
+        break;
+      }
     }
+  }
+}
+
+void Spotykach::setSpotyPlay (bool s)
+{
+  bool reset = s;
+
+  if (reset)
+  {
+    // Switch to OFF state
+    // Log::PrintLine("Switching to OFF state");
+    state_ = OFF;
   }
 }
 
@@ -289,24 +322,46 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
             // Neighbouring samples
             float s0 = looperAudioData[effectSide_][ch][rIdx0];
             float s1 = looperAudioData[effectSide_][ch][rIdx1];
-            // Linear interpolation when between the two samples
-            float loopOut = infrasonic::lerp(s0, s1, frac);
-            // Mix the input with the loop output
-            out[ch][i]                              = infrasonic::lerp(in[ch][i], loopOut, mix_);
-
+            if (play_)
+            {
+              // Linear interpolation when between the two samples
+              float loopOut = infrasonic::lerp(s0, s1, frac);
+              // Mix the input with the loop output
+              out[ch][i] = infrasonic::lerp(in[ch][i], loopOut, mix_);
+            }
+            else
+            {
+              out[ch][i] = in[ch][i];    // If not playing, audition the input
+            }
             size_t wIdx0                            = static_cast<size_t>(writeIx_);
-            float  old                              = looperAudioData[effectSide_][ch][wIdx0];
-            looperAudioData[effectSide_][ch][wIdx0] = in[ch][i] + feedback_ * old;
-            looperAudioData[effectSide_][ch][(wIdx0 + 1) % kLooperAudioDataSamples] =
-              in[ch][i] + feedback_ * looperAudioData[effectSide_][ch][(wIdx0 + 1) % kLooperAudioDataSamples];
+            size_t wIdx1                            = static_cast<size_t>((wIdx0 + 1) % kLooperAudioDataSamples);
+            float  old0                             = looperAudioData[effectSide_][ch][wIdx0];
+            float  old1                             = looperAudioData[effectSide_][ch][wIdx1];
+            looperAudioData[effectSide_][ch][wIdx0] = in[ch][i] + feedback_ * old0;
+            looperAudioData[effectSide_][ch][wIdx1] = in[ch][i] + feedback_ * old1;
           }
-          out[ch][i] = 0.0f;
         }
-        writeIx_ += speed_;
+        writeIx_ += speed_;    // reverse_ ? -1.0f : 1.0f;
         if (writeIx_ >= kLooperAudioDataSamples)
+        {
           writeIx_ -= kLooperAudioDataSamples;
+        }
         else if (writeIx_ < 0)
+        {
           writeIx_ += kLooperAudioDataSamples;
+        }
+        if (play_)
+        {
+          readIx_ += speed_;
+          if (readIx_ >= kLooperAudioDataSamples)
+          {
+            readIx_ -= kLooperAudioDataSamples;
+          }
+          else if (readIx_ < 0)
+          {
+            readIx_ += kLooperAudioDataSamples;
+          }
+        }
       }
       return;
     }
@@ -328,10 +383,17 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
             // Neighbouring samples
             float s0 = looperAudioData[effectSide_][ch][rIdx0];
             float s1 = looperAudioData[effectSide_][ch][rIdx1];
-            // Linear interpolation when between the two samples
-            float loopOut = infrasonic::lerp(s0, s1, frac);
-            // Mix the input with the loop output
-            out[ch][i] = infrasonic::lerp(in[ch][i], loopOut, mix_);
+            if (play_)
+            {
+              // Linear interpolation when between the two samples
+              float loopOut = infrasonic::lerp(s0, s1, frac);
+              // Mix the input with the loop output
+              out[ch][i] = infrasonic::lerp(in[ch][i], loopOut, mix_);
+            }
+            else
+            {
+              out[ch][i] = in[ch][i];    // If not playing, audition the input
+            }
           }
           else
           {
