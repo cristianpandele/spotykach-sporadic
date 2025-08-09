@@ -910,7 +910,9 @@ void AppImpl::handleDisplay ()
   const uint16_t ringLowerLayer[2] = {(1.0f - positionControls[0].getSmoothVal()) * Hardware::kNumLedsPerRing,
                                       (1.0f - positionControls[1].getSmoothVal()) * Hardware::kNumLedsPerRing};
   const uint16_t ringUpperLayer[2] = {pitchControls[0].getSmoothVal() * Hardware::kNumLedsPerRing,
-                                  pitchControls[1].getSmoothVal() * Hardware::kNumLedsPerRing};
+                                      pitchControls[1].getSmoothVal() * Hardware::kNumLedsPerRing};
+  const uint16_t ringSizeSpan[2] = {static_cast<uint16_t>(sizeControls[0].getSmoothVal() * positionControls[0].getSmoothVal() * Hardware::kNumLedsPerRing),
+                                    static_cast<uint16_t>(sizeControls[1].getSmoothVal() * positionControls[1].getSmoothVal() * Hardware::kNumLedsPerRing)};
 
   for (uint16_t i = 0; i < Hardware::kNumLedsPerRing; i++)
   {
@@ -935,9 +937,35 @@ void AppImpl::handleDisplay ()
         if(spotykachLooper[side].getState() == Spotykach::ECHO)
         {
           // Set the LED color based on the position and pitch controls
-          if (positionControls[side].isSmoothing())
+          // if (positionControls[side].isSmoothing() || sizeControls[side].isSmoothing())
           {
+            // Yellow for above ringLowerLayer
             if (i > ringLowerLayer[side])
+            {
+              hw.leds.Set(ledIx, 0xffff00, 0.5f);
+            }
+            // Dark orange for range (ringLowerLayer, ringLowerLayer + size*position)
+            if (i > ringLowerLayer[side] && i < ringLowerLayer[side] + ringSizeSpan[side])
+            {
+              hw.leds.Set(ledIx, 0xff8000, 0.5f);
+            }
+            continue;
+          }
+        }
+        else if (spotykachLooper[side].getState() == Spotykach::LOOP_PLAYBACK)
+        {
+          // Set the LED color based on the position and pitch controls
+          // if (positionControls[side].isSmoothing() || sizeControls[side].isSmoothing())
+          {
+            // Display a yellow ring from position_ to position_ + ringSizeSpan
+            float    pos   = positionControls[side].getSmoothVal();
+            float    size  = sizeControls[side].getSmoothVal();
+            uint16_t start = static_cast<uint16_t>(pos * Hardware::kNumLedsPerRing);
+            uint16_t span  = static_cast<uint16_t>(size * (Hardware::kNumLedsPerRing - start));
+            uint16_t end   = start + span;
+            if (end > Hardware::kNumLedsPerRing)
+              end = Hardware::kNumLedsPerRing;
+            if (i >= start && i < end)
             {
               hw.leds.Set(ledIx, 0xffff00, 0.5f);
             }
@@ -1001,7 +1029,16 @@ void AppImpl::handleDisplay ()
       }
       else
       {
-        hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x000000, 1.0f);
+        if (spotykachLooper[i].getState() == Spotykach::LOOP_PLAYBACK)
+        {
+          // If the Spotykach looper is in LOOP_PLAYBACK state, set the LED to green
+          hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x00ff00, 1.0f);
+        }
+        else
+        {
+          // Otherwise, set it to black
+          hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, 0x000000, 1.0f);
+        }
       }
     }
     else
