@@ -286,18 +286,27 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
           readIx_ += kLooperAudioDataSamples;
         }
       }
-      // If the read index will have caught up to the write index in the next block, we need to update it
-      // Update readIx_ based on writeIx_ and position_
+      // Ensure readIx within a span: (writeIx_ - position_, writeIx_ - position_ * (1.0f - size_))
+      float spanOffset = position_ * (1.0f - size_);
+      float spanTarget = writeIx_ - spanOffset;
+      if (spanTarget < 0)
+      {
+        spanTarget += kLooperAudioDataSamples;
+      }
+      else if (spanTarget >= kLooperAudioDataSamples)
+      {
+        spanTarget -= kLooperAudioDataSamples;
+      }
       if (speed_ < 0)
       {
-        if (readIx_ < writeIx_ + std::abs(speed_ * blockSize))
+        if (readIx_ < spanTarget + std::abs(speed_ * blockSize))
         {
           updateReadIndexPosition(position_);
         }
       }
       else
       {
-        if (readIx_ > writeIx_ - std::abs(speed_ * blockSize))
+        if (readIx_ > spanTarget - std::abs(speed_ * blockSize))
         {
           updateReadIndexPosition(position_);
         }
@@ -350,17 +359,14 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
         {
           writeIx_ += kLooperAudioDataSamples;
         }
-        if (play_)
+        readIx_ += speed_;
+        if (readIx_ >= kLooperAudioDataSamples)
         {
-          readIx_ += speed_;
-          if (readIx_ >= kLooperAudioDataSamples)
-          {
-            readIx_ -= kLooperAudioDataSamples;
-          }
-          else if (readIx_ < 0)
-          {
-            readIx_ += kLooperAudioDataSamples;
-          }
+          readIx_ -= kLooperAudioDataSamples;
+        }
+        else if (readIx_ < 0)
+        {
+          readIx_ += kLooperAudioDataSamples;
         }
       }
       return;
@@ -407,6 +413,21 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
         else if (readIx_ < 0)
           readIx_ += kLooperAudioDataSamples;
         writeIx_ = readIx_;
+        // Constrain readIx_ to span [spanStart, spanEnd)
+        float spanStart = position_;
+        float spanEnd   = position_ + size_ * (kLooperAudioDataSamples - position_);
+        if (spanEnd > kLooperAudioDataSamples)
+          spanEnd = kLooperAudioDataSamples;
+        if (speed_ >= 0)
+        {
+          if (readIx_ >= spanEnd)
+            readIx_ = spanStart;
+        }
+        else
+        {
+          if (readIx_ < spanStart)
+            readIx_ = spanEnd - 1;
+        }
       }
       return;
     }
