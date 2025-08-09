@@ -75,20 +75,20 @@ void Spotykach::setMix (float m, bool altLatch)
 
 void Spotykach::setPosition (float p)
 {
+  // Map p in (0,1) to (0, 2*kSampleRate)
+  position_ = infrasonic::map(p, 0.0f, 1.0f, 0.0f, 2.0f * kSampleRate);
   switch (state_)
   {
     case OFF:
     case ARMED:
     case RECORDING:
     {
-      // Do not change position in these states
+      // Do not change read index in these states
       return;
     }
     case ECHO:
     {
       // Update the read index based on the position of the write index
-      // Map p in (0,1) to (0, 2*kSampleRate)
-      position_ = infrasonic::map(p, 0.0f, 1.0f, 0.0f, 2.0f * kSampleRate);
       updateReadIndexPosition(position_);
     }
     case LOOP_PLAYBACK:
