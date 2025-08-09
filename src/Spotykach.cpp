@@ -4,7 +4,7 @@
 static constexpr size_t kLooperAudioDataSamples = 15.0f * kSampleRate * kNumberChannelsMono;
 
 // Reserve two buffers for 15-second Spotykach loopers for each side - 16bit mono audio file at 48khz (about 0.172 MB each)
-static DSY_SDRAM_BSS float   looperAudioData[kNumberSpotykachSides][kNumberChannelsStereo][kLooperAudioDataSamples];
+static DSY_SDRAM_BSS float   looperAudioData[kNumberEffectSlots][kNumberChannelsStereo][kLooperAudioDataSamples] = {{{0.0f}}};
 
 void Spotykach::init ()
 {

@@ -98,7 +98,7 @@ void AppImpl::init ()
   audio.SetBlockSize(kBlockSize);
 
   // Initialize the Spotykach looper
-  for (size_t i = 0; i < kNumberSpotykachSides; i++)
+  for (size_t i = 0; i < kNumberEffectSlots; i++)
   {
     spotykachLooper[i].init();
   }
@@ -198,7 +198,7 @@ void AppImpl::loop ()
         routingModeChanged = 0;
       }
 
-      for (size_t i = 0; i < kNumberSpotykachSides; i++)
+      for (size_t i = 0; i < kNumberEffectSlots; i++)
       {
         if (effectModeChanged[i])
         {
@@ -274,7 +274,7 @@ void AppImpl::loop ()
       hw.leds.Show();
 
       // Piggy back on this timer for very rough CV output demo
-      for (size_t i = 0; i < kNumberSpotykachSides; i++)
+      for (size_t i = 0; i < kNumberEffectSlots; i++)
       {
         hw.WriteCVOut(i, modCv[i]);
       }
@@ -323,7 +323,7 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
   // Handle the analog controls that affect the audio processing
   handleAnalogControls();
 
-  for (size_t i = 0; i < kNumberSpotykachSides; i++)
+  for (size_t i = 0; i < kNumberEffectSlots; i++)
   {
     /////////
     // Apply the analog controls to the effects
@@ -354,7 +354,7 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     }
     /////////
     // Apply the analog controls to the modulators
-    for (size_t i = 0; i < kNumberSpotykachSides; i++)
+    for (size_t i = 0; i < kNumberEffectSlots; i++)
     {
       // We are rendering the modulator output at 500 Hz, roughly /100 times slower than the sample rate
       // so we need to scale the frequency by 100.0f
@@ -625,7 +625,7 @@ void AppImpl::handleDigitalControls ()
     newEffectMode[1] = EffectMode::MODE_2;
   }
 
-  for (size_t i = 0; i < kNumberSpotykachSides; i++)
+  for (size_t i = 0; i < kNumberEffectSlots; i++)
   {
     if (newEffectMode[i] != currentEffectMode[i])
     {
@@ -665,7 +665,7 @@ void AppImpl::handleDigitalControls ()
     newModType[1] = modulationTypes[1][1];
   }
 
-  for (size_t i = 0; i < kNumberSpotykachSides; i++)
+  for (size_t i = 0; i < kNumberEffectSlots; i++)
   {
     if (newModType[i] != currentModType[i])
     {
@@ -916,7 +916,7 @@ void AppImpl::handleDisplay ()
 
   for (uint16_t i = 0; i < Hardware::kNumLedsPerRing; i++)
   {
-    for (size_t side = 0; side < kNumberSpotykachSides; side++)
+    for (size_t side = 0; side < kNumberEffectSlots; side++)
     {
       // start at bottom, wrap clockwise
       uint16_t ledIx = (side == 0) ? Hardware::LED_RING_A : Hardware::LED_RING_B;
@@ -1006,7 +1006,7 @@ void AppImpl::handleDisplay ()
     hw.leds.Set(Hardware::LED_SPOTY_PAD, 0xff0000);
 
   // --- TOUCH PADS ---
-  for (size_t i = 0; i < kNumberSpotykachSides; i++)
+  for (size_t i = 0; i < kNumberEffectSlots; i++)
   {
     // Reverse touchpad
     if (currentReverseState[i])
