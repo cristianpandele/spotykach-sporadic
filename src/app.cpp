@@ -416,8 +416,7 @@ void AppImpl::logDebugInfo ()
 }
 #endif
 
-// This is only used for detecting pot changes for the test LED patterns,
-// the PotMonitor + queue makes this easy
+// This is only used for detecting pot changes
 void AppImpl::processUIQueue ()
 {
   while (!ui_queue.IsQueueEmpty())
@@ -821,26 +820,6 @@ void AppImpl::handleDisplay ()
     hw.leds.Set(Hardware::LED_ORBIT_A, 0xff0000, 1.0f);
   }
 
-  // Size/Pos A switch LED
-  // switch (sizePosSwitch[0])
-  // {
-  //   case SizePosSwitchState::SIZE:
-  //   {
-  //     hw.leds.Set(Hardware::LED_REV_A, 0x00ff00, 1.0f);
-  //     break;
-  //   }
-  //   case SizePosSwitchState::POSITION:
-  //   {
-  //     hw.leds.Set(Hardware::LED_REV_A, 0x0000ff, 1.0f);
-  //     break;
-  //   }
-  //   case SizePosSwitchState::BOTH:
-  //   {
-  //     hw.leds.Set(Hardware::LED_REV_A, 0xff0000, 1.0f);
-  //     break;
-  //   }
-  // }
-
   // Mod B Type switch LED
   modLedBrightness = modCv[1]; //modulationAmount[1].getSmoothVal();
   switch (currentModType[1])
@@ -875,26 +854,6 @@ void AppImpl::handleDisplay ()
   {
     hw.leds.Set(Hardware::LED_ORBIT_B, 0xff0000, 1.0f);
   }
-
-  // Size/Pos B switch LED
-  // switch (sizePosSwitch[1])
-  // {
-  //   case SizePosSwitchState::SIZE:
-  //   {
-  //     hw.leds.Set(Hardware::LED_REV_B, 0x00ff00, 1.0f);
-  //     break;
-  //   }
-  //   case SizePosSwitchState::POSITION:
-  //   {
-  //     hw.leds.Set(Hardware::LED_REV_B, 0x0000ff, 1.0f);
-  //     break;
-  //   }
-  //   case SizePosSwitchState::BOTH:
-  //   {
-  //     hw.leds.Set(Hardware::LED_REV_B, 0xff0000, 1.0f);
-  //     break;
-  //   }
-  // }
 
   // Manual tempo tap switch
   if (sr2.test(6))
