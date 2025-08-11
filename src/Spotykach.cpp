@@ -217,7 +217,6 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
   switch (state_)
   {
     case OFF:
-    case ARMED:
     {
       // Reset heads to 0
       readIx_ = writeIx_ = 0.0f;

@@ -18,7 +18,6 @@ class Spotykach : public Effect
     {
       OFF,
       ECHO,
-      ARMED,
       RECORDING,
       LOOP_PLAYBACK
     };
