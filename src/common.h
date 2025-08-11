@@ -40,6 +40,12 @@
   #define INFS_LOG_THROTTLE_INTERVAL 250
 #endif
 
+struct LedRgbBrightness
+{
+  uint32_t rgb;
+  float    brightness;
+};
+
 namespace infrasonic
 {
 #if INFS_LOG

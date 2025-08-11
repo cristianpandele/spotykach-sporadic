@@ -70,9 +70,6 @@ class Spotykach : public Effect
       T end;
     };
 
-    float readWindowStart;
-    float readWindowEnd;
-
     // Read and write pointers for the looper buffer
     float readIx_  = 0;
     float writeIx_ = 0;

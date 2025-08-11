@@ -2,6 +2,7 @@
 #include "Spotykach.h"
 
 static constexpr size_t kLooperAudioDataSamples = 15.0f * kSampleRate * kNumberChannelsMono;
+static constexpr size_t kEchoAudioDataSamples = 2.0f * kSampleRate;
 
 // Reserve two buffers for 15-second Spotykach loopers for each side - 16bit mono audio file at 48khz (about 0.172 MB each)
 static DSY_SDRAM_BSS float   looperAudioData[kNumberEffectSlots][kNumberChannelsStereo][kLooperAudioDataSamples] = {{{0.0f}}};
@@ -182,7 +183,243 @@ void Spotykach::setReverse (bool r)
   }
 }
 
-void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
+void Spotykach::updateAnalogControls (const AnalogControlFrame &c)
+{
+  // Update the analog effect parameters based on the control frame
+  setMix(c.mix, c.mixAlt);
+  setPitch(c.pitch);
+  setPosition(c.position);
+  setSize(c.size);
+  setShape(c.shape);
+}
+
+void Spotykach::updateDigitalControls (const DigitalControlFrame &c)
+{
+  // Update the digital effect parameters based on the control frame
+  setSpotyPlay(c.spotyPlay);
+  if (c.spotyPlay)
+  {
+    setReverse(false);
+    setPlay(false);
+    setAltPlay(false);
+  }
+  else
+  {
+    setReverse(c.reverse);
+    setPlay(c.play);
+    setAltPlay(c.altPlay);
+  }
+
+  updateDisplayState();
+}
+
+void Spotykach::getDigitalControls(DigitalControlFrame &c)
+{
+  c.reverse = reverse_;
+  c.play = play_;
+  c.altPlay = record_;
+  c.spotyPlay = false;  // Reset Spotykach+Play state
+}
+
+void Spotykach::updateDisplayState()
+{
+  // Prepare a minimal display view without exposing internals
+  DisplayState view{};
+  view.playActive     = play_;
+  view.reverseActive  = reverse_;
+  view.altPlayActive  = record_;
+
+  if (reverse_)
+  {
+    view.reverseLedColors[0] = {0x0000ff, 1.0f};  // Blue
+    view.reverseLedColors[1] = {0x0000ff, 0.5f};  // Blue
+  }
+
+  constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
+
+  switch (state_)
+  {
+    case ECHO:
+    {
+      // Factor the length of the echo into the LED ring (and zoom in twice for a better view)
+      float positionFactor = 2.0f * position_ * (float)kEchoAudioDataSamples / (float)kLooperAudioDataSamples;
+
+      // Compute spans in LED index space
+      uint8_t start    = static_cast<uint8_t>((1.0f - positionFactor) * N);
+      uint8_t spanSize = static_cast<uint8_t>(size_ * positionFactor * N);
+
+      // Yellow area indicating the position
+      LedRgbBrightness ledColor     = {0xffff00, 0.5f};
+      view.rings[view.layerCount++] = Effect::RingSpan{start, N, ledColor};
+      // Orange span indicating the size
+      ledColor                      = {0xff8000, 0.5f};
+      view.rings[view.layerCount++] = Effect::RingSpan{start, std::min<uint8_t>(start + spanSize, N), ledColor};
+
+      // Compute the span between the read and write heads
+      float relativePos = writeIx_ - readIx_;
+      if (relativePos < 0)
+      {
+        relativePos += kLooperAudioDataSamples;
+      }
+
+      // Convert span between the read and write heads to proportion of the echo buffer
+      positionFactor = relativePos / (float)kEchoAudioDataSamples;
+      // Invert position factor for LED mapping
+      positionFactor = 1.0f - positionFactor;
+
+      // Read head position in LED index space
+      uint8_t readIxLed  = std::min(start + static_cast<uint8_t>(positionFactor * spanSize), N - 1);
+      uint8_t readEndLed = std::min<uint8_t>(readIxLed + 1, N);
+
+      // Display read head position
+      ledColor                      = {0xff00ff, 1.0f};
+      view.rings[view.layerCount++] = Effect::RingSpan{readIxLed, readEndLed, ledColor};
+
+      // Play LED colors
+      view.playLedColors[0] = {0x00ff00, 1.0f};    // Green
+      view.playLedColors[1] = {0x000000, 0.0f};    // Off
+
+      break;
+    }
+
+    case RECORDING:
+    {
+      // Read head position
+      uint8_t readIxLed = static_cast<uint8_t>(readIx_ * N / kLooperAudioDataSamples);
+      uint8_t readEndLed   = std::min<uint8_t>(readIxLed + 1, N);
+
+      // Write head position
+      uint8_t writeIxLed = static_cast<uint8_t>(writeIx_ * N / kLooperAudioDataSamples);
+      uint8_t writeEnd   = std::min<uint8_t>(writeIxLed + 1, N);
+
+      // Yellow area indicating the writable area
+      LedRgbBrightness ledColor     = {0xffff00, 0.5f};
+      view.rings[view.layerCount++] = Effect::RingSpan{0, N, ledColor};
+
+      // Orange area indicating the actively written area
+      ledColor = {0xff8000, 0.5f};
+      if (speed_ > 0)
+      {
+        view.rings[view.layerCount++] = Effect::RingSpan{writeIxLed, N, ledColor};
+      }
+      else
+      {
+        view.rings[view.layerCount++] = Effect::RingSpan{0, writeIxLed, ledColor};
+      }
+
+      // Display read head position
+      ledColor                      = {0xff00ff, 1.0f};
+      view.rings[view.layerCount++] = Effect::RingSpan{readIxLed, readEndLed, ledColor};
+
+      // Display write head position
+      ledColor                      = {0xff0000, 1.0f};
+      view.rings[view.layerCount++] = Effect::RingSpan{writeIxLed, writeEnd, ledColor};
+
+      // Play LED colors
+      if (play_)
+      {
+        view.playLedColors[0] = {0x00ff00, 1.0f};  // Green
+      }
+      else
+      {
+        view.playLedColors[0] = {0x000000, 0.0f};  // Off
+      }
+      view.playLedColors[1] = {0xff0000, 1.0f};    // Red
+
+      break;
+    }
+
+    case LOOP_PLAYBACK:
+    {
+      // Compute spans in LED index space
+      uint8_t start = static_cast<uint8_t>(position_ * N);
+      uint8_t spanSize  = static_cast<uint8_t>(size_ * N);
+
+      // Read head position
+      uint8_t readIxLed  = static_cast<uint8_t>(readIx_ * N / kLooperAudioDataSamples);
+      uint8_t readEndLed = std::min<uint8_t>(readIxLed + 1, N);
+
+      // Yellow area indicating the position and size
+      LedRgbBrightness ledColor     = {0xffff00, 0.5f};
+      view.rings[view.layerCount++] = Effect::RingSpan{start, std::min<uint8_t>(start + spanSize, N), ledColor};
+
+      // Orange area indicating the actively read area
+      ledColor = {0xff8000, 0.5f};
+      if (speed_ > 0)
+      {
+        view.rings[view.layerCount++] =
+          Effect::RingSpan{readIxLed, std::min<uint8_t>(start + spanSize, N), ledColor};
+      }
+      else
+      {
+        view.rings[view.layerCount++] = Effect::RingSpan{start, readIxLed, ledColor};
+      }
+
+      // Display read head position
+      ledColor                      = {0xff00ff, 1.0f};
+      view.rings[view.layerCount++] = Effect::RingSpan{readIxLed, readEndLed, ledColor};
+
+      // Play LED colors
+      if (play_)
+      {
+        view.playLedColors[0] = {0x00ff00, 1.0f};    // Green
+        view.playLedColors[1] = {0x00ff00, 1.0f};    // Green
+      }
+      else
+      {
+        view.playLedColors[0] = {0x000000, 0.0f};    // Off
+        view.playLedColors[1] = {0x000000, 0.0f};    // Off
+      }
+
+      break;
+    }
+
+    default:
+    {
+      // OFF state - no active rings
+      view.layerCount = 0;
+      // Play LED colors
+      view.playLedColors[0] = {0x000000, 0.0f};    // Off
+      view.playLedColors[1] = {0x000000, 0.0f};    // Off
+      break;
+    }
+  }
+  publishDisplay(view);
+}
+
+void Spotykach::updateIndex(float &index, float increment, Span<float> window)
+{
+  // Update the write index by incrementing it and wrapping around if needed
+  index += increment;
+
+  float windowSize = window.end - window.start;
+  float windowEnd  = window.end;
+  // Handle wraparound when the window is inverted
+  if (window.end < window.start)
+  {
+    windowEnd += kLooperAudioDataSamples;
+    windowSize = windowEnd - window.start;
+  }
+
+  if (window.start == window.end)
+  {
+    // If the window is a point, just clamp the index to that point
+    index = window.start;
+  }
+  else
+  {
+    while (index > window.end)
+    {
+      index -= windowSize;
+    }
+    while (index < window.start)
+    {
+      index += windowSize;
+    }
+  }
+}
+
+void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
   // Pass-through if mode is not MODE_1 or channelConfig is not MONO_LEFT, MONO_RIGHT, or STEREO
   if ((mode_ != MODE_1) ||
@@ -249,49 +486,25 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
             out[ch][i] = 0.0f;
           }
         }
-        writeIx_ += 1.0f; // reverse_ ? -1.0f : 1.0f;
-        if (writeIx_ >= kLooperAudioDataSamples)
-        {
-          writeIx_ -= kLooperAudioDataSamples;
-        }
-        else if (writeIx_ < 0)
-        {
-          writeIx_ += kLooperAudioDataSamples;
-        }
-        readIx_ += speed_;
-        if (readIx_ >= kLooperAudioDataSamples)
-        {
-          readIx_ -= kLooperAudioDataSamples;
-        }
-        else if (readIx_ < 0)
-        {
-          readIx_ += kLooperAudioDataSamples;
-        }
-      }
-      // Ensure readIx within a span: (writeIx_ - position_, writeIx_ - position_ * (1.0f - size_))
-      float spanOffset = position_ * (1.0f - size_);
-      float spanTarget = writeIx_ - spanOffset;
-      if (spanTarget < 0)
-      {
-        spanTarget += kLooperAudioDataSamples;
-      }
-      else if (spanTarget >= kLooperAudioDataSamples)
-      {
-        spanTarget -= kLooperAudioDataSamples;
-      }
-      if (speed_ < 0)
-      {
-        if (readIx_ < spanTarget + std::abs(speed_ * blockSize))
-        {
-          updateReadIndexPosition(position_);
-        }
-      }
-      else
-      {
-        if (readIx_ > spanTarget - std::abs(speed_ * blockSize))
-        {
-          updateReadIndexPosition(position_);
-        }
+
+        // Update the write index
+        Span<float> writeSpan = {0.0f, kLooperAudioDataSamples};
+        updateIndex(writeIx_, 1.0f, writeSpan);
+
+        // Map position_ in (0,1) to (0, kEchoAudioDataSamples)
+        float readWindowOffset = position_ * (float)kEchoAudioDataSamples;
+        // Leave a margin to prevent the read index overtaking the write index
+        float readWindowMargin = std::abs(speed_ * kBlockSize);
+        // Set the start of the read window to trail the write index (with wraparound)
+        float readWindowStart = writeIx_;
+        updateIndex(readWindowStart, -(readWindowOffset + readWindowMargin), writeSpan);
+        // Set the end of the read window based on the size (with wraparound)
+        float readWindowEnd = readWindowStart;
+        updateIndex(readWindowEnd, readWindowOffset * size_, writeSpan);
+
+        // Update the read index
+        Span<float> readSpan = {readWindowStart, readWindowEnd};
+        updateIndex(readIx_, speed_, readSpan);
       }
       return;
     }
@@ -332,24 +545,12 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
             looperAudioData[effectSide_][ch][wIdx1] = in[ch][i] + feedback_ * old1;
           }
         }
-        writeIx_ += speed_;    // reverse_ ? -1.0f : 1.0f;
-        if (writeIx_ >= kLooperAudioDataSamples)
-        {
-          writeIx_ -= kLooperAudioDataSamples;
-        }
-        else if (writeIx_ < 0)
-        {
-          writeIx_ += kLooperAudioDataSamples;
-        }
-        readIx_ += speed_;
-        if (readIx_ >= kLooperAudioDataSamples)
-        {
-          readIx_ -= kLooperAudioDataSamples;
-        }
-        else if (readIx_ < 0)
-        {
-          readIx_ += kLooperAudioDataSamples;
-        }
+        // Update the write index
+        Span<float> writeSpan = {0.0f, kLooperAudioDataSamples};
+        updateIndex(writeIx_, speed_, writeSpan);
+
+        // Update the read index
+        updateIndex(readIx_, speed_, writeSpan);
       }
       return;
     }
@@ -389,17 +590,20 @@ void Spotykach::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBu
           }
         }
         // Advance read, write follows read
-        readIx_ += speed_;
-        if (readIx_ >= kLooperAudioDataSamples)
-          readIx_ -= kLooperAudioDataSamples;
-        else if (readIx_ < 0)
-          readIx_ += kLooperAudioDataSamples;
+        Span<float> loopSpan   = {spanStart, spanEnd};
+        float prevReadIx = readIx_;
+        updateIndex(readIx_, speed_, loopSpan);
         writeIx_ = readIx_;
         // Constrain readIx_ to span [spanStart, spanEnd)
-        float spanStart = position_;
-        float spanEnd   = position_ + size_ * (kLooperAudioDataSamples - position_);
+        // Map position_ relative to kLooperAudioDataSamples
+        float pos       = position_ * (float) kLooperAudioDataSamples;
+        float spanStart = pos;
+        float spanEnd   = pos + size_ * (kLooperAudioDataSamples - pos);
         if (spanEnd > kLooperAudioDataSamples)
+        {
           spanEnd = kLooperAudioDataSamples;
+        }
+
         if (speed_ >= 0)
         {
           if (readIx_ >= spanEnd)

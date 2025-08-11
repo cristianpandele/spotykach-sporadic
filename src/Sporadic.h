@@ -19,7 +19,6 @@ class Sporadic : public Effect
     void updateAnalogControls (const AnalogControlFrame &c) override;
     void updateDigitalControls (const DigitalControlFrame &c) override;
     void getDigitalControls (DigitalControlFrame &c) override;
-    // bool getDisplayState (DisplayState &out) const override;
     void updateDisplayState () override;
     void processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
 
