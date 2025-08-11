@@ -13,9 +13,9 @@ namespace spotykach_hwtest
   constexpr size_t kSampleRate           = 48000;
   constexpr size_t kBlockSize            = 16;
 
-  constexpr size_t kNumberEffectSlots    = 2;
-  constexpr size_t kNumberChannelsStereo = 2;
-  constexpr size_t kNumberChannelsMono   = 1;
+  constexpr uint8_t kNumberEffectSlots    = 2;
+  constexpr uint8_t kNumberChannelsStereo = 2;
+  constexpr uint8_t kNumberChannelsMono   = 1;
 
   // Enum for Size/Pos switch position
   enum SizePosSwitchState

@@ -59,6 +59,16 @@ class Spotykach : public Effect
     {
       return writeIx_;
     }
+
+    float getReadWindowStart () const
+    {
+      return readWindowStart;
+    }
+
+    float getReadWindowEnd () const
+    {
+      return readWindowEnd;
+    }
 #endif // DEBUG
 
   private:

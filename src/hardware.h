@@ -11,7 +11,7 @@ namespace spotykach
   {
     public:
       // LED indexes in order of chain
-      static constexpr uint16_t kNumLedsPerRing = 32;
+      static constexpr uint8_t kNumLedsPerRing = 32;
 
       enum LedId : uint16_t
       {
