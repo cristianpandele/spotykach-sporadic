@@ -33,6 +33,12 @@ static AppImpl   impl;
 static Spotykach spotykachLooper[2] = {Spotykach(0), Spotykach(1)};
 static Sporadic  sporadic;
 
+// Control frame for the effects
+Effect::AnalogControlFrame analogControlFrames[kNumberEffectSlots];
+Effect::DigitalControlFrame digitalControlFrames[kNumberEffectSlots];
+// Display state for the effects
+Effect::DisplayState displayStates[kNumberEffectSlots];
+
 #if DEBUG
 CpuLoadMeter loadMeter;
 #endif
@@ -138,6 +144,65 @@ void AppImpl::setRoutingMode (AppImpl::AppMode mode)
   }
 }
 
+void AppImpl::updateAnalogControlFrame(Effect::AnalogControlFrame &frame, size_t slot)
+{
+  if (slot >= kNumberEffectSlots)
+  {
+    return; // Invalid slot
+  }
+
+  // Update the control frame for the specified effect slot
+  frame =
+  {
+    .mix = mixControls[slot].isSmoothing() ? mixControls[slot].getSmoothVal() : mixControls[slot].getTargetVal(),
+    .mixAlt   = mixAltLatch[slot],
+    .pitch    = pitchControls[slot].isSmoothing() ? pitchControls[slot].getSmoothVal()
+                                                  : pitchControls[slot].getTargetVal(),
+    .position = positionControls[slot].isSmoothing() ? positionControls[slot].getSmoothVal()
+                                                    : positionControls[slot].getTargetVal(),
+    .size =
+      sizeControls[slot].isSmoothing() ? sizeControls[slot].getSmoothVal() : sizeControls[slot].getTargetVal(),
+    .shape = shapeControls[slot].isSmoothing() ? shapeControls[slot].getSmoothVal()
+                                              : shapeControls[slot].getTargetVal()
+  };
+}
+
+void AppImpl::pushAnalogEffectControls(Effect::AnalogControlFrame &c, size_t slot)
+{
+  // Push the controls to the Spotykach looper and Sporadic effect
+  spotykachLooper[slot].updateAnalogControls(c);
+}
+
+void AppImpl::updateDigitalControlFrame(Effect::DigitalControlFrame &frame, size_t slot)
+{
+  if (slot >= kNumberEffectSlots)
+  {
+    return; // Invalid slot
+  }
+
+  // Update the control frame for the specified effect slot
+  frame = {
+    // Simple pad presses
+    .reverse = currentReverseState[slot],
+    .play    = currentPlayState[slot],
+    // Supported pad combinations
+    .altPlay   = currentAltPlayState[slot],
+    .spotyPlay = currentSpotyPlayState[slot]
+  };
+}
+
+void AppImpl::pushDigitalEffectControls(Effect::DigitalControlFrame &c, size_t slot)
+{
+  // Push the controls to the Spotykach looper and Sporadic effect
+  spotykachLooper[slot].updateDigitalControls(c);
+  // Get back the updated controls
+  spotykachLooper[slot].getDigitalControls(c);
+  currentReverseState[slot] = c.reverse;
+  currentPlayState[slot] = c.play;
+  currentAltPlayState[slot] = c.altPlay;
+  currentSpotyPlayState[slot] = c.spotyPlay;
+}
+
 void AppImpl::loop ()
 {
   while (true)
@@ -200,66 +265,22 @@ void AppImpl::loop ()
 
       for (size_t i = 0; i < kNumberEffectSlots; i++)
       {
-        if (effectModeChanged[i])
-        {
-          spotykachLooper[i].setMode(currentEffectMode[i]);
-          effectModeChanged[i] = false;
-        }
-
         if (modTypeChanged[i])
         {
           modulator[i].setModType(currentModType[i]);
           modTypeChanged[i] = false;
         }
 
-        if (reverseStateChanged[i])
+        if (effectModeChanged[i])
         {
-          spotykachLooper[i].setReverse(currentReverseState[i]);
-          reverseStateChanged[i] = false;
+          spotykachLooper[i].setMode(currentEffectMode[i]);
+          effectModeChanged[i] = false;
         }
 
-        if (altPlayStateChanged[i])
+        if (reverseStateChanged[i] || playStateChanged[i] || altPlayStateChanged[i] || spotyPlayStateChanged[i])
         {
-          spotykachLooper[i].setAltPlay(currentAltPlayState[i]);
-          altPlayStateChanged[i] = false;
-        }
-        else if (spotyPlayStateChanged[i])
-        {
-          // If the effect on this side is Spotykach, reset the looper
-          if ((i == 0) &&
-              (currentRoutingMode >= AppMode::ROUTING_DUAL_MONO) && (currentRoutingMode < AppMode::ROUTING_LAST))
-          {
-            spotykachLooper[i].setSpotyPlay(currentSpotyPlayState[i]);
-            reverseStateChanged[0]   = true;
-            currentReverseState[0]   = false;
-            playStateChanged[0]      = true;
-            currentPlayState[0]      = false;
-            altPlayStateChanged[0]   = true;
-            currentAltPlayState[0]   = false;
-            // Log::PrintLine("Spotykach looper reset for side 0");
-          }
-
-          // If the effect on this side is Spotykach, reset the looper
-          if ((i == 1) &&
-              (currentRoutingMode == AppMode::ROUTING_GENERATIVE))
-          {
-            spotykachLooper[i].setSpotyPlay(currentSpotyPlayState[i]);
-            reverseStateChanged[1]   = true;
-            currentReverseState[1]   = false;
-            playStateChanged[1]      = true;
-            currentPlayState[1]      = false;
-            altPlayStateChanged[1]   = true;
-            currentAltPlayState[1]   = false;
-            // Log::PrintLine("Spotykach looper reset for side 1");
-          }
-          // Reset the currentSpotyPlayState to false
-          currentSpotyPlayState[i] = false;
-          spotyPlayStateChanged[i] = false;
-        }
-        if (playStateChanged[i])
-        {
-          spotykachLooper[i].setPlay(currentPlayState[i]);
-          playStateChanged[i] = false;
+          updateDigitalControlFrame(digitalControlFrames[i], i);
+          pushDigitalEffectControls(digitalControlFrames[i], i);
         }
 
         /////////
@@ -281,7 +302,11 @@ void AppImpl::loop ()
     }
     if (log_timer.HasPassedMs(500))
     {
-      playLedPhase = !playLedPhase;
+      padLedPhase += 1;
+      if (padLedPhase >= Effect::kMaxLedPhases)
+      {
+        padLedPhase = 0;
+      }
 #if DEBUG
       logDebugInfo();
 #endif
@@ -327,31 +352,15 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
   {
     /////////
     // Apply the analog controls to the effects
-    // Set the pitch for both sides
-    if (pitchControls[i].isSmoothing())
+
+    if (mixControls[i].isSmoothing() || pitchControls[i].isSmoothing() ||
+        positionControls[i].isSmoothing() || sizeControls[i].isSmoothing() ||
+        shapeControls[i].isSmoothing())
     {
-      spotykachLooper[i].setPitch(pitchControls[i].getSmoothVal());
+      updateAnalogControlFrame(analogControlFrames[i], i);
+      pushAnalogEffectControls(analogControlFrames[i], i);
     }
-    // Set the mix for both sides
-    if (mixControls[i].isSmoothing())
-    {
-      spotykachLooper[i].setMix(mixControls[i].getSmoothVal(), mixAltLatch[i]);
-    }
-    // Set the position for both sides
-    if (positionControls[i].isSmoothing())
-    {
-      spotykachLooper[i].setPosition(positionControls[i].getSmoothVal());
-    }
-    // Set the size for both sides
-    if (sizeControls[i].isSmoothing())
-    {
-      spotykachLooper[i].setSize(sizeControls[i].getSmoothVal());
-    }
-    // Set the shape for both sides
-    if (shapeControls[i].isSmoothing())
-    {
-      spotykachLooper[i].setShape(shapeControls[i].getSmoothVal());
-    }
+
     /////////
     // Apply the analog controls to the modulators
     for (size_t i = 0; i < kNumberEffectSlots; i++)

@@ -26,20 +26,28 @@ class Spotykach : public Effect
 
     void init ();
 
-    void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
+    void updateAnalogControls (const AnalogControlFrame &c) override;
+    void updateDigitalControls (const DigitalControlFrame &c) override;
+    void getDigitalControls(DigitalControlFrame &c) override;
 
-    void setMix (float m, bool altLatch);
+    void updateDisplayState () override;
 
-    void setPitch (float s) override;
-
-    void setPlay (bool p) override;
-
-    void setReverse (bool r) override;
+    void processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
 
 #if DEBUG
     float getPitch () const
     {
       return speed_;
+    }
+
+    float getSize () const
+    {
+      return size_;
+    }
+
+    float getPosition () const
+    {
+      return position_;
     }
 
     float getReadIx () const
@@ -53,28 +61,18 @@ class Spotykach : public Effect
     }
 #endif // DEBUG
 
-    void updateReadIndexPosition (float p);
-    void setPosition (float p) override;
-
-    void setState(State s) { state_ = s; }
-
-    void setFeedback (float fb) { feedback_ = std::clamp(fb, 0.0f, 0.99f); }
-
-    void setAltPlay (bool r);
-    void setSpotyPlay (bool s);
-
-    State getState () const { return state_; }
-
-    // Override the EffectMode enum to define specific modes for Spotykach
-    enum EffectMode
+  private:
+    // Span structure for representing a range
+    template<typename T>
+    struct Span
     {
-      REEL = 0,
-      SLICE = 1,
-      DRIFT = 2,
-      MODE_LAST
+      T start;
+      T end;
     };
 
-  private:
+    float readWindowStart;
+    float readWindowEnd;
+
     // Read and write pointers for the looper buffer
     float readIx_  = 0;
     float writeIx_ = 0;
@@ -91,6 +89,30 @@ class Spotykach : public Effect
     uint8_t effectSide_ = 0;
 
     bool isChannelActive (size_t ch) const;
+
+    void setMix (float m, bool altLatch);
+    void setPitch (float s) override;
+    void setPlay (bool p) override;
+    void setReverse (bool r) override;
+    void setSize (float p) override;
+    void setFeedback (float fb) { feedback_ = std::clamp(fb, 0.0f, 0.99f); }
+    void setAltPlay (bool r);
+    void setSpotyPlay (bool s);
+
+    void updateEchoReadIndexPosition (float p);
+    void updateIndex (float &index, float increment, Span<float> window);
+
+    void  setState (State s) { state_ = s; }
+    State getState () const { return state_; }
+
+    // Override the EffectMode enum to define specific modes for Spotykach
+    enum EffectMode
+    {
+      REEL  = 0,
+      SLICE = 1,
+      DRIFT = 2,
+      MODE_LAST
+    };
 
     Spotykach (const Spotykach &)           = delete;
     Spotykach &operator=(const Spotykach &) = delete;

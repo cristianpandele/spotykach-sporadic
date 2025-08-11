@@ -187,6 +187,18 @@ namespace spotykach_hwtest
       void init ();
       void loop ();
 
+      // Update the control frame with the current values
+      void updateAnalogControlFrame (Effect::AnalogControlFrame &c, size_t effectSlot);
+
+      // Update the control frame with the current values
+      void updateDigitalControlFrame (Effect::DigitalControlFrame &c, size_t effectSlot);
+
+      // Push the control frame to the effects
+      void pushAnalogEffectControls (Effect::AnalogControlFrame &c, size_t effectSlot);
+
+      // Push the control frame to the effects
+      void pushDigitalEffectControls (Effect::DigitalControlFrame &c, size_t effectSlot);
+
       // Audio processing functions for the Spotykach looper and Sporadic effect
       void processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize);
 
@@ -198,7 +210,7 @@ namespace spotykach_hwtest
       static constexpr ModType modulationTypes[kNumberEffectSlots][ModulationEngine::kNumModsPerSide] =
         {
           {ModType::ENV_FOLLOWER,  ModType::S_H, ModType::SQUARE},
-          {ModType::ENV_FOLLOWER, ModType::SINE,    ModType::RAMP},
+          {ModType::ENV_FOLLOWER, ModType::SINE,   ModType::RAMP},
         };
 
       Hardware       hw;
@@ -216,36 +228,36 @@ namespace spotykach_hwtest
       // Mix controls for the two sides
       using SmoothValue = Utils::SmoothValue;
       SmoothValue mixControls[kNumberEffectSlots] = {SmoothValue(25.0f, kSampleRate),
-                                                        SmoothValue(25.0f, kSampleRate)};
+                                                     SmoothValue(25.0f, kSampleRate)};
 
       // Mix control alt latch for the two sides
       bool mixAltLatch[kNumberEffectSlots] = {false};
 
       // Smooth pitch for each side
       SmoothValue pitchControls[kNumberEffectSlots] = {SmoothValue(75.0f, kSampleRate),
-                                                          SmoothValue(75.0f, kSampleRate)};
+                                                       SmoothValue(75.0f, kSampleRate)};
 
       // Position knob for each side
       SmoothValue positionControls[kNumberEffectSlots] = {SmoothValue(150.0f, kSampleRate),
-                                                             SmoothValue(150.0f, kSampleRate)};
+                                                          SmoothValue(150.0f, kSampleRate)};
       // Position/size switch state for each side
       SizePosSwitchState sizePosSwitch[kNumberEffectSlots] = {SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
 
       // Size controls for each side
       SmoothValue sizeControls[kNumberEffectSlots] = {SmoothValue(250.0f, kSampleRate),
-                                                         SmoothValue(250.0f, kSampleRate)};
+                                                      SmoothValue(250.0f, kSampleRate)};
 
       // Shape controls for each side
       SmoothValue shapeControls[kNumberEffectSlots] = {SmoothValue(250.0f, kSampleRate),
-                                                          SmoothValue(250.0f, kSampleRate)};
+                                                      SmoothValue(250.0f, kSampleRate)};
 
       // Modulation amount controls for each side
       SmoothValue modulationAmount[kNumberEffectSlots] = {SmoothValue(75.0f, kSampleRate),
-                                                              SmoothValue(75.0f, kSampleRate)};
+                                                          SmoothValue(75.0f, kSampleRate)};
 
       // Modulation frequency controls for each side
       SmoothValue modulationFreq[kNumberEffectSlots] = {SmoothValue(75.0f, kSampleRate),
-                                                            SmoothValue(75.0f, kSampleRate)};
+                                                        SmoothValue(75.0f, kSampleRate)};
 
       // Modulation frequency alt latch for each side
       bool modFreqAltLatch[2] = {false};
@@ -258,7 +270,7 @@ namespace spotykach_hwtest
       // Mod type switch flag and current mod type for each side
       bool    modTypeChanged[kNumberEffectSlots] = {false};
       ModType currentModType[kNumberEffectSlots] = {ModType::MOD_TYPE_LAST,
-                                                       ModType::MOD_TYPE_LAST};
+                                                    ModType::MOD_TYPE_LAST};
 
       // Reverse flag for each side
       bool reverseStateChanged[kNumberEffectSlots] = {false};
@@ -284,7 +296,7 @@ namespace spotykach_hwtest
       float    modCv[kNumberEffectSlots] = {0.0f};
 
       // LED Phase for blinking LEDs
-      uint8_t playLedPhase = 0;
+      uint8_t padLedPhase = 0;
 
       uint16_t last_pot_moved_a;
       uint16_t last_pot_moved_b;

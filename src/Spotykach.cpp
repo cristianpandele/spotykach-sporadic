@@ -73,33 +73,14 @@ void Spotykach::setMix (float m, bool altLatch)
   }
 }
 
-void Spotykach::setPosition (float p)
+void Spotykach::setSize (float s)
 {
-  // Map p in (0,1) to (0, 2*kSampleRate)
-  position_ = infrasonic::map(p, 0.0f, 1.0f, 0.0f, 2.0f * kSampleRate);
-  switch (state_)
-  {
-    case OFF:
-    case ARMED:
-    case RECORDING:
-    {
-      // Do not change read index in these states
-      return;
-    }
-    case ECHO:
-    {
-      // Update the read index based on the position of the write index
-      updateReadIndexPosition(position_);
-    }
-    case LOOP_PLAYBACK:
-      // Update read index based on the new position value
-      // TODO
-      break;
-  }
-
+  // Ensure size is just a hair above 0 at all times
+  size_ = infrasonic::map(s, 0.0f, 1.0f, 0.05f, 1.0f);
+  size_ = std::clamp(size_, 0.05f, 1.0f);
 }
 
-void Spotykach::setPlay(bool p)
+void Spotykach::setPlay (bool p)
 {
   play_ = p;
 
@@ -116,7 +97,9 @@ void Spotykach::setPlay(bool p)
         {
           if (isChannelActive(ch))
           {
-            std::fill(looperAudioData[effectSide_][ch], looperAudioData[effectSide_][ch] + kLooperAudioDataSamples, 0.0f);
+            std::fill(looperAudioData[effectSide_][ch],
+                      looperAudioData[effectSide_][ch] + kLooperAudioDataSamples,
+                      0.0f);
           }
         }
       }

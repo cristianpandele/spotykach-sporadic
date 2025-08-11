@@ -25,10 +25,23 @@ void Effect::setMode (EffectMode m)
   mode_ = m;
 }
 
-void Effect::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
+bool Effect::getDisplayState (DisplayState &out) const
 {
-  // Process the effect audio
-  // This is a placeholder for the actual effect logic, just copy the input to the output
-  std::copy(IN_L, IN_L + blockSize, OUT_L);
-  std::copy(IN_R, IN_R + blockSize, OUT_R);
+  uint8_t     r   = dispWIdx_;    // read the last published buffer index
+  const auto &src = dispBuf_[r];
+  if (src.cnt == cntRead_)    // unchanged since last fetch
+  {
+    return false;
+  }
+  out      = src.state;
+  cntRead_ = src.cnt;
+  return true;
+}
+
+void Effect::publishDisplay(const DisplayState &state)
+{
+  uint8_t w         = dispWIdx_ ^ 1;  // toggle write index
+  dispBuf_[w].state = state;
+  dispBuf_[w].cnt   = dispBuf_[dispWIdx_].cnt + 1; // increment generation count
+  dispWIdx_         = w; // update write index
 }
