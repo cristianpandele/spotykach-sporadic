@@ -106,7 +106,6 @@ class Spotykach : public Effect
     void setAltPlay (bool r);
     void setSpotyPlay (bool s);
 
-    void updateEchoReadIndexPosition (float p);
     void updateIndex (float &index, float increment, Span<float> window);
 
     void  setState (State s) { state_ = s; }

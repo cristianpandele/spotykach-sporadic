@@ -39,28 +39,6 @@ void Spotykach::setPitch (float s)
   }
 }
 
-void Spotykach::updateReadIndexPosition (float p)
-{
-  // Set readIx_ to be writeIx_ - position_, wrapping if needed
-  if (speed_ < 0)
-  {
-    readIx_ = writeIx_ + (position_ + std::abs(speed_ * kBlockSize));
-  }
-  else
-  {
-    readIx_ = writeIx_ - (position_ + std::abs(speed_ * kBlockSize));
-  }
-  //
-  if (readIx_ < 0)
-  {
-    readIx_ += kLooperAudioDataSamples;
-  }
-  else if (readIx_ >= kLooperAudioDataSamples)
-  {
-    readIx_ -= kLooperAudioDataSamples;
-  }
-}
-
 void Spotykach::setMix (float m, bool altLatch)
 {
   // If alt latch is pressed, set feedback instead of mix
