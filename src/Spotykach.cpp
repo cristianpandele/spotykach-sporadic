@@ -125,7 +125,8 @@ void Spotykach::setAltPlay (bool r)
         // Reset read and write indices
         readIx_  = 0;
         writeIx_ = 0;
-        // Switch to RECORDING state
+        // Switch to RECORDING state and start playing
+        play_    = true;
         // Log::PrintLine("Switching to RECORDING state");
         state_ = RECORDING;
         break;
