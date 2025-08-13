@@ -30,8 +30,11 @@ namespace spotykach_hwtest
 }    // namespace spotykach_hwtest
 
 static AppImpl   impl;
-static Spotykach spotykachLooper[2] = {Spotykach(0), Spotykach(1)};
+static Spotykach spotykachLooper[kNumberEffectSlots] = {Spotykach(0), Spotykach(1)};
 static Sporadic  sporadic;
+
+// Array of pointers to Effects
+Effect* effects[kNumberEffectSlots];
 
 // Control frame for the effects
 Effect::AnalogControlFrame analogControlFrames[kNumberEffectSlots];
@@ -108,7 +111,7 @@ void AppImpl::init ()
   {
     spotykachLooper[i].init();
   }
-  // sporadic.init();
+  sporadic.init();
 
 #if DEBUG
   Log::StartLog(false);
@@ -129,18 +132,24 @@ void AppImpl::setRoutingMode (AppImpl::AppMode mode)
     spotykachLooper[0].setChannelConfig(ChannelConfig::STEREO);
     spotykachLooper[1].setChannelConfig(ChannelConfig::STEREO);
     sporadic.setChannelConfig(ChannelConfig::STEREO);
+    effects[0] = &spotykachLooper[0];
+    effects[1] = &spotykachLooper[1];
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_MONO)
   {
     spotykachLooper[0].setChannelConfig(ChannelConfig::MONO_LEFT);
     spotykachLooper[1].setChannelConfig(ChannelConfig::OFF);
     sporadic.setChannelConfig(ChannelConfig::MONO_RIGHT);
+    effects[0] = &spotykachLooper[0];
+    effects[1] = &sporadic;
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_STEREO)
   {
     spotykachLooper[0].setChannelConfig(ChannelConfig::STEREO);
     spotykachLooper[1].setChannelConfig(ChannelConfig::OFF);
     sporadic.setChannelConfig(ChannelConfig::STEREO);
+    effects[0] = &spotykachLooper[0];
+    effects[1] = &sporadic;
   }
 }
 
@@ -170,7 +179,7 @@ void AppImpl::updateAnalogControlFrame(Effect::AnalogControlFrame &frame, size_t
 void AppImpl::pushAnalogEffectControls(Effect::AnalogControlFrame &c, size_t slot)
 {
   // Push the controls to the Spotykach looper and Sporadic effect
-  spotykachLooper[slot].updateAnalogControls(c);
+  effects[slot]->updateAnalogControls(c);
 }
 
 void AppImpl::updateDigitalControlFrame(Effect::DigitalControlFrame &frame, size_t slot)
@@ -194,12 +203,12 @@ void AppImpl::updateDigitalControlFrame(Effect::DigitalControlFrame &frame, size
 void AppImpl::pushDigitalEffectControls(Effect::DigitalControlFrame &c, size_t slot)
 {
   // Push the controls to the Spotykach looper and Sporadic effect
-  spotykachLooper[slot].updateDigitalControls(c);
+  effects[slot]->updateDigitalControls(c);
   // Get back the updated controls
-  spotykachLooper[slot].getDigitalControls(c);
-  currentReverseState[slot] = c.reverse;
-  currentPlayState[slot] = c.play;
-  currentAltPlayState[slot] = c.altPlay;
+  effects[slot]->getDigitalControls(c);
+  currentReverseState[slot]   = c.reverse;
+  currentPlayState[slot]      = c.play;
+  currentAltPlayState[slot]   = c.altPlay;
   currentSpotyPlayState[slot] = c.spotyPlay;
 }
 
@@ -273,7 +282,7 @@ void AppImpl::loop ()
 
         if (effectModeChanged[i])
         {
-          spotykachLooper[i].setMode(currentEffectMode[i]);
+          effects[i]->setMode(currentEffectMode[i]);
           effectModeChanged[i] = false;
         }
 
@@ -334,9 +343,10 @@ void AppImpl::processModulatorControls (size_t slot)
 
 void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
-  spotykachLooper[0].processAudio(in, out, blockSize);
-  spotykachLooper[1].processAudio(in, out, blockSize);
-  sporadic.processAudio(in, out, blockSize);
+  for (size_t i = 0; i < kNumberEffectSlots; i++)
+  {
+    effects[i]->processAudio(in, out, blockSize);
+  }
 }
 
 void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
@@ -884,8 +894,7 @@ void AppImpl::handleDisplay ()
   for (size_t side = 0; side < kNumberEffectSlots; side++)
   {
     // If the effect on this side has an updated display state
-    // spotykachLooper[side].getDisplayState(displayStates[side]);
-    if (spotykachLooper[side].getDisplayState(displayStates[side]))
+    if (effects[side]->getDisplayState(displayStates[side]))
     {
       for (size_t layer = 0; layer < std::min(displayStates[side].layerCount, Effect::kMaxRingLayers); ++layer)
       {
