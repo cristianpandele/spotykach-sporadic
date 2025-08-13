@@ -199,6 +199,9 @@ namespace spotykach_hwtest
       // Push the control frame to the effects
       void pushDigitalEffectControls (Effect::DigitalControlFrame &c, size_t effectSlot);
 
+      // Process the modulation controls for the specified effect slot
+      void processModulatorControls (size_t slot);
+
       // Audio processing functions for the Spotykach looper and Sporadic effect
       void processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize);
 

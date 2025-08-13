@@ -315,6 +315,23 @@ void AppImpl::loop ()
   }
 }
 
+void AppImpl::processModulatorControls (size_t slot)
+{
+  if (slot >= kNumberEffectSlots)
+  {
+    return; // Invalid slot
+  }
+
+  // Process the modulation for the specified effect slot
+  for (size_t i = 0; i < kNumberEffectSlots; i++)
+  {
+    // We are rendering the modulator output at 500 Hz, roughly /100 times slower than the sample rate
+    // so we need to scale the frequency by 100.0f
+    modulator[i].setFrequency(modulationFreq[i].getSmoothVal() * 100.0f, modFreqAltLatch[i]);
+    modulator[i].setAmplitude(modulationAmount[i].getSmoothVal());
+  }
+}
+
 void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
   spotykachLooper[0].processAudio(in, out, blockSize);
@@ -363,13 +380,7 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
 
     /////////
     // Apply the analog controls to the modulators
-    for (size_t i = 0; i < kNumberEffectSlots; i++)
-    {
-      // We are rendering the modulator output at 500 Hz, roughly /100 times slower than the sample rate
-      // so we need to scale the frequency by 100.0f
-      modulator[i].setFrequency(modulationFreq[i].getSmoothVal() * 100.0f, modFreqAltLatch[i]);
-      modulator[i].setAmplitude(modulationAmount[i].getSmoothVal());
-    }
+    processModulatorControls(i);
   }
 
   // Process the audio through the Spotykach/Sporadic logic
