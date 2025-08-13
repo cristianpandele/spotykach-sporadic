@@ -86,8 +86,7 @@ void AppImpl::init ()
   test_note_on = false;
 
   pot_monitor.Init(ui_queue, hw, 500, 0.005f, 0.002f);
-  last_pot_moved_a = 0;
-  last_pot_moved_b = 0;
+  std::fill(std::begin(last_pot_moved), std::end(last_pot_moved), 0);
 
   for (size_t i = 0; i < 8; i++)
   {
@@ -248,8 +247,10 @@ void AppImpl::loop ()
       {
         hw.midi_uart.EnqueueMessage(MidiTxMessage::NoteOff(0, 60, 64));
       }
-      hw.SetGateOutA(test_note_on);
-      hw.SetGateOutB(test_note_on);
+      for (uint8_t i = 0; i < kNumberEffectSlots; i++)
+      {
+        hw.SetGateOut(i, test_note_on);
+      }
     }
 
     // Modified libDaisy MIDI handlers require explicit call to transmit
@@ -454,18 +455,17 @@ void AppImpl::processUIQueue ()
     auto event = ui_queue.GetAndRemoveNextEvent();
     if (event.type == UiEventQueue::Event::EventType::potMoved)
     {
-      if (event.asPotMoved.id == Hardware::CTRL_MOD_FREQ_A)
-        modFreqAltLatch[0] = Utils::isAltPadPressed(padTouchStates);
-      else if (event.asPotMoved.id == Hardware::CTRL_MOD_FREQ_B)
-        modFreqAltLatch[1] = Utils::isAltPadPressed(padTouchStates);
-      else if (event.asPotMoved.id == Hardware::CTRL_SOS_A)
-        mixAltLatch[0] = Utils::isAltPadPressed(padTouchStates);
-      else if (event.asPotMoved.id == Hardware::CTRL_SOS_B)
-        mixAltLatch[1] = Utils::isAltPadPressed(padTouchStates);
-      else if (event.asPotMoved.id <= Hardware::CTRL_SHAPE_A)
-        last_pot_moved_a = event.asPotMoved.id;
-      else if (event.asPotMoved.id <= Hardware::CTRL_SHAPE_B)
-        last_pot_moved_b = event.asPotMoved.id;
+      for (size_t side = 0; side < kNumberEffectSlots; side++)
+      {
+        if (event.asPotMoved.id == Hardware::kCtrlModFreqIds[side])
+          modFreqAltLatch[side] = Utils::isAltPadPressed(padTouchStates);
+
+        if (event.asPotMoved.id == Hardware::kCtrlSosIds[side])
+          mixAltLatch[side] = Utils::isAltPadPressed(padTouchStates);
+
+        if (event.asPotMoved.id <= Hardware::kCtrlLastSideIds[side])
+          last_pot_moved[side] = event.asPotMoved.id;
+      }
     }
   }
 }
@@ -515,55 +515,41 @@ void AppImpl::drawRainbowRoad ()
 
 void AppImpl::handleAnalogControls ()
 {
-  // Read and smooth pitch controls for both sides
-  pitchControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_PITCH_A);
-  pitchControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_PITCH_B);
-  // Add the pitch CV values
-  pitchControls[0] += hw.GetControlVoltageValue(Hardware::CV_V_OCT_A);
-  pitchControls[1] += hw.GetControlVoltageValue(Hardware::CV_V_OCT_B);
-
-  // Read the mix controls for both sides
-  mixControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_SOS_A);
-  mixControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_SOS_B);
-  // Add the mix CV values
-  mixControls[0] += hw.GetControlVoltageValue(Hardware::CV_SOS_IN_A);
-  mixControls[1] += hw.GetControlVoltageValue(Hardware::CV_SOS_IN_B);
-
-  // Read the position knobs and CVs
-  positionControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_POS_A);
-  positionControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_POS_B);
-  if ((sizePosSwitch[0] == SizePosSwitchState::POSITION) || (sizePosSwitch[0] == SizePosSwitchState::BOTH))
+  for (size_t side = 0; side < kNumberEffectSlots; side++)
   {
-    positionControls[0] += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_A);
-  }
-  if ((sizePosSwitch[1] == SizePosSwitchState::POSITION) || (sizePosSwitch[1] == SizePosSwitchState::BOTH))
-  {
-    positionControls[1] += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_B);
-  }
+    // Read and smooth pitch controls for both sides
+    pitchControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPitchIds[side]);
+    // Add the pitch CV values
+    pitchControls[side] += hw.GetControlVoltageValue(Hardware::kCvVOctIds[side]);
 
-  // Read the size knobs and CVs
-  sizeControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_SIZE_A);
-  sizeControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_SIZE_B);
-  if ((sizePosSwitch[0] == SizePosSwitchState::SIZE) || (sizePosSwitch[0] == SizePosSwitchState::BOTH))
-  {
-    sizeControls[0] += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_A);
+    // Read the mix controls for both sides
+    mixControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSosIds[side]);
+    // Add the mix CV values
+    mixControls[side] += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
+
+    // Read the position knobs and CVs
+    positionControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPosIds[side]);
+    if ((sizePosSwitch[side] == SizePosSwitchState::POSITION) || (sizePosSwitch[side] == SizePosSwitchState::BOTH))
+    {
+      positionControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
+    }
+
+    // Read the size knobs and CVs
+    sizeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSizeIds[side]);
+    if ((sizePosSwitch[side] == SizePosSwitchState::SIZE) || (sizePosSwitch[side] == SizePosSwitchState::BOTH))
+    {
+      sizeControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
+    }
+
+    // Read the shape knobs
+    shapeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlShapeIds[side]);
+
+    // Read the modulation amount knobs
+    modulationAmount[side] = hw.GetAnalogControlValue(Hardware::kCtrlModAmtIds[side]);
+
+    // Read the modulation frequency knobs
+    modulationFreq[side] = hw.GetAnalogControlValue(Hardware::kCtrlModFreqIds[side]);
   }
-  if ((sizePosSwitch[1] == SizePosSwitchState::SIZE) || (sizePosSwitch[1] == SizePosSwitchState::BOTH))
-  {
-    sizeControls[1] += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_B);
-  }
-
-  // Read the shape knobs
-  shapeControls[0] = hw.GetAnalogControlValue(Hardware::CTRL_SHAPE_A);
-  shapeControls[1] = hw.GetAnalogControlValue(Hardware::CTRL_SHAPE_B);
-
-  // Read the modulation amount knobs
-  modulationAmount[0] = hw.GetAnalogControlValue(Hardware::CTRL_MOD_AMT_A);
-  modulationAmount[1] = hw.GetAnalogControlValue(Hardware::CTRL_MOD_AMT_B);
-
-  // Read the modulation frequency knobs
-  modulationFreq[0] = hw.GetAnalogControlValue(Hardware::CTRL_MOD_FREQ_A);
-  modulationFreq[1] = hw.GetAnalogControlValue(Hardware::CTRL_MOD_FREQ_B);
 }
 
 void AppImpl::handleDigitalControls ()
@@ -782,13 +768,13 @@ void AppImpl::handleDisplay ()
   {
     hw.leds.Set(Hardware::LED_CLOCK_IN, 0xff0000, 1.0f);
   }
-  if (hw.GetGateInputAState())
+
+  for (size_t i = 0; i < kNumberEffectSlots; i++)
   {
-    hw.leds.Set(Hardware::LED_GATE_OUT_A, 0xff0000, 1.0f);
-  }
-  if (hw.GetGateInputBState())
-  {
-    hw.leds.Set(Hardware::LED_GATE_OUT_B, 0xff0000, 1.0f);
+    if (hw.GetGateInputState(i))
+    {
+      hw.leds.Set(Hardware::kLedGateIds[i], 0xff0000, 1.0f);
+    }
   }
 
   // --- Switches (Shift registers) ---
@@ -814,75 +800,46 @@ void AppImpl::handleDisplay ()
     hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0x000000, 1.0f);
   }
 
-  // Mod A Type switch LED
+  // Modulator A & B Type switch LED
   using ModType = ModulationEngine::ModType;
-  float modLedBrightness = modCv[0]; //modulationAmount[0].getSmoothVal();
-  switch (currentModType[0])
+  for (size_t side = 0; side < kNumberEffectSlots; side++)
   {
-    case ModType::ENV_FOLLOWER:
+    float modLedBrightness = modCv[side]; //modulationAmount[side].getSmoothVal();
+    switch (currentModType[side])
     {
-      hw.leds.Set(Hardware::LED_CYCLE_A, 0x00ff00, modLedBrightness);
-      break;
-    }
-    case ModType::S_H:
-    {
-      hw.leds.Set(Hardware::LED_CYCLE_A, 0x0000ff, modLedBrightness);
-      break;
-    }
-    default:
-    {
-      hw.leds.Set(Hardware::LED_CYCLE_A, 0xff0000, modLedBrightness);
-      break;
-    }
-  }
-
-  // Mode A switch
-  if (currentEffectMode[0] == EffectMode::MODE_3)
-  {
-    hw.leds.Set(Hardware::LED_ORBIT_A, 0x00ff00, 1.0f);
-  }
-  else if (currentEffectMode[0] == EffectMode::MODE_1)
-  {
-    hw.leds.Set(Hardware::LED_ORBIT_A, 0x0000ff, 1.0f);
-  }
-  else
-  {
-    hw.leds.Set(Hardware::LED_ORBIT_A, 0xff0000, 1.0f);
-  }
-
-  // Mod B Type switch LED
-  modLedBrightness = modCv[1]; //modulationAmount[1].getSmoothVal();
-  switch (currentModType[1])
-  {
-    case ModType::ENV_FOLLOWER:
-    {
-      hw.leds.Set(Hardware::LED_CYCLE_B, 0x00ff00, modLedBrightness);
-      break;
-    }
-    case ModType::SINE:
-    {
-      hw.leds.Set(Hardware::LED_CYCLE_B, 0x0000ff, modLedBrightness);
-      break;
-    }
-    default:
-    {
-      hw.leds.Set(Hardware::LED_CYCLE_B, 0xff0000, modLedBrightness);
-      break;
+      case ModType::ENV_FOLLOWER:
+      {
+        hw.leds.Set(Hardware::kLedCycleIds[side], 0x00ff00, modLedBrightness);
+        break;
+      }
+      case ModType::S_H:
+      {
+        hw.leds.Set(Hardware::kLedCycleIds[side], 0x0000ff, modLedBrightness);
+        break;
+      }
+      default:
+      {
+        hw.leds.Set(Hardware::kLedCycleIds[side], 0xff0000, modLedBrightness);
+        break;
+      }
     }
   }
 
-  // Mode B switch
-  if (currentEffectMode[1] == EffectMode::MODE_3)
+  // Mode A & B switches
+  for (size_t side = 0; side < kNumberEffectSlots; side++)
   {
-    hw.leds.Set(Hardware::LED_ORBIT_B, 0x00ff00, 1.0f);
-  }
-  else if (currentEffectMode[1] == EffectMode::MODE_1)
-  {
-    hw.leds.Set(Hardware::LED_ORBIT_B, 0x0000ff, 1.0f);
-  }
-  else
-  {
-    hw.leds.Set(Hardware::LED_ORBIT_B, 0xff0000, 1.0f);
+    if (currentEffectMode[side] == EffectMode::MODE_3)
+    {
+      hw.leds.Set(Hardware::kLedOrbitIds[side], 0x00ff00, 1.0f);
+    }
+    else if (currentEffectMode[side] == EffectMode::MODE_1)
+    {
+      hw.leds.Set(Hardware::kLedOrbitIds[side], 0x0000ff, 1.0f);
+    }
+    else
+    {
+      hw.leds.Set(Hardware::kLedOrbitIds[side], 0xff0000, 1.0f);
+    }
   }
 
   // Manual tempo tap switch
@@ -901,7 +858,7 @@ void AppImpl::handleDisplay ()
         const auto &seg = displayStates[side].rings[layer];
         for (uint8_t i = 0; i < Hardware::kNumLedsPerRing; ++i)
         {
-          uint8_t ledIx = (side == 0) ? Hardware::LED_RING_A : Hardware::LED_RING_B;
+          uint8_t ledIx = Hardware::kLedRingIds[side];
           if ((i >= seg.start) && (i < seg.end))
           {
             // Translate i to the physical index mapping
@@ -932,17 +889,15 @@ void AppImpl::handleDisplay ()
 
   // --- CV INPUTS ---
 
-  // For these we just add together the 3 CVs on each side and
-  // render to drift LEDs
-  float cv_a = hw.GetControlVoltageValue(Hardware::CV_SOS_IN_A);
-  cv_a += hw.GetControlVoltageValue(Hardware::CV_V_OCT_A);
-  cv_a += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_A);
-  hw.leds.Set(Hardware::LED_DRIFT_A, cv_a >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv_a));
-
-  float cv_b = hw.GetControlVoltageValue(Hardware::CV_SOS_IN_B);
-  cv_b += hw.GetControlVoltageValue(Hardware::CV_V_OCT_B);
-  cv_b += hw.GetControlVoltageValue(Hardware::CV_SIZE_POS_B);
-  hw.leds.Set(Hardware::LED_DRIFT_B, cv_b >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv_b));
+  // For these we just add together the 3 CVs on each side and render to drift LEDs
+  for (uint8_t side = 0; side < kNumberEffectSlots; side++)
+  {
+    float cv = 0;
+    cv += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
+    cv += hw.GetControlVoltageValue(Hardware::kCvVOctIds[side]);
+    cv += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
+    hw.leds.Set(Hardware::kLedDriftIds[side], cv >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv));
+  }
 
   // --- MIDI INPUT ---
   if (midi_in_note_on)
@@ -951,20 +906,13 @@ void AppImpl::handleDisplay ()
   // --- TOUCH PADS ---
   for (size_t i = 0; i < kNumberEffectSlots; i++)
   {
-    // Reverse touchpad
-    if (currentReverseState[i])
-    {
-      // If the reverse state is on, set the LED to white
-      hw.leds.Set((i == 0) ? Hardware::LED_REV_A : Hardware::LED_REV_B, 0x0000ff, 1.0f);
-    }
-    else
-    {
-      // If the reverse state is off, set the LED to black
-      hw.leds.Set((i == 0) ? Hardware::LED_REV_A : Hardware::LED_REV_B, 0x000000, 1.0f);
-    }
+    // Alternating phase for REVERSE LEDs
+    LedRgbBrightness &curLed = displayStates[i].reverseLedColors[padLedPhase];
+    hw.leds.Set(Hardware::kLedRevIds[i], curLed.rgb, curLed.brightness);
+
     // Alternating phase for PLAY LEDs
-    LedRgbBrightness &curLed = displayStates[i].playLedColors[playLedPhase];
-    hw.leds.Set((i == 0) ? Hardware::LED_PLAY_A : Hardware::LED_PLAY_B, curLed.rgb, curLed.brightness);
+    curLed = displayStates[i].playLedColors[padLedPhase];
+    hw.leds.Set(Hardware::kLedPlayIds[i], curLed.rgb, curLed.brightness);
   }
 
   // These will override the corresponding LED of the touchpad with WHITE if the pad
