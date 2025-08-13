@@ -693,68 +693,39 @@ void AppImpl::handleDigitalControls ()
   // Touch controls
   padTouchStates = hw.GetMpr121TouchStates();
 
-  if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 1))
+  for (uint8_t side = 0; side < kNumberEffectSlots; side++)
   {
-    // REV_A
-    reverseStateChanged[0] = true;
-    currentReverseState[0] = !currentReverseState[0];
-    // Log::PrintLine("Reverse state changed for side 0 to: %d", currentReverseState[0]);
-  }
+    if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapRevIds[side]))
+    {
+      // REV_A and B
+      reverseStateChanged[side] = true;
+      currentReverseState[side] = !currentReverseState[side];
+      // Log::PrintLine("Reverse state changed for side %d to: %d", side, currentReverseState[side]);
+    }
 
-  if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 8))
-  {
-    // REV_B
-    reverseStateChanged[1] = true;
-    currentReverseState[1] = !currentReverseState[1];
-    // Log::PrintLine("Reverse state changed for side 1 to: %d", currentReverseState[1]);
-  }
-
-  if ((Utils::isAltPadPressed(padTouchStates)) &&
-      (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 0)))
-  {
-    // ALT + PLAY_A
-    altPlayStateChanged[0] = true;
-    currentAltPlayState[0] = !currentAltPlayState[0];
-    // Log::PrintLine("Alt+Play state changed for side 0 to: %d", currentAltPlayState[0]);
-  }
-  else if ((Utils::isSpotykachPadPressed(padTouchStates)) &&
-           (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 0)))
-  {
-    // SPOTYKACH + PLAY_A
-    spotyPlayStateChanged[0] = true;
-    currentSpotyPlayState[0] = !currentSpotyPlayState[0];
-    // Log::PrintLine("Spotykach+Play state changed for side 0 to: %d", currentSpotyPlayState[0]);
-  }
-  else if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 0))
-  {
-    // PLAY_A
-    playStateChanged[0] = true;
-    currentPlayState[0] = !currentPlayState[0];
-    // Log::PrintLine("Play state changed for side 0 to: %d", currentPlayState[0]);
-  }
-
-  if ((Utils::isAltPadPressed(padTouchStates)) &&
-      (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 9)))
-  {
-    // ALT + PLAY_B
-    altPlayStateChanged[1] = true;
-    currentAltPlayState[1] = !currentAltPlayState[1];
-    // Log::PrintLine("Alt+Play state changed for side 1 to: %d", currentAltPlayState[1]);
-  }
-  else if ((Utils::isSpotykachPadPressed(padTouchStates)) &&
-           (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 9)))
-  {
-    // SPOTYKACH + PLAY_B
-    spotyPlayStateChanged[1] = true;
-    currentSpotyPlayState[1] = !currentSpotyPlayState[1];
-    // Log::PrintLine("Spotykach+Play state changed for side 1 to: %d", currentSpotyPlayState[1]);
-  }
-  else if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, 9))
-  {
-    // PLAY_B
-    playStateChanged[1] = true;
-    currentPlayState[1] = !currentPlayState[1];
-    // Log::PrintLine("Play state changed for side 1 to: %d", currentPlayState[1]);
+    if ((Utils::isAltPadPressed(padTouchStates)) &&
+        (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapPlayIds[side])))
+    {
+      // ALT + PLAY_A or B
+      altPlayStateChanged[side] = true;
+      currentAltPlayState[side] = !currentAltPlayState[side];
+      // Log::PrintLine("Alt+Play state changed for side %d to: %d", side, currentAltPlayState[side]);
+    }
+    else if ((Utils::isSpotykachPadPressed(padTouchStates)) &&
+            (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapPlayIds[side])))
+    {
+      // SPOTYKACH + PLAY_A or B
+      spotyPlayStateChanged[side] = true;
+      currentSpotyPlayState[side] = !currentSpotyPlayState[side];
+      // Log::PrintLine("Spotykach+Play state changed for side %d to: %d", side, currentSpotyPlayState[side]);
+    }
+    else if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapPlayIds[side]))
+    {
+      // PLAY_A or B
+      playStateChanged[side] = true;
+      currentPlayState[side] = !currentPlayState[side];
+      // Log::PrintLine("Play state changed for side %d to: %d", side, currentPlayState[side]);
+    }
   }
 
   // Update the previous touch states
@@ -917,12 +888,12 @@ void AppImpl::handleDisplay ()
 
   // These will override the corresponding LED of the touchpad with WHITE if the pad
   // is being pressed, otherwise default behavior from above
-  for (uint16_t i = 0; i < 12; i++)
+  for (uint16_t i = 0; i < kPadMappingSize; i++)
   {
-    if (padTouchStates.test(i))
+    if (Utils::isTouchPadPressed(padTouchStates, i))
     {
       hw.leds.Set(kPadMapping[i], 0xffffff);
-      if (i == 11)
+      if (i == kPadMapAltId)
       {
         // Alt pads share the same touch electrode
         hw.leds.Set(Hardware::LED_ALT_B, 0xffffff);

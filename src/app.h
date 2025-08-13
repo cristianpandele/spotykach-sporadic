@@ -59,14 +59,20 @@ namespace spotykach_hwtest
       static bool isAltPadPressed(const std::bitset<16> &current)
       {
         // Check if the Alt pad (index 11) is pressed
-        return current.test(11);
+        return isTouchPadPressed(current, 11);
       }
 
       // Function to test if the Spotykach pad is pressed
       static bool isSpotykachPadPressed(const std::bitset<16> &current)
       {
         // Check if the Spotykach pad (index 10) is pressed
-        return current.test(10);
+        return isTouchPadPressed(current, 10);
+      }
+
+      static bool isTouchPadPressed(const std::bitset<16> &current, size_t index)
+      {
+        // Check if the Touch pad is pressed
+        return current.test(index);
       }
 
       // SmoothValue class for smoothing parameter changes
@@ -184,6 +190,15 @@ namespace spotykach_hwtest
                                                           Hardware::LED_PLAY_B,
                                                           Hardware::LED_SPOTY_PAD,
                                                           Hardware::LED_ALT_A};
+
+      static constexpr size_t  kPadMappingSize = sizeof(kPadMapping) / sizeof(kPadMapping[0]);
+      static constexpr size_t  kPadMapPlayIds[kNumberEffectSlots]  = {0, 9};
+      static constexpr size_t  kPadMapRevIds[kNumberEffectSlots]   = {1, 8};
+      static constexpr size_t  kPadMapOrbitIds[kNumberEffectSlots] = {2, 7};
+      static constexpr size_t  kPadMapDriftIds[kNumberEffectSlots] = {3, 6};
+      static constexpr size_t  kPadMapCycleIds[kNumberEffectSlots] = {4, 5};
+      static constexpr size_t  kPadMapSpotyId                      = 10;
+      static constexpr size_t  kPadMapAltId                        = 11;
 
       AppImpl ()  = default;
       ~AppImpl () = default;
