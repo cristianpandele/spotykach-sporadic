@@ -8,10 +8,8 @@ namespace spotykach
   static constexpr Pin kLEDDataPin        = seed::D17;
 
   static constexpr Pin kClockInputPin     = seed::D3;
-  static constexpr Pin kGateAInputPin     = seed::D1;
-  static constexpr Pin kGateAOutputPin    = seed::D31;
-  static constexpr Pin kGateBInputPin     = seed::D0;
-  static constexpr Pin kGateBOutputPin    = seed::D32;
+  static constexpr Pin kGateInputPin[Hardware::kNumInPair] = {seed::D1, seed::D0};
+  static constexpr Pin kGateOutputPin[Hardware::kNumInPair] = {seed::D31, seed::D32};
 
   static constexpr Pin kSRDataPin         = seed::D27;
   static constexpr Pin kSRClockPin        = seed::D26;
@@ -62,21 +60,21 @@ void Hardware::Init (float sr, size_t blocksize)
   // --- GPIO - gate/clk/etc ---
 
   GPIO::Config gpio_cfg;
-  gpio_cfg.mode = GPIO::Mode::INPUT;
   gpio_cfg.pull = GPIO::Pull::NOPULL;
 
   gpio_cfg.pin  = kClockInputPin;
   clock_in_.Init(gpio_cfg);
-  gpio_cfg.pin = kGateAInputPin;
-  gate_in_a_.Init(gpio_cfg);
-  gpio_cfg.pin = kGateBInputPin;
-  gate_in_b_.Init(gpio_cfg);
 
-  gpio_cfg.mode = GPIO::Mode::OUTPUT;
-  gpio_cfg.pin  = kGateAOutputPin;
-  gate_out_a_.Init(gpio_cfg);
-  gpio_cfg.pin = kGateBOutputPin;
-  gate_out_b_.Init(gpio_cfg);
+  for (uint8_t i = 0; i < kNumInPair; i++)
+  {
+    gpio_cfg.mode = GPIO::Mode::INPUT;
+    gpio_cfg.pin = kGateInputPin[i];
+    gate_in[i].Init(gpio_cfg);
+
+    gpio_cfg.mode = GPIO::Mode::OUTPUT;
+    gpio_cfg.pin = kGateOutputPin[i];
+    gate_out[i].Init(gpio_cfg);
+  }
 
   // --- Shift registers (switches) ---
 
@@ -223,14 +221,12 @@ bool Hardware::GetClockInputState ()
   return !clock_in_.Read();
 }
 
-bool Hardware::GetGateInputAState ()
+bool Hardware::GetGateInputState (uint8_t side)
 {
-  return !gate_in_a_.Read();
-}
+  if (side >= kNumInPair)
+    return false;
 
-bool Hardware::GetGateInputBState ()
-{
-  return !gate_in_b_.Read();
+  return !gate_in[side].Read();
 }
 
 uint32_t Hardware::GetBootButtonHeldTime () const

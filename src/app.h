@@ -4,6 +4,8 @@
 #include "hardware.h"
 #include <bitset>
 #include <daisy_seed.h>
+
+using spotykach::Hardware;
 namespace spotykach_hwtest
 {
   // Definitions
@@ -13,7 +15,7 @@ namespace spotykach_hwtest
   constexpr size_t kSampleRate           = 48000;
   constexpr size_t kBlockSize            = 16;
 
-  constexpr uint8_t kNumberEffectSlots    = 2;
+  constexpr uint8_t kNumberEffectSlots    = Hardware::kNumInPair;
   constexpr uint8_t kNumberChannelsStereo = 2;
   constexpr uint8_t kNumberChannelsMono   = 1;
 
@@ -239,72 +241,71 @@ namespace spotykach_hwtest
       bool mixAltLatch[kNumberEffectSlots] = {false};
 
       // Smooth pitch for each side
-      SmoothValue pitchControls[kNumberEffectSlots] = {SmoothValue(75.0f, kSampleRate),
-                                                       SmoothValue(75.0f, kSampleRate)};
+      SmoothValue pitchControls[kNumberEffectSlots] {SmoothValue(75.0f, kSampleRate),
+                                                     SmoothValue(75.0f, kSampleRate)};
 
       // Position knob for each side
-      SmoothValue positionControls[kNumberEffectSlots] = {SmoothValue(150.0f, kSampleRate),
-                                                          SmoothValue(150.0f, kSampleRate)};
+      SmoothValue positionControls[kNumberEffectSlots] {SmoothValue(150.0f, kSampleRate),
+                                                        SmoothValue(150.0f, kSampleRate)};
       // Position/size switch state for each side
-      SizePosSwitchState sizePosSwitch[kNumberEffectSlots] = {SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
+      SizePosSwitchState sizePosSwitch[kNumberEffectSlots] {SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
 
       // Size controls for each side
-      SmoothValue sizeControls[kNumberEffectSlots] = {SmoothValue(250.0f, kSampleRate),
-                                                      SmoothValue(250.0f, kSampleRate)};
+      SmoothValue sizeControls[kNumberEffectSlots] {SmoothValue(250.0f, kSampleRate),
+                                                    SmoothValue(250.0f, kSampleRate)};
 
       // Shape controls for each side
-      SmoothValue shapeControls[kNumberEffectSlots] = {SmoothValue(250.0f, kSampleRate),
-                                                      SmoothValue(250.0f, kSampleRate)};
+      SmoothValue shapeControls[kNumberEffectSlots] {SmoothValue(250.0f, kSampleRate),
+                                                     SmoothValue(250.0f, kSampleRate)};
 
       // Modulation amount controls for each side
-      SmoothValue modulationAmount[kNumberEffectSlots] = {SmoothValue(75.0f, kSampleRate),
-                                                          SmoothValue(75.0f, kSampleRate)};
+      SmoothValue modulationAmount[kNumberEffectSlots] {SmoothValue(75.0f, kSampleRate),
+                                                        SmoothValue(75.0f, kSampleRate)};
 
       // Modulation frequency controls for each side
-      SmoothValue modulationFreq[kNumberEffectSlots] = {SmoothValue(75.0f, kSampleRate),
-                                                        SmoothValue(75.0f, kSampleRate)};
+      SmoothValue modulationFreq[kNumberEffectSlots] {SmoothValue(75.0f, kSampleRate),
+                                                      SmoothValue(75.0f, kSampleRate)};
 
       // Modulation frequency alt latch for each side
       bool modFreqAltLatch[2] = {false};
 
       // Mode switch changed flag and current effect mode for each side
       using EffectMode                                    = Effect::EffectMode;
-      bool       effectModeChanged[kNumberEffectSlots] = {false};
-      EffectMode currentEffectMode[kNumberEffectSlots] = {EffectMode::MODE_1, EffectMode::MODE_1};
+      bool       effectModeChanged[kNumberEffectSlots] {false};
+      EffectMode currentEffectMode[kNumberEffectSlots] {EffectMode::MODE_1, EffectMode::MODE_1};
 
       // Mod type switch flag and current mod type for each side
-      bool    modTypeChanged[kNumberEffectSlots] = {false};
-      ModType currentModType[kNumberEffectSlots] = {ModType::MOD_TYPE_LAST,
-                                                    ModType::MOD_TYPE_LAST};
+      bool    modTypeChanged[kNumberEffectSlots] {false};
+      ModType currentModType[kNumberEffectSlots] {ModType::MOD_TYPE_LAST,
+                                                  ModType::MOD_TYPE_LAST};
 
       // Reverse flag for each side
-      bool reverseStateChanged[kNumberEffectSlots] = {false};
-      bool currentReverseState[kNumberEffectSlots] = {false};
+      bool reverseStateChanged[kNumberEffectSlots] {false};
+      bool currentReverseState[kNumberEffectSlots] {false};
 
       // Play flag for each side
-      bool playStateChanged[kNumberEffectSlots] = {false};
-      bool currentPlayState[kNumberEffectSlots] = {false};
+      bool playStateChanged[kNumberEffectSlots] {false};
+      bool currentPlayState[kNumberEffectSlots] {false};
 
       // Alt + Play flag for each side
-      bool altPlayStateChanged[kNumberEffectSlots] = {false};
-      bool currentAltPlayState[kNumberEffectSlots] = {false};
+      bool altPlayStateChanged[kNumberEffectSlots] {false};
+      bool currentAltPlayState[kNumberEffectSlots] {false};
 
       // Spotykach + Play flag for each side
-      bool spotyPlayStateChanged[kNumberEffectSlots] = {false};
-      bool currentSpotyPlayState[kNumberEffectSlots] = {false};
+      bool spotyPlayStateChanged[kNumberEffectSlots] {false};
+      bool currentSpotyPlayState[kNumberEffectSlots] {false};
 
       // Pad touch states
       std::bitset<16> padTouchStates;
       std::bitset<16> padTouchStatesPrev;
 
       // Modulator CV value for each side
-      float    modCv[kNumberEffectSlots] = {0.0f};
+      float    modCv[kNumberEffectSlots] {0.0f};
 
       // LED Phase for blinking LEDs
       uint8_t padLedPhase = 0;
 
-      uint16_t last_pot_moved_a;
-      uint16_t last_pot_moved_b;
+      uint16_t last_pot_moved[kNumberEffectSlots] {0};
 
       bool    test_note_on;
       bool    midi_in_note_on;

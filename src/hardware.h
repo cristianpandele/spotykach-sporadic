@@ -10,6 +10,9 @@ namespace spotykach
   class Hardware
   {
     public:
+      // Number of elements in a pair
+      static constexpr uint8_t kNumInPair = 2;
+
       // LED indexes in order of chain
       static constexpr uint8_t kNumLedsPerRing = 32;
 
@@ -52,6 +55,16 @@ namespace spotykach
         LED_LAST
       };
 
+      static constexpr LedId kLedAltIds[kNumInPair]   = {LED_ALT_A, LED_ALT_B};
+      static constexpr LedId kLedPlayIds[kNumInPair]  = {LED_PLAY_A, LED_PLAY_B};
+      static constexpr LedId kLedRevIds[kNumInPair]   = {LED_REV_A, LED_REV_B};
+      static constexpr LedId kLedRingIds[kNumInPair]  = {LED_RING_A, LED_RING_B};
+      static constexpr LedId kLedOrbitIds[kNumInPair] = {LED_ORBIT_A, LED_ORBIT_B};
+      static constexpr LedId kLedDriftIds[kNumInPair] = {LED_DRIFT_A, LED_DRIFT_B};
+      static constexpr LedId kLedGateIds[kNumInPair]  = {LED_GATE_OUT_A, LED_GATE_OUT_B};
+      static constexpr LedId kLedCycleIds[kNumInPair] = {LED_CYCLE_A, LED_CYCLE_B};
+      static constexpr LedId kLedSpotyIds[kNumInPair] = {LED_SPOTY_SLIDER_A, LED_SPOTY_SLIDER_B};
+
       // Pots/sliders - these are on muxes
       enum AnalogControlId : uint16_t
       {
@@ -76,6 +89,15 @@ namespace spotykach
         CTRL_LAST
       };
 
+      static constexpr AnalogControlId kCtrlSosIds[kNumInPair]      = {CTRL_SOS_A, CTRL_SOS_B};
+      static constexpr AnalogControlId kCtrlModFreqIds[kNumInPair]  = {CTRL_MOD_FREQ_A, CTRL_MOD_FREQ_B};
+      static constexpr AnalogControlId kCtrlModAmtIds[kNumInPair]   = {CTRL_MOD_AMT_A, CTRL_MOD_AMT_B};
+      static constexpr AnalogControlId kCtrlSizeIds[kNumInPair]     = {CTRL_SIZE_A, CTRL_SIZE_B};
+      static constexpr AnalogControlId kCtrlPitchIds[kNumInPair]    = {CTRL_PITCH_A, CTRL_PITCH_B};
+      static constexpr AnalogControlId kCtrlPosIds[kNumInPair]      = {CTRL_POS_A, CTRL_POS_B};
+      static constexpr AnalogControlId kCtrlShapeIds[kNumInPair]    = {CTRL_SHAPE_A, CTRL_SHAPE_B};
+      static constexpr AnalogControlId kCtrlLastSideIds[kNumInPair] = {CTRL_SHAPE_A, CTRL_SHAPE_B};
+
       // These are in order as they are labeled on the schematic
       enum CvInputId : uint16_t
       {
@@ -91,6 +113,10 @@ namespace spotykach
 
         CV_LAST
       };
+
+      static constexpr CvInputId kCvSizePosIds[kNumInPair] = {CV_SIZE_POS_A, CV_SIZE_POS_B};
+      static constexpr CvInputId kCvVOctIds[kNumInPair]    = {CV_V_OCT_A, CV_V_OCT_B};
+      static constexpr CvInputId kCvSosInIds[kNumInPair]   = {CV_SOS_IN_A, CV_SOS_IN_B};
 
       Hardware ()                          = default;
       ~Hardware ()                         = default;
@@ -119,12 +145,9 @@ namespace spotykach
       uint32_t GetBootButtonReleased () const;
 
       bool GetClockInputState ();
-      bool GetGateInputAState ();
-      bool GetGateInputBState ();
 
-      inline void SetGateOutA (bool state) { gate_out_a_.Write(state); }
-
-      inline void SetGateOutB (bool state) { gate_out_b_.Write(state); }
+      bool GetGateInputState (uint8_t side);
+      inline void SetGateOut (uint8_t side, bool state) { gate_out[side].Write(state); }
 
       // TODO: I'd recommend abstracting this with more readable enums
       //       and abstracted bit testing for switches - not just reading raw bytes
@@ -163,10 +186,8 @@ namespace spotykach
       daisy::Mpr121I2C mpr121_;
 
       daisy::GPIO clock_in_;
-      daisy::GPIO gate_in_a_;
-      daisy::GPIO gate_in_b_;
-      daisy::GPIO gate_out_a_;
-      daisy::GPIO gate_out_b_;
+      daisy::GPIO gate_in[kNumInPair];
+      daisy::GPIO gate_out[kNumInPair];
 
       daisy::Switch boot_btn_;
 
