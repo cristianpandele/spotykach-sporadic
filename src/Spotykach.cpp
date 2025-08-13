@@ -335,8 +335,8 @@ void Spotykach::updateDisplayState()
     case RECORDING:
     {
       // Read head position
-      uint8_t readIxLed = static_cast<uint8_t>(readIx_ * N / kLooperAudioDataSamples);
-      uint8_t readEndLed   = std::min<uint8_t>(readIxLed + 1, N);
+      uint8_t readIxLed  = static_cast<uint8_t>(readIx_ * N / kLooperAudioDataSamples);
+      uint8_t readEndLed = std::min<uint8_t>(readIxLed + 1, N);
 
       // Write head position
       uint8_t writeIxLed = static_cast<uint8_t>(writeIx_ * N / kLooperAudioDataSamples);
@@ -382,8 +382,8 @@ void Spotykach::updateDisplayState()
     case LOOP_PLAYBACK:
     {
       // Compute spans in LED index space
-      uint8_t start = static_cast<uint8_t>(position_ * N);
-      uint8_t spanSize  = static_cast<uint8_t>(size_ * N);
+      uint8_t start    = static_cast<uint8_t>(position_ * N);
+      uint8_t spanSize = static_cast<uint8_t>(size_ * N);
 
       // Read head position
       uint8_t readIxLed  = static_cast<uint8_t>(readIx_ * N / kLooperAudioDataSamples);
@@ -397,8 +397,7 @@ void Spotykach::updateDisplayState()
       ledColor = {0xff8000, 0.5f};
       if (speed_ > 0)
       {
-        view.rings[view.layerCount++] =
-          Effect::RingSpan{readIxLed, std::min<uint8_t>(start + spanSize, N), ledColor};
+        view.rings[view.layerCount++] = Effect::RingSpan{readIxLed, std::min<uint8_t>(start + spanSize, N), ledColor};
       }
       else
       {
@@ -498,8 +497,7 @@ float Spotykach::processEnvelope(bool gate)
 void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
   // Pass-through if mode is not MODE_1 or channelConfig is not MONO_LEFT, MONO_RIGHT, or STEREO
-  if ((mode_ != MODE_1) ||
-      (channelConfig_ == ChannelConfig::OFF || channelConfig_ >= ChannelConfig::CH_CONFIG_LAST))
+  if ((mode_ != MODE_1) || (channelConfig_ == ChannelConfig::OFF || channelConfig_ >= ChannelConfig::CH_CONFIG_LAST))
   {
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
@@ -560,7 +558,7 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
             // Linear interpolation when between the two samples
             float loopOut = infrasonic::lerp(s0, s1, frac);
             // Mix the input with the loop output, with windowed envelope
-            float env = processEnvelope(true);
+            float env  = processEnvelope(true);
             float wet  = loopOut * env;
             out[ch][i] = infrasonic::lerp(in[ch][i], wet, mix_);
 
@@ -628,7 +626,7 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
               loopOut = infrasonic::lerp(s0, s1, frac);
             }
             // Mix the input with the loop output
-            out[ch][i] = infrasonic::lerp(in[ch][i], loopOut, mix_);
+            out[ch][i]                              = infrasonic::lerp(in[ch][i], loopOut, mix_);
 
             size_t wIdx0                            = static_cast<size_t>(writeIx_);
             size_t wIdx1                            = static_cast<size_t>((wIdx0 + 1) % kLooperAudioDataSamples);
@@ -676,10 +674,10 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
               loopOut = infrasonic::lerp(s0, s1, frac);
             }
             // Apply envelope to loop output (gated by the play state)
-            float env     = processEnvelope(play_);
-            float wet     = loopOut * env;
+            float env = processEnvelope(play_);
+            float wet = loopOut * env;
             // Mix the input with the loop output
-            out[ch][i]    = infrasonic::lerp(in[ch][i], wet, mix_);
+            out[ch][i] = infrasonic::lerp(in[ch][i], wet, mix_);
           }
           else
           {
@@ -687,7 +685,7 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
           }
         }
         // Map position_ relative to kLooperAudioDataSamples
-        float pos       = position_ * (float)kLooperAudioDataSamples;
+        float pos = position_ * (float)kLooperAudioDataSamples;
         // Advance read, write follows read
         // Constrain readIx_ to span [spanStart, spanEnd)
         float spanStart = pos;
