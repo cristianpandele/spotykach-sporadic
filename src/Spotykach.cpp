@@ -13,6 +13,12 @@ void Spotykach::init ()
   readIx_  = 0;
   writeIx_ = 0;
 
+  // Initialize ADSR envelopes
+  initEnvelopes(kSampleRate);
+  // Default lengths; will be reconfigured each block based on window size
+  configureEnvelopeLength(kBlockSize);
+  prevReadIx_ = 0.0f;
+
   // Initialize the looper audio data buffers
   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
@@ -21,6 +27,60 @@ void Spotykach::init ()
       std::fill(looperAudioData[effectSide_][ch], looperAudioData[effectSide_][ch] + kLooperAudioDataSamples, 0.0f);
     }
   }
+}
+
+// Initialize the envelopes
+void Spotykach::initEnvelopes (float sampleRate)
+{
+  envSquare_.Init(sampleRate);
+  envFall_.Init(sampleRate);
+  envTri_.Init(sampleRate);
+  envRise_.Init(sampleRate);
+}
+
+// Retrigger the envelopes
+void Spotykach::retriggerEnvelopes (bool hard)
+{
+  envSquare_.Retrigger(hard);
+  envFall_.Retrigger(hard);
+  envTri_.Retrigger(hard);
+  envRise_.Retrigger(hard);
+}
+
+// Configure ADSR segment times so that the total duration matches windowLenSamples
+// Shapes:
+//  - Square: fast attack, long sustain, fast release
+//  - Falling Ramp: fast attack, long decay to 0
+//  - Triangle: linear up then down
+//  - Rising Ramp: long attack up to 1, fast release
+void Spotykach::configureEnvelopeLength (float windowLenSamples)
+{
+  windowSamples_ = std::max(1.0f, windowLenSamples);
+  const float windowLenSec = windowSamples_ / float(kSampleRate);
+
+  // Square-ish
+  envSquare_.SetAttackTime(std::min(0.001f, 0.1f * windowLenSec));
+  envSquare_.SetDecayTime(0.001f);
+  envSquare_.SetSustainLevel(1.0f);
+  envSquare_.SetReleaseTime(std::min(0.001f, 0.1f * windowLenSec));
+
+  // Falling ramp: Attack fast to 1, then decay across window
+  envFall_.SetAttackTime(std::min(0.001f, 0.05f * windowLenSec));
+  envFall_.SetDecayTime(std::max(0.001f, 0.95f * windowLenSec));
+  envFall_.SetSustainLevel(0.0f);
+  envFall_.SetReleaseTime(0.001f);
+
+  // Triangle: half up, half down
+  envTri_.SetAttackTime(std::max(0.001f, 0.5f * windowLenSec));
+  envTri_.SetDecayTime(std::max(0.001f, 0.5f * windowLenSec));
+  envTri_.SetSustainLevel(0.0f);
+  envTri_.SetReleaseTime(0.001f);
+
+  // Rising ramp: Attack over window, quick release
+  envRise_.SetAttackTime(std::max(0.001f, 0.95f * windowLenSec));
+  envRise_.SetDecayTime(0.001f);
+  envRise_.SetSustainLevel(1.0f);
+  envRise_.SetReleaseTime(std::min(0.001f, 0.05f * windowLenSec));
 }
 
 void Spotykach::setPitch (float s)
@@ -398,6 +458,32 @@ void Spotykach::updateIndex(float &index, float increment, Span<float> window)
   }
 }
 
+float Spotykach::processEnvelope(bool gate)
+{
+  // gate indicates whether envelope should run this sample
+  float a = envSquare_.Process(gate);
+  float b = envFall_.Process(gate);
+  float c = envTri_.Process(gate);
+  float d = envRise_.Process(gate);
+  // Interpolate across four shapes over shape_ in [0,1]
+  float t = shape_;
+  if (t < 0.33333334f)
+  {
+    float u = t / 0.33333334f;    // 0..1, Square->Falling
+    return infrasonic::lerp(a, b, u);
+  }
+  else if (t < 0.6666667f)
+  {
+    float u = (t - 0.33333334f) / 0.33333334f;    // Falling->Triangle
+    return infrasonic::lerp(b, c, u);
+  }
+  else
+  {
+    float u = (t - 0.6666667f) / 0.33333334f;    // Triangle->Rising
+    return infrasonic::lerp(c, d, u);
+  }
+}
+
 void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
   // Pass-through if mode is not MODE_1 or channelConfig is not MONO_LEFT, MONO_RIGHT, or STEREO
@@ -432,8 +518,21 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     ///////////////
     case ECHO:
     {
+      // Leave a margin to prevent the read index overtaking the write index
+      float readWindowMargin = std::abs(speed_ * kBlockSize);
+      // Using same span rule as display: (writeIx_ - position_, writeIx_ - position_*(1.0f-size_))
+      float windowLen = std::max(1.0f, position_ * (float)kEchoAudioDataSamples * size_ - readWindowMargin);
+      configureEnvelopeLength(windowLen * speed_);
+
       for (size_t i = 0; i < blockSize; ++i)
       {
+        // Periodic retrigger based on window length in samples
+        if (envSampleCounter_ >= static_cast<uint32_t>(windowSamples_))
+        {
+          retriggerEnvelopes(false);
+          envSampleCounter_ = 0;
+        }
+        envSampleCounter_++;
         for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
         {
           // Only process if this channel is active in the current mode
@@ -449,8 +548,10 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
             float s1 = looperAudioData[effectSide_][ch][rIdx1];
             // Linear interpolation when between the two samples
             float loopOut = infrasonic::lerp(s0, s1, frac);
-            // Mix the input with the loop output
-            out[ch][i] = infrasonic::lerp(in[ch][i], loopOut, mix_);
+            // Mix the input with the loop output, with windowed envelope
+            float env = processEnvelope(true);
+            float wet  = loopOut * env;
+            out[ch][i] = infrasonic::lerp(in[ch][i], wet, mix_);
 
             // Feedback/overdub
             size_t wIdx0                            = static_cast<size_t>(writeIx_);
@@ -472,14 +573,17 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
 
         // Map position_ in (0,1) to (0, kEchoAudioDataSamples)
         float readWindowOffset = position_ * (float)kEchoAudioDataSamples;
-        // Leave a margin to prevent the read index overtaking the write index
-        float readWindowMargin = std::abs(speed_ * kBlockSize);
         // Set the start of the read window to trail the write index (with wraparound)
         float readWindowStart = writeIx_;
         updateIndex(readWindowStart, -(readWindowOffset + readWindowMargin), writeSpan);
         // Set the end of the read window based on the size (with wraparound)
-        float readWindowEnd = readWindowStart;
-        updateIndex(readWindowEnd, readWindowOffset * size_, writeSpan);
+        float readWindowEnd = readWindowStart + (readWindowOffset * size_) - readWindowMargin;
+        if (readWindowEnd > kLooperAudioDataSamples)
+        {
+          readWindowEnd -= kLooperAudioDataSamples;
+        }
+
+        // updateIndex(readWindowEnd, readWindowOffset * size_, writeSpan);
 
         // Update the read index
         Span<float> readSpan = {readWindowStart, readWindowEnd};
@@ -505,17 +609,16 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
             // Neighbouring samples
             float s0 = looperAudioData[effectSide_][ch][rIdx0];
             float s1 = looperAudioData[effectSide_][ch][rIdx1];
+            // If not playing, audition the input crossfaded with silence
+            float loopOut = 0.0f;
             if (play_)
             {
               // Linear interpolation when between the two samples
-              float loopOut = infrasonic::lerp(s0, s1, frac);
-              // Mix the input with the loop output
-              out[ch][i] = infrasonic::lerp(in[ch][i], loopOut, mix_);
+              loopOut = infrasonic::lerp(s0, s1, frac);
             }
-            else
-            {
-              out[ch][i] = in[ch][i];    // If not playing, audition the input
-            }
+            // Mix the input with the loop output
+            out[ch][i] = infrasonic::lerp(in[ch][i], loopOut, mix_);
+
             size_t wIdx0                            = static_cast<size_t>(writeIx_);
             size_t wIdx1                            = static_cast<size_t>((wIdx0 + 1) % kLooperAudioDataSamples);
             float  old0                             = looperAudioData[effectSide_][ch][wIdx0];
@@ -536,6 +639,8 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     ///////////////
     case LOOP_PLAYBACK:
     {
+      float windowLen = std::max(1.0f, (1.0f - position_) * size_ * kLooperAudioDataSamples);
+      configureEnvelopeLength(windowLen * speed_);
       for (size_t i = 0; i < blockSize; ++i)
       {
         for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
@@ -551,47 +656,59 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
             // Neighbouring samples
             float s0 = looperAudioData[effectSide_][ch][rIdx0];
             float s1 = looperAudioData[effectSide_][ch][rIdx1];
+
+            // If not playing, audition the input crossfaded with silence
+            float loopOut = 0.0f;
             if (play_)
             {
               // Linear interpolation when between the two samples
-              float loopOut = infrasonic::lerp(s0, s1, frac);
-              // Mix the input with the loop output
-              out[ch][i] = infrasonic::lerp(in[ch][i], loopOut, mix_);
+              loopOut = infrasonic::lerp(s0, s1, frac);
             }
-            else
-            {
-              out[ch][i] = in[ch][i];    // If not playing, audition the input
-            }
+            // Apply envelope to loop output (gated by the play state)
+            float env     = processEnvelope(play_);
+            float wet     = loopOut * env;
+            // Mix the input with the loop output
+            out[ch][i]    = infrasonic::lerp(in[ch][i], wet, mix_);
           }
           else
           {
             out[ch][i] = 0.0f;
           }
         }
-        // Advance read, write follows read
-        Span<float> loopSpan   = {spanStart, spanEnd};
-        float prevReadIx = readIx_;
-        updateIndex(readIx_, speed_, loopSpan);
-        writeIx_ = readIx_;
-        // Constrain readIx_ to span [spanStart, spanEnd)
         // Map position_ relative to kLooperAudioDataSamples
-        float pos       = position_ * (float) kLooperAudioDataSamples;
+        float pos       = position_ * (float)kLooperAudioDataSamples;
+        // Advance read, write follows read
+        // Constrain readIx_ to span [spanStart, spanEnd)
         float spanStart = pos;
-        float spanEnd   = pos + size_ * (kLooperAudioDataSamples - pos);
+        float spanEnd   = pos + windowLen;
         if (spanEnd > kLooperAudioDataSamples)
         {
-          spanEnd = kLooperAudioDataSamples;
+          spanEnd -= kLooperAudioDataSamples;
+        }
+        float prevReadIx = readIx_;
+        if (play_)
+        {
+          Span<float> loopSpan = {spanStart, spanEnd};
+          updateIndex(readIx_, speed_, loopSpan);
+          writeIx_ = readIx_;
         }
 
+        // Retrigger envelope on span wrap and constrain
         if (speed_ >= 0)
         {
-          if (readIx_ >= spanEnd)
+          if (readIx_ < prevReadIx)
+          {
+            retriggerEnvelopes(false);
             readIx_ = spanStart;
+          }
         }
         else
         {
-          if (readIx_ < spanStart)
+          if (readIx_ >= prevReadIx)
+          {
+            retriggerEnvelopes(false);
             readIx_ = spanEnd - 1;
+          }
         }
       }
       return;

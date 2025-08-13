@@ -95,6 +95,17 @@ class Spotykach : public Effect
     // Current side being processed (0 or 1)
     uint8_t effectSide_ = 0;
 
+    // Envelope generators for window shapes
+    daisysp::Adsr envSquare_;
+    daisysp::Adsr envFall_;
+    daisysp::Adsr envTri_;
+    daisysp::Adsr envRise_;
+    // Phase tracking for wrap/retrigger detection
+    float prevReadIx_ = 0.0f;
+    float windowSamples_ = 0.0f;
+    float prevWindowSamples_ = 0.0f;
+    uint32_t envSampleCounter_ = 0;
+
     bool isChannelActive (size_t ch) const;
 
     void setMix (float m, bool altLatch);
@@ -108,6 +119,10 @@ class Spotykach : public Effect
 
     void updateIndex (float &index, float increment, Span<float> window);
 
+    void initEnvelopes (float sampleRate);
+    void retriggerEnvelopes (bool hard);
+
+
     void  setState (State s) { state_ = s; }
     State getState () const { return state_; }
 
@@ -119,6 +134,11 @@ class Spotykach : public Effect
       DRIFT = 2,
       MODE_LAST
     };
+
+    // Helper to configure ADSR lengths per window
+    void configureEnvelopeLength(float windowLenSamples);
+    // Compute blended envelope value from shape_ in [0,1]
+    float processEnvelope (bool gate);
 
     Spotykach (const Spotykach &)           = delete;
     Spotykach &operator=(const Spotykach &) = delete;
