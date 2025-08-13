@@ -187,6 +187,17 @@ void Spotykach::setAltPlay (bool r)
         writeIx_ = 0;
         // Switch to RECORDING state and start playing
         play_    = true;
+        // Initialize the looper audio data buffers
+        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+        {
+          if (isChannelActive(ch))
+          {
+            std::fill(looperAudioData[effectSide_][ch],
+                      looperAudioData[effectSide_][ch] + kLooperAudioDataSamples,
+                      0.0f);
+          }
+        }
+
         // Log::PrintLine("Switching to RECORDING state");
         state_ = RECORDING;
         break;
