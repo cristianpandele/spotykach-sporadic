@@ -24,7 +24,7 @@ void Spotykach::init ()
   {
     if (isChannelActive(ch))
     {
-      std::fill(looperAudioData[effectSide_][ch], looperAudioData[effectSide_][ch] + kLooperAudioDataSamples, 0.0f);
+      std::fill(std::begin(looperAudioData[effectSide_][ch]), std::end(looperAudioData[effectSide_][ch]), 0.0f);
     }
   }
 }
@@ -136,9 +136,7 @@ void Spotykach::setPlay (bool p)
         {
           if (isChannelActive(ch))
           {
-            std::fill(looperAudioData[effectSide_][ch],
-                      looperAudioData[effectSide_][ch] + kLooperAudioDataSamples,
-                      0.0f);
+            std::fill(std::begin(looperAudioData[effectSide_][ch]), std::end(looperAudioData[effectSide_][ch]), 0.0f);
           }
         }
       }
@@ -192,9 +190,7 @@ void Spotykach::setAltPlay (bool r)
         {
           if (isChannelActive(ch))
           {
-            std::fill(looperAudioData[effectSide_][ch],
-                      looperAudioData[effectSide_][ch] + kLooperAudioDataSamples,
-                      0.0f);
+            std::fill(std::begin(looperAudioData[effectSide_][ch]), std::end(looperAudioData[effectSide_][ch]), 0.0f);
           }
         }
 
@@ -281,8 +277,7 @@ void Spotykach::updateDisplayState()
 
   if (reverse_)
   {
-    view.reverseLedColors[0] = {0x0000ff, 1.0f};  // Blue
-    view.reverseLedColors[1] = {0x0000ff, 0.5f};  // Blue
+    std::fill(std::begin(view.reverseLedColors), std::end(view.reverseLedColors), LedRgbBrightness{0x0000ff, 1.0f});
   }
 
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
@@ -411,13 +406,8 @@ void Spotykach::updateDisplayState()
       // Play LED colors
       if (play_)
       {
-        view.playLedColors[0] = {0x00ff00, 1.0f};    // Green
-        view.playLedColors[1] = {0x00ff00, 1.0f};    // Green
-      }
-      else
-      {
-        view.playLedColors[0] = {0x000000, 0.0f};    // Off
-        view.playLedColors[1] = {0x000000, 0.0f};    // Off
+        // Green
+        std::fill(std::begin(view.playLedColors), std::end(view.playLedColors), LedRgbBrightness{0x00ff00, 1.0f});
       }
 
       break;
