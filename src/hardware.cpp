@@ -52,7 +52,7 @@ void Hardware::Init (float sr, size_t blocksize)
   // --- LEDs ---
 
   infrasonic::Ws2812::Config led_cfg;
-  led_cfg.num_leds    = kNumLeds;
+  led_cfg.num_leds    = LED_LAST;
   led_cfg.tim_pin     = kLEDDataPin;
   led_cfg.tim_periph  = TimerHandle::Config::Peripheral::TIM_3;
   led_cfg.tim_channel = infrasonic::Ws2812::Config::CH4;

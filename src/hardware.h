@@ -52,8 +52,6 @@ namespace spotykach
         LED_LAST
       };
 
-      static constexpr size_t kNumLeds = LED_LAST;
-
       // Pots/sliders - these are on muxes
       enum AnalogControlId : uint16_t
       {
@@ -78,8 +76,6 @@ namespace spotykach
         CTRL_LAST
       };
 
-      static constexpr size_t kNumAnalogControls = CTRL_LAST;
-
       // These are in order as they are labeled on the schematic
       enum CvInputId : uint16_t
       {
@@ -95,8 +91,6 @@ namespace spotykach
 
         CV_LAST
       };
-
-      static constexpr size_t kNumCVInputs = CV_LAST;
 
       Hardware ()                          = default;
       ~Hardware ()                         = default;
@@ -176,8 +170,8 @@ namespace spotykach
 
       daisy::Switch boot_btn_;
 
-      daisy::AnalogControl controls_[kNumAnalogControls];
-      daisy::AnalogControl cvinputs_[kNumCVInputs];
+      daisy::AnalogControl controls_[CTRL_LAST];
+      daisy::AnalogControl cvinputs_[CV_LAST];
 
       Hardware (const Hardware &a)           = delete;
       Hardware &operator=(const Hardware &a) = delete;

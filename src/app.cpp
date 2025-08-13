@@ -504,7 +504,7 @@ void AppImpl::drawRainbowRoad ()
 {
   const float t = System::GetNow() / 1000.f;
 
-  for (size_t i = 0; i < spotykach::Hardware::kNumLeds; i++)
+  for (size_t i = 0; i < spotykach::Hardware::LED_LAST; i++)
   {
     float             phs = i / 32.0f;
     float             h   = daisysp::fastmod1f(t * 0.2f + phs);

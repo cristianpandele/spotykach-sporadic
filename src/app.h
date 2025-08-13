@@ -224,7 +224,7 @@ namespace spotykach_hwtest
 
       UiEventQueue ui_queue;
 
-      PotMonitor<Hardware, Hardware::kNumAnalogControls> pot_monitor;
+      PotMonitor<Hardware, Hardware::CTRL_LAST> pot_monitor;
 
       // Routing mode changed flag and current routing mode
       bool    routingModeChanged = false;
