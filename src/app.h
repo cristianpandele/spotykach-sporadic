@@ -17,6 +17,8 @@ namespace spotykach_hwtest
   constexpr uint8_t kNumberChannelsStereo = 2;
   constexpr uint8_t kNumberChannelsMono   = 1;
 
+  constexpr size_t kDebugLogPeriodMs      = 500;
+
   // Enum for Size/Pos switch position
   enum SizePosSwitchState
   {

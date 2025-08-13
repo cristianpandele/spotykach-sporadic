@@ -300,7 +300,7 @@ void AppImpl::loop ()
         hw.WriteCVOut(i, modCv[i]);
       }
     }
-    if (log_timer.HasPassedMs(500))
+    if (log_timer.HasPassedMs(kDebugLogPeriodMs))
     {
       padLedPhase += 1;
       if (padLedPhase >= Effect::kMaxLedPhases)
@@ -415,7 +415,7 @@ void AppImpl::logDebugInfo ()
       if (strncmp((const char *)usbBuff, REBOOT_TO_BOOTLOADER_CMD, sizeof(REBOOT_TO_BOOTLOADER_CMD) - 1) == 0)
       {
         Log::PrintLine("Rebooting to bootloader...");
-        System::Delay(500);    // Give time for the log to flush
+        System::Delay(kDebugLogPeriodMs);    // Give time for the log to flush
         System::ResetToBootloader(System::BootloaderMode::DAISY_INFINITE_TIMEOUT);
       }
       usbBuffIx = 0;    // Reset after processing
