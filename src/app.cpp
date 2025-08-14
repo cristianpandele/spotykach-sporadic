@@ -844,7 +844,7 @@ void AppImpl::handleDisplay ()
               ledIx -= (i - (Hardware::kNumLedsPerRing / 2 + 1));
             }
 
-            hw.leds.Set(ledIx, seg.led.rgb, seg.led.brightness);
+            hw.leds.Set(ledIx, seg.led[i].rgb, seg.led[i].brightness);
           }
         }
       }

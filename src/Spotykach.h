@@ -122,6 +122,14 @@ class Spotykach : public Effect
     void initEnvelopes (float sampleRate);
     void retriggerEnvelopes (bool hard);
 
+    void ledBrightnessGradient (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+
+    void populateLedRing (Effect::RingSpan &ringSpan,
+                          uint8_t           ringSize,
+                          LedRgbBrightness  colorBright,
+                          uint8_t           start,
+                          uint8_t           spanSize,
+                          bool              gradient = false);
 
     void  setState (State s) { state_ = s; }
     State getState () const { return state_; }

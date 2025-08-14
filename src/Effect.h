@@ -2,7 +2,9 @@
 
 #include "common.h"
 #include "daisy_seed.h"
+#include "hardware.h"
 using namespace daisy;
+using namespace spotykach;
 using namespace infrasonic;
 
 // Base class for Effect implementation
@@ -54,7 +56,7 @@ class Effect
     {
       uint8_t          start;
       uint8_t          end;
-      LedRgbBrightness led;
+      LedRgbBrightness led[Hardware::kNumLedsPerRing];
     };
 
     struct DisplayState
