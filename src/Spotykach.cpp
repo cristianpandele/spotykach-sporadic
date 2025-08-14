@@ -267,6 +267,85 @@ void Spotykach::getDigitalControls(DigitalControlFrame &c)
   c.spotyPlay = false;  // Reset Spotykach+Play state
 }
 
+void Spotykach::populateLedRing (Effect::RingSpan &ringSpan,
+                                 uint8_t ringSize,
+                                 LedRgbBrightness colorBright,
+                                 uint8_t start,
+                                 uint8_t spanSize,
+                                 bool gradient)
+{
+  LedRgbBrightness ledColor[Hardware::kNumLedsPerRing];
+  // Clear ledColor
+  std::fill(std::begin(ledColor), std::end(ledColor), LedRgbBrightness{0x000000, 0.0f});
+  // Populate the current span with the specified color (at indicated brightness)
+  std::fill(ledColor + start, std::min(ledColor + start + spanSize, std::end(ledColor)), colorBright);
+
+  // Compute per-LED gradient values, using the brightness indicated in colorBright as maximum value
+  if (gradient)
+  {
+    float ledGradient[Hardware::kNumLedsPerRing] = {0.0f};
+    ledBrightnessGradient(spanSize, (colorBright.brightness/3.0f), colorBright.brightness, ledGradient);
+
+    if (speed_ >= 0)
+    {
+      // Copy resulting gradients to the ledColor array
+      for (uint8_t i = 0; i < spanSize; ++i)
+      {
+        ledColor[start + i] = {colorBright.rgb, ledGradient[i]};
+      }
+    }
+    else
+    {
+      // Copy resulting gradients to the ledColor array in reverse order
+      for (uint8_t i = 0; i < spanSize; ++i)
+      {
+        ledColor[start + i] = {colorBright.rgb, ledGradient[spanSize - 1 - i]};
+      }
+    }
+  }
+
+  ringSpan.start = start;
+  ringSpan.end   = std::min(static_cast<uint8_t>(start + spanSize), ringSize);
+  std::copy(std::begin(ledColor), std::end(ledColor), std::begin(ringSpan.led));
+}
+
+void Spotykach::ledBrightnessGradient (uint8_t spanSize, float minBrightness, float maxBrightness, float* gradValues)
+{
+  // Per-LED gradient using analytic envelope within [0, spanSize)
+  const uint8_t gradLen = std::min<uint8_t>(spanSize, Hardware::kNumLedsPerRing);
+  std::memset(gradValues, 0, sizeof(float) * Hardware::kNumLedsPerRing);
+
+  if (gradLen > 0)
+  {
+    for (uint8_t i = 0; i < gradLen; ++i)
+    {
+      float x    = (gradLen > 1) ? ((maxBrightness - minBrightness) * (float)i / (float)(gradLen - 1)) : 0.0f;
+      float sq   = maxBrightness;
+      float fall = (maxBrightness - x);
+      float tri  = (x <= 0.5f) ? minBrightness + (x / 0.5f) : maxBrightness - (x / 0.5f);
+      float rise = minBrightness + x;
+      float t    = shape_;
+      float v;
+      if (t < 0.33333334f)
+      {
+        float u = t / 0.33333334f;
+        v       = infrasonic::lerp(sq, fall, u);
+      }
+      else if (t < 0.6666667f)
+      {
+        float u = (t - 0.33333334f) / 0.33333334f;
+        v       = infrasonic::lerp(fall, tri, u);
+      }
+      else
+      {
+        float u = (t - 0.6666667f) / 0.33333334f;
+        v       = infrasonic::lerp(tri, rise, u);
+      }
+      gradValues[i] = daisysp::fclamp(v, minBrightness, maxBrightness);
+    }
+  }
+}
+
 void Spotykach::updateDisplayState()
 {
   // Prepare a minimal display view without exposing internals
@@ -281,6 +360,7 @@ void Spotykach::updateDisplayState()
   }
 
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
+  Effect::RingSpan  ringSpan;
 
   switch (state_)
   {
@@ -292,13 +372,17 @@ void Spotykach::updateDisplayState()
       // Compute spans in LED index space
       uint8_t start    = static_cast<uint8_t>((1.0f - positionFactor) * N);
       uint8_t spanSize = static_cast<uint8_t>(size_ * positionFactor * N);
+      spanSize         = std::min(spanSize, (uint8_t)(Hardware::kNumLedsPerRing - start));
 
       // Yellow area indicating the position
-      LedRgbBrightness ledColor     = {0xffff00, 0.5f};
-      view.rings[view.layerCount++] = Effect::RingSpan{start, N, ledColor};
+      LedRgbBrightness ledColor = {0xffff00, 0.5f};
+      populateLedRing(ringSpan, N, ledColor, start, N - start);
+      view.rings[view.layerCount++] = ringSpan;
+
       // Orange span indicating the size
-      ledColor                      = {0xff8000, 0.5f};
-      view.rings[view.layerCount++] = Effect::RingSpan{start, std::min<uint8_t>(start + spanSize, N), ledColor};
+      ledColor = {0xff8000, 0.75f};
+      populateLedRing(ringSpan, N, ledColor, start, spanSize, true);
+      view.rings[view.layerCount++] = ringSpan;
 
       // Compute the span between the read and write heads
       float relativePos = writeIx_ - readIx_;
@@ -314,11 +398,11 @@ void Spotykach::updateDisplayState()
 
       // Read head position in LED index space
       uint8_t readIxLed  = std::min(start + static_cast<uint8_t>(positionFactor * spanSize), N - 1);
-      uint8_t readEndLed = std::min<uint8_t>(readIxLed + 1, N);
 
       // Display read head position
-      ledColor                      = {0xff00ff, 1.0f};
-      view.rings[view.layerCount++] = Effect::RingSpan{readIxLed, readEndLed, ledColor};
+      ledColor = {0xff00ff, 1.0f};
+      populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
+      view.rings[view.layerCount++] = ringSpan;
 
       // Play LED colors
       view.playLedColors[0] = {0x00ff00, 1.0f};    // Green
@@ -329,36 +413,41 @@ void Spotykach::updateDisplayState()
 
     case RECORDING:
     {
+      // Compute spans in LED index space
+      uint8_t start    = 0;
+
       // Read head position
       uint8_t readIxLed  = static_cast<uint8_t>(readIx_ * N / kLooperAudioDataSamples);
-      uint8_t readEndLed = std::min<uint8_t>(readIxLed + 1, N);
 
       // Write head position
       uint8_t writeIxLed = static_cast<uint8_t>(writeIx_ * N / kLooperAudioDataSamples);
-      uint8_t writeEnd   = std::min<uint8_t>(writeIxLed + 1, N);
 
       // Yellow area indicating the writable area
-      LedRgbBrightness ledColor     = {0xffff00, 0.5f};
-      view.rings[view.layerCount++] = Effect::RingSpan{0, N, ledColor};
+      LedRgbBrightness ledColor = {0xffff00, 0.5f};
+      populateLedRing(ringSpan, N, ledColor, start, N);
+      view.rings[view.layerCount++] = ringSpan;
 
       // Orange area indicating the actively written area
       ledColor = {0xff8000, 0.5f};
       if (speed_ > 0)
       {
-        view.rings[view.layerCount++] = Effect::RingSpan{writeIxLed, N, ledColor};
+        populateLedRing(ringSpan, N, ledColor, readIxLed, N - readIxLed);
       }
       else
       {
-        view.rings[view.layerCount++] = Effect::RingSpan{0, writeIxLed, ledColor};
+        populateLedRing(ringSpan, N, ledColor, 0, writeIxLed);
       }
+      view.rings[view.layerCount++] = ringSpan;
 
       // Display read head position
-      ledColor                      = {0xff00ff, 1.0f};
-      view.rings[view.layerCount++] = Effect::RingSpan{readIxLed, readEndLed, ledColor};
+      ledColor = {0xff00ff, 1.0f};
+      populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
+      view.rings[view.layerCount++] = ringSpan;
 
       // Display write head position
-      ledColor                      = {0xff0000, 1.0f};
-      view.rings[view.layerCount++] = Effect::RingSpan{writeIxLed, writeEnd, ledColor};
+      ledColor = {0xff0000, 1.0f};
+      populateLedRing(ringSpan, N, ledColor, writeIxLed, 1);
+      view.rings[view.layerCount++] = ringSpan;
 
       // Play LED colors
       if (play_)
@@ -378,35 +467,31 @@ void Spotykach::updateDisplayState()
     {
       // Compute spans in LED index space
       uint8_t start    = static_cast<uint8_t>(position_ * N);
-      uint8_t spanSize = static_cast<uint8_t>(size_ * N);
+      uint8_t spanSize = static_cast<uint8_t>((1.0f - position_) * size_ * N);
+      spanSize         = std::min(spanSize, (uint8_t)(Hardware::kNumLedsPerRing - start));
 
       // Read head position
       uint8_t readIxLed  = static_cast<uint8_t>(readIx_ * N / kLooperAudioDataSamples);
-      uint8_t readEndLed = std::min<uint8_t>(readIxLed + 1, N);
 
-      // Yellow area indicating the position and size
-      LedRgbBrightness ledColor     = {0xffff00, 0.5f};
-      view.rings[view.layerCount++] = Effect::RingSpan{start, std::min<uint8_t>(start + spanSize, N), ledColor};
+      // Yellow area indicating the buffer
+      LedRgbBrightness ledColor = {0xffff00, 0.5f};
+      populateLedRing(ringSpan, N, ledColor, 0, N);
+      view.rings[view.layerCount++] = ringSpan;
 
-      // Orange area indicating the actively read area
-      ledColor = {0xff8000, 0.5f};
-      if (speed_ > 0)
-      {
-        view.rings[view.layerCount++] = Effect::RingSpan{readIxLed, std::min<uint8_t>(start + spanSize, N), ledColor};
-      }
-      else
-      {
-        view.rings[view.layerCount++] = Effect::RingSpan{start, readIxLed, ledColor};
-      }
+      // Orange span indicating the position and size
+      ledColor = {0xff8000, 0.75f};
+      populateLedRing(ringSpan, N, ledColor, start, spanSize, true);
+      view.rings[view.layerCount++] = ringSpan;
 
       // Display read head position
-      ledColor                      = {0xff00ff, 1.0f};
-      view.rings[view.layerCount++] = Effect::RingSpan{readIxLed, readEndLed, ledColor};
+      ledColor = {0xff00ff, 1.0f};
+      populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
+      view.rings[view.layerCount++] = ringSpan;
 
       // Play LED colors
       if (play_)
       {
-        // Green
+        // Solid Green
         std::fill(std::begin(view.playLedColors), std::end(view.playLedColors), LedRgbBrightness{0x00ff00, 1.0f});
       }
 
