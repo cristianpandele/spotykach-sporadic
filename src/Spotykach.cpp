@@ -569,10 +569,63 @@ float Spotykach::processEnvelope(bool gate)
   }
 }
 
+void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
+                                    AudioHandle::OutputBuffer out,
+                                    size_t sample,
+                                    bool applyEnvelope,
+                                    bool record)
+{
+  for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  {
+    // Only process if this channel is active in the current mode
+    if (isChannelActive(ch))
+    {
+      float *currentLooperChannel = &looperAudioData[effectSide_][ch][0];
+
+      // Neighbouring sample indices
+      size_t rIdx0 = static_cast<size_t>(readIx_);
+      size_t rIdx1 = (rIdx0 + 1) % kLooperAudioDataSamples;
+      // Fractional part for interpolation
+      float frac = readIx_ - rIdx0;
+      // Neighbouring samples
+      float s0 = currentLooperChannel[rIdx0];
+      float s1 = currentLooperChannel[rIdx1];
+
+      // If not playing, audition the input crossfaded with silence
+      float loopOut = 0.0f;
+      if (play_)
+      {
+        // Linear interpolation when between the two samples
+        loopOut = infrasonic::lerp(s0, s1, frac);
+      }
+      // Mix the input with the loop output, with windowed envelope (if applied)
+      float env  = applyEnvelope ? processEnvelope(play_) : 1.0f;
+      float wet  = loopOut * env;
+      out[ch][sample] = infrasonic::lerp(in[ch][sample], wet, mix_);
+
+      if (record)
+      {
+        // Feedback/overdub
+        size_t wIdx0                 = static_cast<size_t>(writeIx_);
+        size_t wIdx1                 = static_cast<size_t>((wIdx0 + 1) % kLooperAudioDataSamples);
+        float  old0                  = currentLooperChannel[wIdx0];
+        float  old1                  = currentLooperChannel[wIdx1];
+        currentLooperChannel[wIdx0] = in[ch][sample] + feedback_ * old0;
+        currentLooperChannel[wIdx1] = in[ch][sample] + feedback_ * old1;
+      }
+    }
+    else
+    {
+      out[ch][sample] = 0.0f;
+    }
+  }
+}
+
 void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
   // Pass-through if mode is not MODE_1 or channelConfig is not MONO_LEFT, MONO_RIGHT, or STEREO
-  if ((mode_ != MODE_1) || (channelConfig_ == ChannelConfig::OFF || channelConfig_ >= ChannelConfig::CH_CONFIG_LAST))
+  if ((mode_ != MODE_1) ||
+      (channelConfig_ == ChannelConfig::OFF || channelConfig_ >= ChannelConfig::CH_CONFIG_LAST))
   {
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
@@ -610,46 +663,16 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
 
       for (size_t i = 0; i < blockSize; ++i)
       {
-        // Periodic retrigger based on window length in samples
+        // Periodic envelope retrigger based on window length in samples
         if (envSampleCounter_ >= static_cast<uint32_t>(windowSamples_))
         {
           retriggerEnvelopes(false);
           envSampleCounter_ = 0;
         }
         envSampleCounter_++;
-        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-        {
-          // Only process if this channel is active in the current mode
-          if (isChannelActive(ch))
-          {
-            // Neighbouring sample indices
-            size_t rIdx0 = static_cast<size_t>(readIx_);
-            size_t rIdx1 = (rIdx0 + 1) % kLooperAudioDataSamples;
-            // Fractional part for interpolation
-            float frac = readIx_ - rIdx0;
-            // Neighbouring samples
-            float s0 = looperAudioData[effectSide_][ch][rIdx0];
-            float s1 = looperAudioData[effectSide_][ch][rIdx1];
-            // Linear interpolation when between the two samples
-            float loopOut = infrasonic::lerp(s0, s1, frac);
-            // Mix the input with the loop output, with windowed envelope
-            float env  = processEnvelope(true);
-            float wet  = loopOut * env;
-            out[ch][i] = infrasonic::lerp(in[ch][i], wet, mix_);
 
-            // Feedback/overdub
-            size_t wIdx0                            = static_cast<size_t>(writeIx_);
-            size_t wIdx1                            = static_cast<size_t>((wIdx0 + 1) % kLooperAudioDataSamples);
-            float  old0                             = looperAudioData[effectSide_][ch][wIdx0];
-            float  old1                             = looperAudioData[effectSide_][ch][wIdx1];
-            looperAudioData[effectSide_][ch][wIdx0] = in[ch][i] + feedback_ * old0;
-            looperAudioData[effectSide_][ch][wIdx1] = in[ch][i] + feedback_ * old1;
-          }
-          else
-          {
-            out[ch][i] = 0.0f;
-          }
-        }
+        // Process audio for the current sample
+        processAudioSample(in, out, i, true, true);
 
         // Update the write index
         Span<float> writeSpan = {0.0f, kLooperAudioDataSamples};
@@ -667,8 +690,6 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
           readWindowEnd -= kLooperAudioDataSamples;
         }
 
-        // updateIndex(readWindowEnd, readWindowOffset * size_, writeSpan);
-
         // Update the read index
         Span<float> readSpan = {readWindowStart, readWindowEnd};
         updateIndex(readIx_, speed_, readSpan);
@@ -680,43 +701,15 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     {
       for (size_t i = 0; i < blockSize; ++i)
       {
-        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-        {
-          // Only process if this channel is active in the current mode
-          if (isChannelActive(ch))
-          {
-            // Neighbouring sample indices
-            size_t rIdx0 = static_cast<size_t>(readIx_);
-            size_t rIdx1 = (rIdx0 + 1) % kLooperAudioDataSamples;
-            // Fractional part for interpolation
-            float frac = readIx_ - rIdx0;
-            // Neighbouring samples
-            float s0 = looperAudioData[effectSide_][ch][rIdx0];
-            float s1 = looperAudioData[effectSide_][ch][rIdx1];
-            // If not playing, audition the input crossfaded with silence
-            float loopOut = 0.0f;
-            if (play_)
-            {
-              // Linear interpolation when between the two samples
-              loopOut = infrasonic::lerp(s0, s1, frac);
-            }
-            // Mix the input with the loop output
-            out[ch][i]                              = infrasonic::lerp(in[ch][i], loopOut, mix_);
+        // Process audio for the current sample
+        processAudioSample(in, out, i, false, true);
 
-            size_t wIdx0                            = static_cast<size_t>(writeIx_);
-            size_t wIdx1                            = static_cast<size_t>((wIdx0 + 1) % kLooperAudioDataSamples);
-            float  old0                             = looperAudioData[effectSide_][ch][wIdx0];
-            float  old1                             = looperAudioData[effectSide_][ch][wIdx1];
-            looperAudioData[effectSide_][ch][wIdx0] = in[ch][i] + feedback_ * old0;
-            looperAudioData[effectSide_][ch][wIdx1] = in[ch][i] + feedback_ * old1;
-          }
-        }
         // Update the write index
         Span<float> writeSpan = {0.0f, kLooperAudioDataSamples};
         updateIndex(writeIx_, speed_, writeSpan);
 
-        // Update the read index
-        updateIndex(readIx_, speed_, writeSpan);
+        // Update the read index to follow the write index
+        readIx_ = writeIx_;
       }
       return;
     }
@@ -727,41 +720,11 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
       configureEnvelopeLength(windowLen * speed_);
       for (size_t i = 0; i < blockSize; ++i)
       {
-        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-        {
-          // Only process if this channel is active in the current mode
-          if (isChannelActive(ch))
-          {
-            // Neighbouring sample indices
-            size_t rIdx0 = static_cast<size_t>(readIx_);
-            size_t rIdx1 = (rIdx0 + 1) % kLooperAudioDataSamples;
-            // Fractional part for interpolation
-            float frac = readIx_ - rIdx0;
-            // Neighbouring samples
-            float s0 = looperAudioData[effectSide_][ch][rIdx0];
-            float s1 = looperAudioData[effectSide_][ch][rIdx1];
+        // Process audio for the current sample
+        processAudioSample(in, out, i, true, false);
 
-            // If not playing, audition the input crossfaded with silence
-            float loopOut = 0.0f;
-            if (play_)
-            {
-              // Linear interpolation when between the two samples
-              loopOut = infrasonic::lerp(s0, s1, frac);
-            }
-            // Apply envelope to loop output (gated by the play state)
-            float env = processEnvelope(play_);
-            float wet = loopOut * env;
-            // Mix the input with the loop output
-            out[ch][i] = infrasonic::lerp(in[ch][i], wet, mix_);
-          }
-          else
-          {
-            out[ch][i] = 0.0f;
-          }
-        }
         // Map position_ relative to kLooperAudioDataSamples
         float pos = position_ * (float)kLooperAudioDataSamples;
-        // Advance read, write follows read
         // Constrain readIx_ to span [spanStart, spanEnd)
         float spanStart = pos;
         float spanEnd   = pos + windowLen;
@@ -770,8 +733,10 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
           spanEnd -= kLooperAudioDataSamples;
         }
         float prevReadIx = readIx_;
+
         if (play_)
         {
+          // Advance read, write follows read
           Span<float> loopSpan = {spanStart, spanEnd};
           updateIndex(readIx_, speed_, loopSpan);
           writeIx_ = readIx_;
