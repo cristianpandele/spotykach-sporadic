@@ -335,9 +335,7 @@ void AppImpl::processModulatorControls (size_t slot)
   // Process the modulation for the specified effect slot
   for (size_t i = 0; i < kNumberEffectSlots; i++)
   {
-    // We are rendering the modulator output at 500 Hz, roughly /100 times slower than the sample rate
-    // so we need to scale the frequency by 100.0f
-    modulator[i].setFrequency(modulationFreq[i].getSmoothVal() * 100.0f, modFreqAltLatch[i]);
+    modulator[i].setFrequency(modulationFreq[i].getSmoothVal(), modFreqAltLatch[i]);
     modulator[i].setAmplitude(modulationAmount[i].getSmoothVal());
   }
 }

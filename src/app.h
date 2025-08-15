@@ -273,13 +273,13 @@ namespace spotykach_hwtest
       SmoothValue shapeControls[kNumberEffectSlots] {SmoothValue(250.0f, kSampleRate),
                                                      SmoothValue(250.0f, kSampleRate)};
 
-      // Modulation amount controls for each side
-      SmoothValue modulationAmount[kNumberEffectSlots] {SmoothValue(75.0f, kSampleRate),
-                                                        SmoothValue(75.0f, kSampleRate)};
+      // Modulation amount controls for each side (updated at audio block rate)
+      SmoothValue modulationAmount[kNumberEffectSlots] {SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
+                                                        SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
 
-      // Modulation frequency controls for each side
-      SmoothValue modulationFreq[kNumberEffectSlots] {SmoothValue(75.0f, kSampleRate),
-                                                      SmoothValue(75.0f, kSampleRate)};
+      // Modulation frequency controls for each side (updated at audio block rate)
+      SmoothValue modulationFreq[kNumberEffectSlots] {SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
+                                                      SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
 
       // Modulation frequency alt latch for each side
       bool modFreqAltLatch[2] = {false};
@@ -328,8 +328,8 @@ namespace spotykach_hwtest
 
       // Modulator instances for each side
       Modulator modulator[kNumberEffectSlots] = {
-        Modulator(modulationTypes[0], ModulationEngine::kNumModsPerSide, kSampleRate),
-        Modulator(modulationTypes[1], ModulationEngine::kNumModsPerSide, kSampleRate)
+        Modulator(modulationTypes[0], ModulationEngine::kNumModsPerSide, kLedUpdateRate),
+        Modulator(modulationTypes[1], ModulationEngine::kNumModsPerSide, kLedUpdateRate)
       };
 
       daisysp::Oscillator osc[8];
