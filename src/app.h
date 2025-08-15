@@ -13,6 +13,7 @@ namespace spotykach_hwtest
 
   // Constants
   constexpr size_t kSampleRate           = 48000;
+  constexpr float  kSamplePeriodMs       = 1000.0f / kSampleRate;
   constexpr size_t kBlockSize            = 16;
 
   constexpr uint8_t kNumberEffectSlots    = Hardware::kNumInPair;
@@ -82,13 +83,15 @@ namespace spotykach_hwtest
       class SmoothValue
       {
         public:
-          SmoothValue (float smoothTimeMs, float sampleRate)
+          SmoothValue (float smoothTimeMs, float updatePeriodMs)
           {
             smoothing_    = false;
             currentValue_ = 0.0f;
             targetValue_  = 0.0f;
-            // Frequency for smoothing these values is 500 Hz - roughly 100 times slower than the sample rate
-            filterCoeff_  = 100.0f * (1000.0f / (smoothTimeMs * sampleRate));
+
+            // coeff = 100.0 / (time * sample_rate), where time is in seconds
+            float updateRate = 1000.0f / updatePeriodMs;
+            filterCoeff_     = 100.0f / ((smoothTimeMs / 1000.0f) * updateRate);
           }
 
           // Overload assignment to set targetValue
@@ -250,31 +253,31 @@ namespace spotykach_hwtest
       bool    routingModeChanged = false;
       AppMode currentRoutingMode = AppMode::OFF;
 
-      // Mix controls for the two sides
+      // Mix controls for the two sides (updated at audio sample rate)
       using SmoothValue = Utils::SmoothValue;
-      SmoothValue mixControls[kNumberEffectSlots] = {SmoothValue(25.0f, kSampleRate),
-                                                     SmoothValue(25.0f, kSampleRate)};
+      SmoothValue mixControls[kNumberEffectSlots] = {SmoothValue(25.0f, kSamplePeriodMs),
+                                                     SmoothValue(25.0f, kSamplePeriodMs)};
 
       // Mix control alt latch for the two sides
       bool mixAltLatch[kNumberEffectSlots] = {false};
 
-      // Smooth pitch for each side
-      SmoothValue pitchControls[kNumberEffectSlots] {SmoothValue(75.0f, kSampleRate),
-                                                     SmoothValue(75.0f, kSampleRate)};
+      // Smooth pitch for each side (updated at audio sample rate)
+      SmoothValue pitchControls[kNumberEffectSlots] {SmoothValue(75.0f, kSamplePeriodMs),
+                                                     SmoothValue(75.0f, kSamplePeriodMs)};
 
-      // Position knob for each side
-      SmoothValue positionControls[kNumberEffectSlots] {SmoothValue(150.0f, kSampleRate),
-                                                        SmoothValue(150.0f, kSampleRate)};
+      // Position knob for each side (updated at audio sample rate)
+      SmoothValue positionControls[kNumberEffectSlots] {SmoothValue(150.0f, kSamplePeriodMs),
+                                                        SmoothValue(150.0f, kSamplePeriodMs)};
       // Position/size switch state for each side
       SizePosSwitchState sizePosSwitch[kNumberEffectSlots] {SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
 
-      // Size controls for each side
-      SmoothValue sizeControls[kNumberEffectSlots] {SmoothValue(250.0f, kSampleRate),
-                                                    SmoothValue(250.0f, kSampleRate)};
+      // Size controls for each side (updated at audio sample rate)
+      SmoothValue sizeControls[kNumberEffectSlots] {SmoothValue(250.0f, kSamplePeriodMs),
+                                                    SmoothValue(250.0f, kSamplePeriodMs)};
 
-      // Shape controls for each side
-      SmoothValue shapeControls[kNumberEffectSlots] {SmoothValue(250.0f, kSampleRate),
-                                                     SmoothValue(250.0f, kSampleRate)};
+      // Shape controls for each side (updated at audio sample rate)
+      SmoothValue shapeControls[kNumberEffectSlots] {SmoothValue(250.0f, kSamplePeriodMs),
+                                                     SmoothValue(250.0f, kSamplePeriodMs)};
 
       // Modulation amount controls for each side (updated at audio block rate)
       SmoothValue modulationAmount[kNumberEffectSlots] {SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
