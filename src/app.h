@@ -19,7 +19,10 @@ namespace spotykach_hwtest
   constexpr uint8_t kNumberChannelsStereo = 2;
   constexpr uint8_t kNumberChannelsMono   = 1;
 
+  // Timers
   constexpr size_t kDebugLogPeriodMs      = 500;
+  constexpr size_t kLedUpdatePeriodMs     = 2;
+  constexpr size_t kLedUpdateRate         = (1.0f / (kLedUpdatePeriodMs / 1000.0f));
 
   // Enum for Size/Pos switch position
   enum SizePosSwitchState

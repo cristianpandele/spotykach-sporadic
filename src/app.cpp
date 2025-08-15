@@ -235,7 +235,7 @@ void AppImpl::loop ()
     processMidi();
 
     // Every 500ms toggle MIDI note out and gate outs
-    if (midi_timer.HasPassedMs(500))
+    if (midi_timer.HasPassedMs(kDebugLogPeriodMs))
     {
       midi_timer.Restart();
       test_note_on = !test_note_on;
@@ -259,7 +259,7 @@ void AppImpl::loop ()
 
     // The LED refresh should run at least 200Hz for temporal dithering,
     // but faster is better
-    if (led_timer.HasPassedMs(2))
+    if (led_timer.HasPassedMs(kLedUpdatePeriodMs))
     {
       led_timer.Restart();
 
@@ -294,7 +294,7 @@ void AppImpl::loop ()
         }
 
         /////////
-        // Piggy back on this timer (500 Hz, roughly /100 times slower than the sample rate) for very rough CV output demo
+        // Piggy back on this timer (500 Hz, roughly 100 times slower than the sample rate) for very rough CV output demo
         modCv[i] = modulator[i].process();
       }
 
