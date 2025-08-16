@@ -137,17 +137,17 @@ class Effect
     virtual void setPlay (bool p) { play_ = p; }
 
   private:
-  // Double-buffer technique to handle display state updates and publish them externally
-  struct DisplayBuf
-  {
-    DisplayState state;
-    uint32_t     cnt;
-  };
+    // Double-buffer technique to handle display state updates and publish them externally
+    struct DisplayBuf
+    {
+      DisplayState state;
+      uint32_t     cnt;
+    };
 
-  DisplayBuf       dispBuf_[2];
-  mutable uint32_t cntRead_  = 0;
-  volatile uint8_t dispWIdx_ = 0;
+    DisplayBuf       dispBuf_[2];
+    mutable uint32_t cntRead_  = 0;
+    volatile uint8_t dispWIdx_ = 0;
 
-  Effect (const Effect &)           = delete;
-  Effect &operator=(const Effect &) = delete;
+    Effect (const Effect &)           = delete;
+    Effect &operator=(const Effect &) = delete;
 };

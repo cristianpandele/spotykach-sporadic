@@ -623,9 +623,9 @@ void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
 
 void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
-  // Pass-through if mode is not MODE_1 or channelConfig is not MONO_LEFT, MONO_RIGHT, or STEREO
-  if ((mode_ != MODE_1) ||
-      (channelConfig_ == ChannelConfig::OFF || channelConfig_ >= ChannelConfig::CH_CONFIG_LAST))
+  // Pass-through if mode is not REEL or channelConfig is not MONO_LEFT, MONO_RIGHT, or STEREO
+  if ((mode_ != REEL) ||
+      (channelConfig_ == ChannelConfig::OFF) || (channelConfig_ >= ChannelConfig::CH_CONFIG_LAST))
   {
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
