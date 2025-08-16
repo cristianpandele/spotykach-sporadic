@@ -162,16 +162,18 @@ void AppImpl::updateAnalogControlFrame(Effect::AnalogControlFrame &frame, size_t
   // Update the control frame for the specified effect slot
   frame =
   {
-    .mix = mixControls[slot].isSmoothing() ? mixControls[slot].getSmoothVal() : mixControls[slot].getTargetVal(),
-    .mixAlt   = mixAltLatch[slot],
-    .pitch    = pitchControls[slot].isSmoothing() ? pitchControls[slot].getSmoothVal()
-                                                  : pitchControls[slot].getTargetVal(),
-    .position = positionControls[slot].isSmoothing() ? positionControls[slot].getSmoothVal()
-                                                     : positionControls[slot].getTargetVal(),
-    .size =
-      sizeControls[slot].isSmoothing() ? sizeControls[slot].getSmoothVal() : sizeControls[slot].getTargetVal(),
-    .shape = shapeControls[slot].isSmoothing() ? shapeControls[slot].getSmoothVal()
-                                               : shapeControls[slot].getTargetVal()
+    .mix          = mixControls[slot].isSmoothing() ? mixControls[slot].getSmoothVal() : mixControls[slot].getTargetVal(),
+    .mixAlt       = mixAltLatch[slot],
+    .pitch        = pitchControls[slot].isSmoothing() ? pitchControls[slot].getSmoothVal()
+                                                      : pitchControls[slot].getTargetVal(),
+    .position     = positionControls[slot].isSmoothing() ? positionControls[slot].getSmoothVal()
+                                                         : positionControls[slot].getTargetVal(),
+    .positionFlux = positionFluxLatch[slot],
+    .size         = sizeControls[slot].isSmoothing() ? sizeControls[slot].getSmoothVal()
+                                                     : sizeControls[slot].getTargetVal(),
+    .sizeFlux     = sizeFluxLatch[slot],
+    .shape        = shapeControls[slot].isSmoothing() ? shapeControls[slot].getSmoothVal()
+                                                      : shapeControls[slot].getTargetVal()
   };
 }
 
@@ -234,6 +236,7 @@ void AppImpl::loop ()
     processUIQueue();
     processMidi();
 
+#if 0
     // Every 500ms toggle MIDI note out and gate outs
     if (midi_timer.HasPassedMs(kDebugLogPeriodMs))
     {
@@ -256,6 +259,7 @@ void AppImpl::loop ()
     // Modified libDaisy MIDI handlers require explicit call to transmit
     // enqueued messages instead of blocking every time a message is sent
     hw.midi_uart.TransmitEnqueuedMessages();
+#endif
 
     // The LED refresh should run at least 200Hz for temporal dithering,
     // but faster is better
@@ -270,7 +274,7 @@ void AppImpl::loop ()
       if (routingModeChanged)
       {
         setRoutingMode(currentRoutingMode);
-        routingModeChanged = 0;
+        routingModeChanged = false;
       }
 
       for (size_t i = 0; i < kNumberEffectSlots; i++)
@@ -352,25 +356,6 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
 {
   hw.ProcessAnalogControls();
 
-#if 0
-  std::copy(IN_L, IN_L + blockSize, OUT_L);
-  std::copy(IN_R, IN_R + blockSize, OUT_R);
-
-
-  // Add test oscillator from MIDI input
-  float s;
-  for (size_t i = 0; i < blockSize; i++)
-  {
-    s = 0.0f;
-    for (size_t j = 0; j < 8; j++)
-    {
-      s += osc[j].Process();
-    }
-    s *= (midi_in_note_on ? 1.0f : 0.0f);
-    OUT_L[i] += s;
-    OUT_R[i] += s;
-  }
-#else
   // Handle the analog controls that affect the audio processing
   handleAnalogControls();
 
@@ -395,7 +380,6 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
   // Process the audio through the Spotykach/Sporadic logic
   // Routing is dependent on currentRoutingMode as indicated by LED_ROUTING
   processAudioLogic(in, out, blockSize);
-#endif
 }
 
 #if DEBUG
@@ -831,7 +815,7 @@ void AppImpl::handleDisplay ()
           if ((i >= seg.start) && (i < seg.end))
           {
             // Translate i to the physical index mapping
-            // Start at bottom, wrap counterclockwise
+            // Start at bottom, wrap clockwise
             if (i <= 16)
             {
               ledIx += (Hardware::kNumLedsPerRing / 2) - i;
