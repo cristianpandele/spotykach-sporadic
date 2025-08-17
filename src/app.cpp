@@ -445,6 +445,12 @@ void AppImpl::processUIQueue ()
         if (event.asPotMoved.id == Hardware::kCtrlSosIds[side])
           mixAltLatch[side] = Utils::isAltPadPressed(padTouchStates);
 
+        if (event.asPotMoved.id == Hardware::kCtrlPosIds[side])
+          positionFluxLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapFluxIds[side]);
+
+        if (event.asPotMoved.id == Hardware::kCtrlSizeIds[side])
+          sizeFluxLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapFluxIds[side]);
+
         if (event.asPotMoved.id <= Hardware::kCtrlLastSideIds[side])
           last_pot_moved[side] = event.asPotMoved.id;
       }
