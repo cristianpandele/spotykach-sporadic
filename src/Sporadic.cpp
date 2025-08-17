@@ -3,7 +3,7 @@
 
 void Sporadic::init ()
 {
-  // TODO
+  inputSculpt_.init(sampleRate_);
 }
 
 void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)

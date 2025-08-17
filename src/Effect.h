@@ -78,7 +78,8 @@ class Effect
       LedRgbBrightness reverseLedColors[kMaxLedPhases];
     };
 
-    Effect ()            = default;
+    Effect (size_t sampleRate) : sampleRate_(sampleRate) {}
+    Effect ()            = delete;
     virtual ~Effect ()   = default;
 
     virtual void init () = 0;
@@ -101,6 +102,9 @@ class Effect
   protected:
     // Channel configuration for the effect
     ChannelConfig channelConfig_ = ChannelConfig::OFF;
+
+    // Sample rate for the effect
+    size_t sampleRate_;
 
     // Update the display state with the current values
     void publishDisplay (const DisplayState &state);

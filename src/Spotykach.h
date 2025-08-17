@@ -21,7 +21,7 @@ class Spotykach : public Effect
       RECORDING,
       LOOP_PLAYBACK
     };
-    Spotykach (uint8_t side) : effectSide_(side) {}
+    Spotykach (size_t sampleRate, uint8_t side) : Effect(sampleRate), effectSide_(side) {}
     ~Spotykach () = default;
 
     void init ();
