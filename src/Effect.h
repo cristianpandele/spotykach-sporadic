@@ -44,8 +44,12 @@ class Effect
     // Digital control payload pushed  on change (at most once per loop iteration) from AppImpl
     struct DigitalControlFrame
     {
+      // Simple pad presses
       bool  reverse;
       bool  play;
+      bool  flux;
+      bool  grit;
+      // Supported pad combinations
       bool  altPlay;      // latched Alt pad when Play pressed
       bool  spotyPlay;    // latched Spotykach pad when Play pressed
     };
@@ -130,6 +134,12 @@ class Effect
     // Play flag
     bool play_ = false;
 
+    // Flux flag
+    bool flux_ = false;
+
+    // Grit flag
+    bool grit_ = false;
+
     // Current effect mode
     EffectMode mode_ = MODE_1;
 
@@ -141,6 +151,8 @@ class Effect
     virtual void setShape (float s) { shape_ = infrasonic::unitclamp(s); }
     virtual void setReverse (bool r) { reverse_ = r; }
     virtual void setPlay (bool p) { play_ = p; }
+    virtual void setFlux (bool f) { flux_ = f; }
+    virtual void setGrit (bool g) { grit_ = g; }
 
     bool isChannelActive (size_t ch) const;
 

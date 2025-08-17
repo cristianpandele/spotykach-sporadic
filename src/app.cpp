@@ -195,6 +195,8 @@ void AppImpl::updateDigitalControlFrame(Effect::DigitalControlFrame &frame, size
     // Simple pad presses
     .reverse = currentReverseState[slot],
     .play    = currentPlayState[slot],
+    .flux    = currentFluxState[slot],
+    .grit    = currentGritState[slot],
     // Supported pad combinations
     .altPlay   = currentAltPlayState[slot],
     .spotyPlay = currentSpotyPlayState[slot]
@@ -210,6 +212,8 @@ void AppImpl::pushDigitalEffectControls(Effect::DigitalControlFrame &c, size_t s
   // Store consequences of the control changes
   currentReverseState[slot]   = c.reverse;
   currentPlayState[slot]      = c.play;
+  currentFluxState[slot]      = c.flux;
+  currentGritState[slot]      = c.grit;
   currentAltPlayState[slot]   = c.altPlay;
   currentSpotyPlayState[slot] = c.spotyPlay;
 }
@@ -300,7 +304,7 @@ void AppImpl::loop ()
 
         /////////
         // Control state changes
-        if (reverseStateChanged[i] || playStateChanged[i] || altPlayStateChanged[i] || spotyPlayStateChanged[i])
+        if (reverseStateChanged[i] || playStateChanged[i] || altPlayStateChanged[i] || spotyPlayStateChanged[i] || fluxStateChanged[i] || gritStateChanged[i])
         {
           updateDigitalControlFrame(digitalControlFrames[i], i);
           pushDigitalEffectControls(digitalControlFrames[i], i);
@@ -309,6 +313,8 @@ void AppImpl::loop ()
           playStateChanged[i] = false;
           altPlayStateChanged[i] = false;
           spotyPlayStateChanged[i] = false;
+          fluxStateChanged[i] = false;
+          gritStateChanged[i] = false;
         }
 
         /////////
@@ -728,6 +734,22 @@ void AppImpl::handleDigitalControls ()
       playStateChanged[side] = true;
       currentPlayState[side] = !currentPlayState[side];
       // Log::PrintLine("Play state changed for side %d to: %d", side, currentPlayState[side]);
+    }
+
+    if (Utils::hasTouchStateChanged(padTouchStates, padTouchStatesPrev, kPadMapFluxIds[side]))
+    {
+      // FLUX A or B
+      fluxStateChanged[side] = true;
+      currentFluxState[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapFluxIds[side]);
+      // Log::PrintLine("Flux state changed for side %d to: %d", side, currentFluxState[side]);
+    }
+
+    if (Utils::hasTouchStateChanged(padTouchStates, padTouchStatesPrev, kPadMapGritIds[side]))
+    {
+      // GRIT A or B
+      gritStateChanged[side] = true;
+      currentGritState[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+      // Log::PrintLine("Grit state changed for side %d to: %d", side, currentGritState[side]);
     }
   }
 
