@@ -784,15 +784,15 @@ void AppImpl::handleDisplay ()
   {
     if (currentEffectMode[side] == EffectMode::MODE_3)
     {
-      hw.leds.Set(Hardware::kLedOrbitIds[side], 0x00ff00, 1.0f);
+      hw.leds.Set(Hardware::kLedGritIds[side], 0x00ff00, 1.0f);
     }
     else if (currentEffectMode[side] == EffectMode::MODE_1)
     {
-      hw.leds.Set(Hardware::kLedOrbitIds[side], 0x0000ff, 1.0f);
+      hw.leds.Set(Hardware::kLedGritIds[side], 0x0000ff, 1.0f);
     }
     else
     {
-      hw.leds.Set(Hardware::kLedOrbitIds[side], 0xff0000, 1.0f);
+      hw.leds.Set(Hardware::kLedGritIds[side], 0xff0000, 1.0f);
     }
   }
 
@@ -850,7 +850,7 @@ void AppImpl::handleDisplay ()
     cv += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
     cv += hw.GetControlVoltageValue(Hardware::kCvVOctIds[side]);
     cv += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
-    hw.leds.Set(Hardware::kLedDriftIds[side], cv >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv));
+    hw.leds.Set(Hardware::kLedFluxIds[side], cv >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv));
   }
 
   // --- MIDI INPUT ---
