@@ -614,10 +614,6 @@ void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
         currentLooperChannel[wIdx1] = in[ch][sample] + feedback_ * old1;
       }
     }
-    else
-    {
-      out[ch][sample] = 0.0f;
-    }
   }
 }
 
