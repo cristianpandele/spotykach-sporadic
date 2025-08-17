@@ -261,6 +261,12 @@ namespace spotykach_hwtest
       // Mix control alt latch for the two sides
       bool mixAltLatch[kNumberEffectSlots] = {false};
 
+      // Position knob Flux latch
+      bool positionFluxLatch[kNumberEffectSlots] = {false};
+
+      // Size knob Flux latch
+      bool sizeFluxLatch[kNumberEffectSlots] = {false};
+
       // Smooth pitch for each side (updated at audio sample rate)
       SmoothValue pitchControls[kNumberEffectSlots] {SmoothValue(75.0f, kSamplePeriodMs),
                                                      SmoothValue(75.0f, kSamplePeriodMs)};

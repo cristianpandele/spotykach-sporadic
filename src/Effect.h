@@ -32,10 +32,12 @@ class Effect
     struct AnalogControlFrame
     {
       float mix;
-      bool  mixAlt;      // latched Alt pad at move time
+      bool  mixAlt;       // latched Alt pad at move time for Mix knob
       float pitch;
       float position;
+      bool  positionFlux; // latched Flux pad at move time for Position knob
       float size;
+      bool  sizeFlux;     // latched Flux pad at move time for Size knob
       float shape;
     };
 
