@@ -760,28 +760,3 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     }
   }
 }
-
-// Helper to determine if a channel should be processed in the current mode
-bool Spotykach::isChannelActive(size_t ch) const
-{
-  // Example logic: only process left channel in MONO_LEFT, right in MONO_RIGHT, both in STEREO
-  switch (channelConfig_)
-  {
-    case ChannelConfig::MONO_LEFT:
-    {
-      return (ch == 0);
-    }
-    case ChannelConfig::MONO_RIGHT:
-    {
-      return (ch == 1);
-    }
-    case ChannelConfig::STEREO:
-    {
-      return ((ch == 0 || ch == 1));
-    }
-    default:
-    {
-      return false;
-    }
-  }
-}

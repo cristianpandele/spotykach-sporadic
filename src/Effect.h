@@ -136,6 +136,8 @@ class Effect
     virtual void setReverse (bool r) { reverse_ = r; }
     virtual void setPlay (bool p) { play_ = p; }
 
+    bool isChannelActive (size_t ch) const;
+
   private:
     // Double-buffer technique to handle display state updates and publish them externally
     struct DisplayBuf
