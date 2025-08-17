@@ -115,8 +115,6 @@ class Spotykach : public Effect
     float prevWindowSamples_ = 0.0f;
     uint32_t envSampleCounter_ = 0;
 
-    bool isChannelActive (size_t ch) const;
-
     void setMix (float m, bool altLatch);
     void setPitch (float s) override;
     void setPlay (bool p) override;
