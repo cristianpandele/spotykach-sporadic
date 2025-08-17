@@ -322,6 +322,14 @@ namespace spotykach_hwtest
       bool spotyPlayStateChanged[kNumberEffectSlots] {false};
       bool currentSpotyPlayState[kNumberEffectSlots] {false};
 
+      // Flux flag for each side
+      bool fluxStateChanged[kNumberEffectSlots]{false};
+      bool currentFluxState[kNumberEffectSlots]{false};
+
+      // Grit flag for each side
+      bool gritStateChanged[kNumberEffectSlots]{false};
+      bool currentGritState[kNumberEffectSlots]{false};
+
       // Pad touch states
       std::bitset<16> padTouchStates;
       std::bitset<16> padTouchStatesPrev;
