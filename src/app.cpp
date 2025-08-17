@@ -207,6 +207,7 @@ void AppImpl::pushDigitalEffectControls(Effect::DigitalControlFrame &c, size_t s
   effects[slot]->updateDigitalControls(c);
   // Get back the updated controls
   effects[slot]->getDigitalControls(c);
+  // Store consequences of the control changes
   currentReverseState[slot]   = c.reverse;
   currentPlayState[slot]      = c.play;
   currentAltPlayState[slot]   = c.altPlay;
@@ -279,32 +280,46 @@ void AppImpl::loop ()
 
       for (size_t i = 0; i < kNumberEffectSlots; i++)
       {
+        /////////
+        // Modulators
         if (modTypeChanged[i])
         {
           modulator[i].setModType(currentModType[i]);
           modTypeChanged[i] = false;
         }
+        // Piggy back on this timer (500 Hz) for very rough CV output demo
+        modCv[i] = modulator[i].process();
 
+        /////////
+        // Global routing changed
         if (effectModeChanged[i])
         {
           effects[i]->setMode(currentEffectMode[i]);
           effectModeChanged[i] = false;
         }
 
+        /////////
+        // Control state changes
         if (reverseStateChanged[i] || playStateChanged[i] || altPlayStateChanged[i] || spotyPlayStateChanged[i])
         {
           updateDigitalControlFrame(digitalControlFrames[i], i);
           pushDigitalEffectControls(digitalControlFrames[i], i);
+          // Reset the change flags
+          reverseStateChanged[i] = false;
+          playStateChanged[i] = false;
+          altPlayStateChanged[i] = false;
+          spotyPlayStateChanged[i] = false;
         }
 
         /////////
-        // Piggy back on this timer (500 Hz, roughly 100 times slower than the sample rate) for very rough CV output demo
-        modCv[i] = modulator[i].process();
+        // LED Ring display updates
+        effects[i]->updateDisplayState();
       }
 
       // View part of MVC
       hw.leds.Clear();
-      // drawRainbowRoad();
+
+
       handleDisplay();
       hw.leds.Show();
 
@@ -863,7 +878,7 @@ void AppImpl::handleDisplay ()
   if (midi_in_note_on)
     hw.leds.Set(Hardware::LED_SPOTY_PAD, 0xff0000);
 
-  // --- TOUCH PADS ---
+  // --- TOUCH PAD LEDs ---
   for (size_t i = 0; i < kNumberEffectSlots; i++)
   {
     // Alternating phase for REVERSE LEDs

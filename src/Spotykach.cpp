@@ -255,8 +255,6 @@ void Spotykach::updateDigitalControls (const DigitalControlFrame &c)
     setPlay(c.play);
     setAltPlay(c.altPlay);
   }
-
-  updateDisplayState();
 }
 
 void Spotykach::getDigitalControls(DigitalControlFrame &c)
