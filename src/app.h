@@ -186,12 +186,12 @@ namespace spotykach_hwtest
       // Bit position acts as index into array
       static constexpr Hardware::LedId kPadMapping[12] = {Hardware::LED_PLAY_A,
                                                           Hardware::LED_REV_A,
-                                                          Hardware::LED_ORBIT_A,
-                                                          Hardware::LED_DRIFT_A,
+                                                          Hardware::LED_GRIT_A,
+                                                          Hardware::LED_FLUX_A,
                                                           Hardware::LED_CYCLE_A,
                                                           Hardware::LED_CYCLE_B,
-                                                          Hardware::LED_DRIFT_B,
-                                                          Hardware::LED_ORBIT_B,
+                                                          Hardware::LED_FLUX_B,
+                                                          Hardware::LED_GRIT_B,
                                                           Hardware::LED_REV_B,
                                                           Hardware::LED_PLAY_B,
                                                           Hardware::LED_SPOTY_PAD,
@@ -200,8 +200,8 @@ namespace spotykach_hwtest
       static constexpr size_t  kPadMappingSize = sizeof(kPadMapping) / sizeof(kPadMapping[0]);
       static constexpr size_t  kPadMapPlayIds[kNumberEffectSlots]  = {0, 9};
       static constexpr size_t  kPadMapRevIds[kNumberEffectSlots]   = {1, 8};
-      static constexpr size_t  kPadMapOrbitIds[kNumberEffectSlots] = {2, 7};
-      static constexpr size_t  kPadMapDriftIds[kNumberEffectSlots] = {3, 6};
+      static constexpr size_t  kPadMapGritIds[kNumberEffectSlots]  = {2, 7};
+      static constexpr size_t  kPadMapFluxIds[kNumberEffectSlots]  = {3, 6};
       static constexpr size_t  kPadMapCycleIds[kNumberEffectSlots] = {4, 5};
       static constexpr size_t  kPadMapSpotyId                      = 10;
       static constexpr size_t  kPadMapAltId                        = 11;

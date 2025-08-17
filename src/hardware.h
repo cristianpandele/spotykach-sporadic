@@ -28,8 +28,8 @@ namespace spotykach
         LED_RING_A,
         LED_RING_A_LAST = LED_RING_A + kNumLedsPerRing - 1,
 
-        LED_ORBIT_A,
-        LED_DRIFT_A,
+        LED_GRIT_A,
+        LED_FLUX_A,
         LED_GATE_OUT_A,
         LED_CYCLE_A,
 
@@ -40,8 +40,8 @@ namespace spotykach
 
         LED_CYCLE_B,
         LED_GATE_OUT_B,
-        LED_DRIFT_B,
-        LED_ORBIT_B,
+        LED_FLUX_B,
+        LED_GRIT_B,
 
         LED_RING_B,
         LED_RING_B_LAST = LED_RING_B + kNumLedsPerRing - 1,
@@ -59,8 +59,8 @@ namespace spotykach
       static constexpr LedId kLedPlayIds[kNumInPair]  = {LED_PLAY_A, LED_PLAY_B};
       static constexpr LedId kLedRevIds[kNumInPair]   = {LED_REV_A, LED_REV_B};
       static constexpr LedId kLedRingIds[kNumInPair]  = {LED_RING_A, LED_RING_B};
-      static constexpr LedId kLedOrbitIds[kNumInPair] = {LED_ORBIT_A, LED_ORBIT_B};
-      static constexpr LedId kLedDriftIds[kNumInPair] = {LED_DRIFT_A, LED_DRIFT_B};
+      static constexpr LedId kLedGritIds[kNumInPair]  = {LED_GRIT_A, LED_GRIT_B};
+      static constexpr LedId kLedFluxIds[kNumInPair]  = {LED_FLUX_A, LED_FLUX_B};
       static constexpr LedId kLedGateIds[kNumInPair]  = {LED_GATE_OUT_A, LED_GATE_OUT_B};
       static constexpr LedId kLedCycleIds[kNumInPair] = {LED_CYCLE_A, LED_CYCLE_B};
       static constexpr LedId kLedSpotyIds[kNumInPair] = {LED_SPOTY_SLIDER_A, LED_SPOTY_SLIDER_B};
