@@ -30,8 +30,8 @@ namespace spotykach_hwtest
 }    // namespace spotykach_hwtest
 
 static AppImpl   impl;
-static Spotykach spotykachLooper[kNumberEffectSlots] = {Spotykach(0), Spotykach(1)};
-static Sporadic  sporadic;
+static Spotykach spotykachLooper[kNumberEffectSlots] = {Spotykach(kSampleRate, 0), Spotykach(kSampleRate, 1)};
+static Sporadic  sporadic(kSampleRate);
 
 // Array of pointers to Effects
 Effect* effects[kNumberEffectSlots];

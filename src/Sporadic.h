@@ -7,12 +7,13 @@
 #include "hardware.h"
 
 using namespace daisy;
+using namespace spotykach_hwtest;
 
 // Class for Sporadic effect implementation
 class Sporadic : public Effect
 {
   public:
-    Sporadic ()  = default;
+    Sporadic (size_t sampleRate) : Effect(sampleRate) {}
     ~Sporadic () = default;
 
     void init () override;
