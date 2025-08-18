@@ -568,8 +568,17 @@ void AppImpl::handleAnalogControls ()
 {
   // Spotykach slider (mapped to -1.. +1)
   spotyControl = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
-  // Add the slider CV values
-  spotyControl += hw.GetControlVoltageValue(Hardware::CV_SPOTYKACH);
+  // If the Spotykach pad is pressed, set the effect mix
+  if (!spotySpotyLatch)
+  {
+    // Add the Spotykach CV value when the Spotykach pad is not latched
+    spotyControl += hw.GetControlVoltageValue(Hardware::CV_SPOTYKACH);
+  }
+  else
+  {
+    // Set the effect mix level
+    effectMix_ = spotyControl.getSmoothVal();
+  }
 
   for (size_t side = 0; side < kNumberEffectSlots; side++)
   {
@@ -580,21 +589,32 @@ void AppImpl::handleAnalogControls ()
 
     // Read the mix controls for both sides
     mixControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSosIds[side]);
-    // Add the mix CV values
-    mixControls[side] += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
+    if (!mixAltLatch[side] || !mixFluxLatch[side])
+    {
+      // Add the mix CV values when Alt or Flux are not latched
+      mixControls[side] += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
+    }
 
     // Read the position knobs and CVs
     positionControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPosIds[side]);
-    if ((sizePosSwitch[side] == SizePosSwitchState::POSITION) || (sizePosSwitch[side] == SizePosSwitchState::BOTH))
+    if (!positionFluxLatch[side])
     {
-      positionControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
+      if ((sizePosSwitch[side] == SizePosSwitchState::POSITION) || (sizePosSwitch[side] == SizePosSwitchState::BOTH))
+      {
+        // Add the position CV values when Flux is not latched
+        positionControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
+      }
     }
 
     // Read the size knobs and CVs
     sizeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSizeIds[side]);
-    if ((sizePosSwitch[side] == SizePosSwitchState::SIZE) || (sizePosSwitch[side] == SizePosSwitchState::BOTH))
+    if (!sizeFluxLatch[side])
     {
-      sizeControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
+      // Add the size CV values when Flux is not latched
+      if ((sizePosSwitch[side] == SizePosSwitchState::SIZE) || (sizePosSwitch[side] == SizePosSwitchState::BOTH))
+      {
+        sizeControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
+      }
     }
 
     // Read the shape knobs
