@@ -33,6 +33,7 @@ class Effect
     {
       float mix;
       bool  mixAlt;       // latched Alt pad at move time for Mix knob
+      bool  mixFlux;      // latched Flux pad at move time for Mix knob
       float pitch;
       float position;
       bool  positionFlux; // latched Flux pad at move time for Position knob

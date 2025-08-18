@@ -3,6 +3,7 @@
 void InputSculpt::init (float sampleRate)
 {
   svf_.Init(sampleRate);
+  overdrive_.Init();
   updateFilter(centerFreq_, q_);
 }
 
@@ -25,6 +26,13 @@ void InputSculpt::setWidth (float w)
   updateFilter(centerFreq_, q_);
 }
 
+void InputSculpt::setOverdrive (float od)
+{
+  overdriveAmt_ = daisysp::fclamp(od, 0.0f, 1.0f);
+  overdriveAmt_ = daisysp::fmap(overdriveAmt_, kMinDriveAmt, kMaxDriveAmt);
+  overdrive_.SetDrive(overdriveAmt_);
+}
+
 void InputSculpt::updateFilter (float freq, float q)
 {
   svf_.SetFreq(freq);
@@ -33,6 +41,13 @@ void InputSculpt::updateFilter (float freq, float q)
 
 float InputSculpt::processSample (float in)
 {
-  svf_.Process(in);
-  return svf_.Band();
+  // Apply overdrive
+  float od = overdrive_.Process(in);
+  // Compensate the overdrive gain
+  float gain = infrasonic::map(overdriveAmt_, kMinDriveAmt, kMaxDriveAmt, kMinDriveGainComp, kMaxDriveGainComp);
+  od *= gain;
+  // Apply the filtering
+  svf_.Process(od);
+  float bp = svf_.Band();
+  return bp;
 }

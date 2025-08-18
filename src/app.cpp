@@ -160,10 +160,10 @@ void AppImpl::updateAnalogControlFrame(Effect::AnalogControlFrame &frame, size_t
   }
 
   // Update the control frame for the specified effect slot
-  frame =
-  {
+  frame = {
     .mix          = mixControls[slot].isSmoothing() ? mixControls[slot].getSmoothVal() : mixControls[slot].getTargetVal(),
     .mixAlt       = mixAltLatch[slot],
+    .mixFlux      = mixFluxLatch[slot],
     .pitch        = pitchControls[slot].isSmoothing() ? pitchControls[slot].getSmoothVal()
                                                       : pitchControls[slot].getTargetVal(),
     .position     = positionControls[slot].isSmoothing() ? positionControls[slot].getSmoothVal()
@@ -304,7 +304,8 @@ void AppImpl::loop ()
 
         /////////
         // Control state changes
-        if (reverseStateChanged[i] || playStateChanged[i] || altPlayStateChanged[i] || spotyPlayStateChanged[i] || fluxStateChanged[i] || gritStateChanged[i])
+        if (reverseStateChanged[i] || playStateChanged[i] || altPlayStateChanged[i] || spotyPlayStateChanged[i] ||
+            fluxStateChanged[i] || gritStateChanged[i])
         {
           updateDigitalControlFrame(digitalControlFrames[i], i);
           pushDigitalEffectControls(digitalControlFrames[i], i);
@@ -464,7 +465,10 @@ void AppImpl::processUIQueue ()
           modFreqAltLatch[side] = Utils::isAltPadPressed(padTouchStates);
 
         if (event.asPotMoved.id == Hardware::kCtrlSosIds[side])
-          mixAltLatch[side] = Utils::isAltPadPressed(padTouchStates);
+        {
+          mixAltLatch[side]  = Utils::isAltPadPressed(padTouchStates);
+          mixFluxLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapFluxIds[side]);
+        }
 
         if (event.asPotMoved.id == Hardware::kCtrlPosIds[side])
           positionFluxLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapFluxIds[side]);

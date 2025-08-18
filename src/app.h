@@ -261,6 +261,9 @@ namespace spotykach_hwtest
       // Mix control alt latch for the two sides
       bool mixAltLatch[kNumberEffectSlots] = {false};
 
+      // Mix knob Flux latch (captured when Mix pot moved while holding Flux pad)
+      bool mixFluxLatch[kNumberEffectSlots] = {false};
+
       // Position knob Flux latch
       bool positionFluxLatch[kNumberEffectSlots] = {false};
 
