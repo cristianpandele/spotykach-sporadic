@@ -958,7 +958,7 @@ void AppImpl::handleDisplay ()
     cv += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
     cv += hw.GetControlVoltageValue(Hardware::kCvVOctIds[side]);
     cv += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
-    hw.leds.Set(Hardware::kLedFluxIds[side], cv >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv));
+    hw.leds.Set(Hardware::kLedGritIds[side], cv >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv));
   }
 
   // --- MIDI INPUT ---
@@ -968,13 +968,40 @@ void AppImpl::handleDisplay ()
   // --- TOUCH PAD LEDs ---
   for (size_t i = 0; i < kNumberEffectSlots; i++)
   {
+    // Alternating phase for FLUX LEDs
+    if (displayStates[i].fluxActive)
+    {
+      LedRgbBrightness &curLed = displayStates[i].fluxLedColors[padLedPhase];
+      hw.leds.Set(Hardware::kLedFluxIds[i], curLed.rgb, curLed.brightness);
+    }
+
+    // Alternating phase for GRIT LEDs
+    if (displayStates[i].gritActive)
+    {
+      LedRgbBrightness &curLed = displayStates[i].gritLedColors[padLedPhase];
+      hw.leds.Set(Hardware::kLedGritIds[i], curLed.rgb, curLed.brightness);
+    }
+
     // Alternating phase for REVERSE LEDs
-    LedRgbBrightness &curLed = displayStates[i].reverseLedColors[padLedPhase];
-    hw.leds.Set(Hardware::kLedRevIds[i], curLed.rgb, curLed.brightness);
+    if (displayStates[i].reverseActive)
+    {
+      LedRgbBrightness &curLed = displayStates[i].reverseLedColors[padLedPhase];
+      hw.leds.Set(Hardware::kLedRevIds[i], curLed.rgb, curLed.brightness);
+    }
 
     // Alternating phase for PLAY LEDs
-    curLed = displayStates[i].playLedColors[padLedPhase];
-    hw.leds.Set(Hardware::kLedPlayIds[i], curLed.rgb, curLed.brightness);
+    if (displayStates[i].playActive)
+    {
+      LedRgbBrightness &curLed = displayStates[i].playLedColors[padLedPhase];
+      hw.leds.Set(Hardware::kLedPlayIds[i], curLed.rgb, curLed.brightness);
+    }
+
+    // Alternating phase for ALT LEDs
+    if (displayStates[i].altActive)
+    {
+      LedRgbBrightness &curLed = displayStates[i].altLedColors[padLedPhase];
+      hw.leds.Set(Hardware::kLedAltIds[i], curLed.rgb, curLed.brightness);
+    }
   }
 
   // These will override the corresponding LED of the touchpad with WHITE if the pad
