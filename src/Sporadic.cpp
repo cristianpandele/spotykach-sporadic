@@ -24,29 +24,64 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     {
       if (isChannelActive(ch))
       {
-        out[ch][i]        = inputSculpt_.processSample(in[ch][i]);
+        float wet  = inputSculpt_.processSample(in[ch][i]);
+
+        // Apply dry-wet mix
+        out[ch][i] = infrasonic::lerp(in[ch][i], wet, mix_);
       }
     }
+  }
+}
+
+void Sporadic::setMix (float m, bool fluxLatch)
+{
+  // If flux latch is pressed, set drive instead of mix
+  if (fluxLatch)
+  {
+    inputSculpt_.setOverdrive(m);
+  }
+  else
+  {
+    mix_ = m;
+  }
+}
+
+void Sporadic::setPosition (float p, bool fluxLatch)
+{
+  // If flux latch is pressed, set input sculpt frequency instead of position
+  if (fluxLatch)
+  {
+    // Map the frequency to the input sculpt
+    inputSculpt_.setFreq(p);
+  }
+  else
+  {
+    position_ = p;
+  }
+}
+
+void Sporadic::setSize (float s, bool fluxLatch)
+{
+  // If flux latch is pressed, set input sculpt width instead of size
+  if (fluxLatch)
+  {
+    // Map the width to the input sculpt
+    inputSculpt_.setWidth(s);
+  }
+  else
+  {
+    size_ = s;
   }
 }
 
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
   // Update the analog effect parameters based on the control frame
-  setMix(c.mix); //, c.mixAlt);
+  setMix(c.mix, c.mixFlux);
   setPitch(c.pitch);
-  setPosition(c.position);
-  setSize(c.size);
+  setPosition(c.position, c.positionFlux);
+  setSize(c.size, c.sizeFlux);
   setShape(c.shape);
-  // Apply flux-latched updates to input sculpt parameters
-  if (c.positionFlux)
-  {
-    inputSculpt_.setFreq(c.position);
-  }
-  if (c.sizeFlux)
-  {
-    inputSculpt_.setWidth(c.size);
-  }
 }
 
 void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
@@ -163,8 +198,12 @@ void Sporadic::updateFluxDisplayState (DisplayState& view)
   }
   end = std::min<uint8_t>(end, N);
 
-  // Purple span indicating the bandpass area
+  // Purple span indicating the bandpass area (fade to red with overdrive)
   ledColor = {0xff00ff, 1.0f};
+  float     od        = inputSculpt_.getOverdrive(); // 0..0.2
+  uint8_t   blueLevel = static_cast<uint8_t>(map(od, 0.5f, 0.7f, 255.0f, 0.0f));
+  ledColor.rgb        = (ledColor.rgb & 0xffffff00) | blueLevel;
+
   populateLedRing(ringSpan, N, ledColor, start, end - start, true);
   view.rings[view.layerCount++] = ringSpan;
 }

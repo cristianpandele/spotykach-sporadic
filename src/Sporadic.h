@@ -28,6 +28,14 @@ class Sporadic : public Effect
     // Input sculpting bandpass filter
     InputSculpt inputSculpt_;
 
+    // Setters for mix, position and size (overloads point to Sporadic versions)
+    void setMix (float m, bool fluxLatch = false);
+    void setMix (float m) override { setMix(m, false); }
+    void setPosition (float p, bool fluxLatch = false);
+    void setPosition (float p) override { setPosition(p, false); }
+    void setSize (float s, bool fluxLatch = false);
+    void setSize (float s) override { setSize(s, false); }
+
     uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
     void ledBrightnessTriangleGradient (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
     void populateLedRing (Effect::RingSpan &ringSpan,
