@@ -205,6 +205,10 @@ void Sporadic::updateFluxDisplayState (DisplayState& view)
 
   populateLedRing(ringSpan, N, ledColor, start, end - start, true);
   view.rings[view.layerCount++] = ringSpan;
+
+  // Set flux pad LED state and color
+  view.fluxActive = true;
+  std::fill(std::begin(view.fluxLedColors), std::end(view.fluxLedColors), LedRgbBrightness{ledColor.rgb, 1.0f});
 }
 
 void Sporadic::updateDisplayState ()

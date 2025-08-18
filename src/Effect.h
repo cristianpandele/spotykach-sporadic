@@ -71,16 +71,20 @@ class Effect
       // Flags indicating the state of the pads
       bool reverseActive   = false;
       bool playActive      = false;
-      bool altPlayActive   = false;
-      bool spotyPlayActive = false;
+      bool altActive       = false;
+      bool fluxActive      = false;
+      bool gritActive      = false;
 
       // Up to a few ring spans to draw; 0..count-1 valid
       uint8_t  layerCount = 0;
       RingSpan rings[kMaxRingLayers];
 
       // Flags indicating the colours for the two LED phases
-      LedRgbBrightness playLedColors[kMaxLedPhases];
+      LedRgbBrightness fluxLedColors[kMaxLedPhases];
+      LedRgbBrightness gritLedColors[kMaxLedPhases];
       LedRgbBrightness reverseLedColors[kMaxLedPhases];
+      LedRgbBrightness playLedColors[kMaxLedPhases];
+      LedRgbBrightness altLedColors[kMaxLedPhases];
     };
 
     Effect (size_t sampleRate) : sampleRate_(sampleRate) {}
