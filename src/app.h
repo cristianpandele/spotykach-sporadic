@@ -270,6 +270,12 @@ namespace spotykach_hwtest
       // Size knob Flux latch
       bool sizeFluxLatch[kNumberEffectSlots] = {false};
 
+      // Spotykach slider Spotykach latch
+      bool spotySpotyLatch = false;
+
+      // Smooth Spotykach slider (updated at audio block rate)
+      SmoothValue spotyControl {SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+
       // Smooth pitch for each side (updated at audio sample rate)
       SmoothValue pitchControls[kNumberEffectSlots] {SmoothValue(75.0f, kSamplePeriodMs),
                                                      SmoothValue(75.0f, kSamplePeriodMs)};
@@ -339,6 +345,12 @@ namespace spotykach_hwtest
 
       // Modulator CV value for each side
       float    modCv[kNumberEffectSlots] {0.0f};
+
+      // Crossfade mix between effect slot outputs (0.0 = slot 0 only, 1.0 = slot 1 only)
+      float effectMix_ = 0.5f;
+
+      // Per-effect temporary output buffers for crossfading (stereo, blocksize frames)
+      float effectOutputs_[kNumberEffectSlots][kNumberChannelsStereo][kBlockSize] {};
 
       // LED Phase for blinking LEDs
       uint8_t padLedPhase = 0;

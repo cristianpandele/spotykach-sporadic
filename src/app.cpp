@@ -368,9 +368,36 @@ void AppImpl::processModulatorControls (size_t slot)
 
 void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
-  for (size_t i = 0; i < kNumberEffectSlots; i++)
+  // Clear temp buffers for each effect/channel
+  for (size_t slot = 0; slot < kNumberEffectSlots; ++slot)
   {
-    effects[i]->processAudio(in, out, blockSize);
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      std::fill(std::begin(effectOutputs_[slot][ch]), std::end(effectOutputs_[slot][ch]), 0.0f);
+    }
+  }
+
+  // Process each effect into its own temporary buffer (effectOutputs_)
+  for (size_t slot = 0; slot < kNumberEffectSlots; ++slot)
+  {
+    float *slotOut[kNumberChannelsStereo];
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      slotOut[ch] = effectOutputs_[slot][ch];
+    }
+    effects[slot]->processAudio(in, slotOut, blockSize);
+  }
+
+  // Crossfade / blend between effect 0 and 1 outputs into final out (linear)
+  for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  {
+    const float *a = effectOutputs_[0][ch];
+    const float *b = effectOutputs_[1][ch];
+    float *outCh   = out[ch];
+    for (size_t n = 0; n < blockSize; ++n)
+    {
+      outCh[n] = lerp(a[n], b[n], effectMix_);
+    }
   }
 }
 
@@ -471,13 +498,24 @@ void AppImpl::processUIQueue ()
         }
 
         if (event.asPotMoved.id == Hardware::kCtrlPosIds[side])
+        {
           positionFluxLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapFluxIds[side]);
+        }
 
         if (event.asPotMoved.id == Hardware::kCtrlSizeIds[side])
+        {
           sizeFluxLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapFluxIds[side]);
+        }
+
+        if (event.asPotMoved.id == Hardware::CTRL_SPOTYKACH)
+        {
+          spotySpotyLatch = Utils::isSpotykachPadPressed(padTouchStates);
+        }
 
         if (event.asPotMoved.id <= Hardware::kCtrlLastSideIds[side])
+        {
           last_pot_moved[side] = event.asPotMoved.id;
+        }
       }
     }
   }
@@ -528,6 +566,11 @@ void AppImpl::drawRainbowRoad ()
 
 void AppImpl::handleAnalogControls ()
 {
+  // Spotykach slider (mapped to -1.. +1)
+  spotyControl = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
+  // Add the slider CV values
+  spotyControl += hw.GetControlVoltageValue(Hardware::CV_SPOTYKACH);
+
   for (size_t side = 0; side < kNumberEffectSlots; side++)
   {
     // Read and smooth pitch controls for both sides
@@ -881,9 +924,7 @@ void AppImpl::handleDisplay ()
   }
 
   // Spotykach Slider
-  float skval = (hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH) * 2.0f - 1.0f) +
-                hw.GetControlVoltageValue(Hardware::CV_SPOTYKACH);
-  skval = daisysp::fclamp(skval, -1.0f, 1.0f);
+  float skval = fmap(spotyControl.getSmoothVal(), -1.0f, 1.0f);
   hw.leds.Set(Hardware::LED_SPOTY_SLIDER_B, 0xff0000, daisysp::fmax(skval, 0.0f));
   hw.leds.Set(Hardware::LED_SPOTY_SLIDER_A, 0x0000ff, daisysp::fmax(-skval, 0.0f));
 
