@@ -349,7 +349,6 @@ void Spotykach::updateDisplayState()
   DisplayState view{};
   view.playActive     = play_;
   view.reverseActive  = reverse_;
-  view.altPlayActive  = record_;
 
   if (reverse_)
   {
@@ -372,12 +371,12 @@ void Spotykach::updateDisplayState()
       spanSize         = std::min(spanSize, (uint8_t)(Hardware::kNumLedsPerRing - start));
 
       // Yellow area indicating the position
-      LedRgbBrightness ledColor = {0xffff00, 0.5f};
+      LedRgbBrightness ledColor = {0xffff00, 1.0f};
       populateLedRing(ringSpan, N, ledColor, start, N - start + 1);
       view.rings[view.layerCount++] = ringSpan;
 
       // Orange span indicating the size
-      ledColor = {0xff8000, 0.75f};
+      ledColor = {0xff8000, 1.0f};
       populateLedRing(ringSpan, N, ledColor, start, spanSize + 1, true);
       view.rings[view.layerCount++] = ringSpan;
 
@@ -397,7 +396,7 @@ void Spotykach::updateDisplayState()
       uint8_t readIxLed = std::min(static_cast<uint8_t>(start + positionFactor * spanSize), N);
 
       // Display read head position
-      ledColor = {0xff00ff, 1.0f};
+      ledColor = {0xff00ff, 0.5f};
       populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
       view.rings[view.layerCount++] = ringSpan;
 
@@ -420,12 +419,12 @@ void Spotykach::updateDisplayState()
       uint8_t writeIxLed = static_cast<uint8_t>(writeIx_ * (N - 1) / kLooperAudioDataSamples);
 
       // Yellow area indicating the writable area
-      LedRgbBrightness ledColor = {0xffff00, 0.5f};
+      LedRgbBrightness ledColor = {0xffff00, 1.0f};
       populateLedRing(ringSpan, N, ledColor, start, N);
       view.rings[view.layerCount++] = ringSpan;
 
       // Orange area indicating the actively written area
-      ledColor = {0xff8000, 0.5f};
+      ledColor = {0xff8000, 1.0f};
       if (speed_ > 0)
       {
         populateLedRing(ringSpan, N, ledColor, readIxLed, N - readIxLed);
@@ -437,12 +436,12 @@ void Spotykach::updateDisplayState()
       view.rings[view.layerCount++] = ringSpan;
 
       // Display read head position
-      ledColor = {0xff00ff, 1.0f};
+      ledColor = {0xff00ff, 0.5f};
       populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
       view.rings[view.layerCount++] = ringSpan;
 
       // Display write head position
-      ledColor = {0xff0000, 1.0f};
+      ledColor = {0xff0000, 0.5f};
       populateLedRing(ringSpan, N, ledColor, writeIxLed, 1);
       view.rings[view.layerCount++] = ringSpan;
 
@@ -471,17 +470,17 @@ void Spotykach::updateDisplayState()
       uint8_t readIxLed  = static_cast<uint8_t>(readIx_ * (N - 1) / kLooperAudioDataSamples);
 
       // Yellow area indicating the buffer
-      LedRgbBrightness ledColor = {0xffff00, 0.5f};
+      LedRgbBrightness ledColor = {0xffff00, 1.0f};
       populateLedRing(ringSpan, N, ledColor, 0, N);
       view.rings[view.layerCount++] = ringSpan;
 
       // Orange span indicating the position and size
-      ledColor = {0xff8000, 0.75f};
+      ledColor = {0xff8000, 1.0f};
       populateLedRing(ringSpan, N, ledColor, start, spanSize, true);
       view.rings[view.layerCount++] = ringSpan;
 
       // Display read head position
-      ledColor = {0xff00ff, 1.0f};
+      ledColor = {0xff00ff, 0.5f};
       populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
       view.rings[view.layerCount++] = ringSpan;
 

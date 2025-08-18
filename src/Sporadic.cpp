@@ -156,12 +156,11 @@ void Sporadic::populateLedRing (Effect::RingSpan &ringSpan,
 
 void Sporadic::updateFluxDisplayState (DisplayState& view)
 {
-  // Build yellow base ring (full ring)
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
   Effect::RingSpan  ringSpan;
 
   // Yellow area indicating the frequency range
-  LedRgbBrightness ledColor = {0xffff00, 0.5f};
+  LedRgbBrightness ledColor = {0xffff00, 1.0f};
   populateLedRing(ringSpan, N, ledColor, 0, N);
   view.rings[view.layerCount++] = ringSpan;
 
