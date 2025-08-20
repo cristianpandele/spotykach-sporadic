@@ -14,7 +14,7 @@ namespace spotykach_hwtest
   // Constants
   constexpr size_t kSampleRate           = 48000;
   constexpr float  kSamplePeriodMs       = 1000.0f / kSampleRate;
-  constexpr size_t kBlockSize            = 16;
+  constexpr size_t kBlockSize            = 48;
 
   constexpr uint8_t kNumberEffectSlots    = Hardware::kNumInPair;
   constexpr uint8_t kNumberChannelsStereo = 2;
