@@ -619,13 +619,6 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
   if ((mode_ != REEL) ||
       (channelConfig_ == ChannelConfig::OFF) || (channelConfig_ >= ChannelConfig::CH_CONFIG_LAST))
   {
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        std::copy(in[ch], in[ch] + blockSize, out[ch]);
-      }
-    }
     return;
   }
   switch (state_)
