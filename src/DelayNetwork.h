@@ -1,0 +1,43 @@
+#pragma once
+
+#include "DiffusionControl.h"
+#include "DelayNodes.h"
+#include <array>
+
+// DelayNetwork wiring DiffusionControl -> DelayNodes -> sum of bands.
+class DelayNetwork
+{
+  public:
+    struct Parameters
+    {
+        int numBands = 4;    // (1..DiffusionControl::kMaxBands)
+    };
+
+    // Provide expected processing block size so internal buffers can be
+    // allocated once and re-used every audio callback (no per-block allocs).
+    void init (float sampleRate, int numBands, size_t blockSize);
+    void setParameters (const Parameters &p);
+
+    void getBandFrequencies (std::vector<float> &frequencies) const;
+
+    // Process a block: input stereo arrays (size N) -> output stereo (size N)
+    void processBlockMono (const float *in, float *out, size_t blockSize);
+
+  private:
+    float  sampleRate_ = 48000.0f;
+    int    numBands_   = 4;
+    size_t blockSize_  = 16;    // default, must match init provided size
+
+    DiffusionControl diffusion_;
+    DelayNodes       delayNodes_;
+
+    // Flat contiguous storage: bands * blockSize samples per channel stage
+    std::array<float *, DiffusionControl::kMaxBands> bandInPtrs_{};
+    std::array<float *, DiffusionControl::kMaxBands> bandOutPtrs_{};
+
+    // Owning buffer backing the above pointers
+    std::vector<float> storageIn_;
+    std::vector<float> storageOut_;
+
+    void allocateStorage ();
+};
