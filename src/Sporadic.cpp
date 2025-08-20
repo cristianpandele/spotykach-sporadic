@@ -34,6 +34,8 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     }
   }
 
+  // inputSculpt_.processBlock(inputSculptBuf_[0], inputSculptBuf_[1], delayNetworkBuf_[0], delayNetworkBuf_[1], blockSize);
+
   delayNetwork_.processBlock(inputSculptBuf_[0], inputSculptBuf_[1], delayNetworkBuf_[0], delayNetworkBuf_[1], blockSize);
 
   for (size_t i = 0; i < blockSize; ++i)

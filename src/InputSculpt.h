@@ -18,6 +18,9 @@ class InputSculpt
     // Process one sample
     float processSample (float in);
 
+    // Process a block of samples
+    void processBlock (const float *inL, const float *inR, float *outL, float *outR, size_t blockSize);
+
     // Normalized 0..1 -> 50Hz.. 18000Hz (logarithmic mapping for perceptual uniformity)
     void setFreq (float f);
 
