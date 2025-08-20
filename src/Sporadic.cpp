@@ -240,8 +240,10 @@ void Sporadic::updateDisplayState ()
 
 void Sporadic::getDigitalControls (DigitalControlFrame &c)
 {
-  c.reverse = reverse_;
-  c.play = play_;
-  c.altPlay = false;  // Not used in this effect
-  c.spotyPlay = false;  // Not used in this effect
+  c.reverse   = reverse_;
+  c.play      = play_;
+  c.altPlay   = false;    // Not used in this effect
+  c.spotyPlay = false;    // Not used in this effect
+  c.flux      = flux_;
+  c.grit      = grit_;
 }
