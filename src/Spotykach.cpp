@@ -634,12 +634,15 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     {
       // Reset heads to 0
       readIx_ = writeIx_ = 0.0f;
-      for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+      for (size_t i = 0; i < blockSize; ++i)
       {
-        // Only process if this channel is active in the current mode
-        if (isChannelActive(ch))
+        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
         {
-          std::copy(in[ch], in[ch] + blockSize, out[ch]);
+          // Only process if this channel is active in the current mode
+          if (isChannelActive(ch))
+          {
+            out[ch][i] = infrasonic::lerp(in[ch][i], 0.0f, mix_);
+          }
         }
       }
       return;
