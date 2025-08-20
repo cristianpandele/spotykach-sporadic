@@ -5,6 +5,7 @@
 void Sporadic::init ()
 {
   inputSculpt_.init(sampleRate_);
+  delayNetwork_.init(sampleRate_, kNumBands, kBlockSize);
 }
 
 void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
@@ -17,17 +18,32 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     return;
   }
 
-  // Process the Sporadic effect audio: for now just apply bandpass (mono or stereo)
+  // Fill sculpted input (per-channel enable) into member scratch buffers
   for (size_t i = 0; i < blockSize; i++)
   {
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
       {
-        float wet  = inputSculpt_.processSample(in[ch][i]);
+        inputSculptBuf_[ch][i] = inputSculpt_.processSample(in[ch][i]);
+      }
+      else
+      {
+        inputSculptBuf_[ch][i] = in[ch][i];
+      }
+    }
+  }
 
+  delayNetwork_.processBlock(inputSculptBuf_[0], inputSculptBuf_[1], delayNetworkBuf_[0], delayNetworkBuf_[1], blockSize);
+
+  for (size_t i = 0; i < blockSize; ++i)
+  {
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
         // Apply dry-wet mix
-        out[ch][i] = infrasonic::lerp(in[ch][i], wet, mix_);
+        out[ch][i] = infrasonic::lerp(in[ch][i], delayNetworkBuf_[ch][i], mix_);
       }
     }
   }

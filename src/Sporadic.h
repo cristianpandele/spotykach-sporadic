@@ -6,6 +6,7 @@
 #include "Effect.h"
 #include "hardware.h"
 #include "InputSculpt.h"
+#include "DelayNetwork.h"
 
 using namespace daisy;
 using namespace spotykach_hwtest;
@@ -24,9 +25,22 @@ class Sporadic : public Effect
     void updateDisplayState () override;
     void processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
 
+ #if DEBUG
+    void getBandFrequencies (std::vector<float> &frequencies) const;
+#endif
+
   private:
     // Input sculpting bandpass filter
-    InputSculpt inputSculpt_;
+    InputSculpt  inputSculpt_;
+    // Delay network for feedback and modulation
+    DelayNetwork delayNetwork_;
+
+    // Constants
+    static constexpr uint8_t kNumBands = 4; // Number of bands for diffusion
+
+    // Internal working buffers (single block) to avoid per-callback allocations.
+    float inputSculptBuf_[kNumberChannelsStereo][kBlockSize] {};
+    float delayNetworkBuf_[kNumberChannelsStereo][kBlockSize] {};
 
     // Setters for mix, position and size (overloads point to Sporadic versions)
     void setMix (float m, bool fluxLatch = false);
