@@ -336,13 +336,11 @@ void AppImpl::loop ()
         hw.WriteCVOut(i, modCv[i]);
       }
     }
+
+    // Debug logging / LED phase advancement
     if (log_timer.HasPassedMs(kDebugLogPeriodMs))
     {
-      padLedPhase += 1;
-      if (padLedPhase >= Effect::kMaxLedPhases)
-      {
-        padLedPhase = 0;
-      }
+      padLedPhase = (padLedPhase + 1) % Effect::kMaxLedPhases;
 #if DEBUG
       logDebugInfo();
 #endif
