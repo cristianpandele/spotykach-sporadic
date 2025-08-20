@@ -5,7 +5,7 @@ static constexpr size_t kLooperAudioDataSamples = 15.0f * kSampleRate * kNumberC
 static constexpr size_t kEchoAudioDataSamples = 2.0f * kSampleRate;
 
 // Reserve two buffers for 15-second Spotykach loopers for each side - 16bit mono audio file at 48khz (about 0.172 MB each)
-static DSY_SDRAM_BSS float   looperAudioData[kNumberEffectSlots][kNumberChannelsStereo][kLooperAudioDataSamples] = {{{0.0f}}};
+static DSY_SDRAM_BSS float   looperAudioData[kNumberEffectSlots][kNumberChannelsStereo][kLooperAudioDataSamples] {{{0.0f}}};
 
 using namespace infrasonic;
 
