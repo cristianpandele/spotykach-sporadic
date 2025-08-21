@@ -445,7 +445,8 @@ void Spotykach::updateDisplayState()
       populateLedRing(ringSpan, N, ledColor, writeIxLed, 1);
       view.rings[view.layerCount++] = ringSpan;
 
-      // Play LED colors
+      // Play LED colors (always displayed in RECORDING state)
+      view.playActive = true;
       if (play_)
       {
         view.playLedColors[0] = {0x00ff00, 1.0f};  // Green
