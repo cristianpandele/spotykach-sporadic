@@ -335,9 +335,17 @@ namespace spotykach_hwtest
       bool fluxStateChanged[kNumberEffectSlots]{false};
       bool currentFluxState[kNumberEffectSlots]{false};
 
+      // Alt+Flux combo toggle flag for each side
+      bool altFluxStateChanged[kNumberEffectSlots]{false};
+      bool currentAltFluxState[kNumberEffectSlots]{false};
+
       // Grit flag for each side
       bool gritStateChanged[kNumberEffectSlots]{false};
       bool currentGritState[kNumberEffectSlots]{false};
+
+      // Alt+Grit combo toggle flag for each side
+      bool altGritStateChanged[kNumberEffectSlots]{false};
+      bool currentAltGritState[kNumberEffectSlots]{false};
 
       // Pad touch states
       std::bitset<16> padTouchStates;

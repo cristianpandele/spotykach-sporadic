@@ -70,3 +70,103 @@ bool Effect::isChannelActive (size_t ch) const
     }
   }
 }
+
+bool Effect::detectFluxHeld ()
+{
+  detectHeld(fluxHeldTimer_, fluxHeldTimerActive_, fluxHeld_);
+  return fluxHeld_;
+}
+
+bool Effect::detectGritHeld ()
+{
+  detectHeld(gritHeldTimer_, gritHeldTimerActive_, gritHeld_);
+  return gritHeld_;
+}
+
+void Effect::handleFluxTap (const bool flux, bool &doubleTap, bool &held)
+{
+  handleTap(flux,
+            fluxHeldTimer_,
+            fluxHeldTimerActive_,
+            fluxDoubleTapTimer_,
+            fluxDoubleTapTimerActive_,
+            fluxHeld_,
+            doubleTap);
+  held = fluxHeld_;
+}
+
+void Effect::handleGritTap (const bool grit, bool &doubleTap, bool &held)
+{
+  handleTap(grit,
+            gritHeldTimer_,
+            gritHeldTimerActive_,
+            gritDoubleTapTimer_,
+            gritDoubleTapTimerActive_,
+            gritHeld_,
+            doubleTap);
+  held = gritHeld_;
+}
+
+void Effect::detectHeld (StopwatchTimer &timer, bool &heldTimerActive, bool &held)
+{
+  held = ((heldTimerActive) && timer.HasPassedMs(kHeldTimeoutMs));
+}
+
+void Effect::handleTap (const bool      padPressed,
+                        StopwatchTimer &heldTimer,
+                        bool           &heldTimerActive,
+                        StopwatchTimer &doubleTapTimer,
+                        bool           &doubleTapTimerActive,
+                        bool           &held,
+                        bool           &doubleTap)
+{
+  // If button released, stop timer and clear held
+  if (!padPressed)
+  {
+    heldTimerActive = false;
+    held            = false;
+    return;
+  }
+  else
+  {
+    // Handle held pad taps
+    bool heldTimerExpired = heldTimer.HasPassedMs(kHeldTimeoutMs);
+    if (!heldTimerActive)
+    {
+      heldTimer.Init();
+      heldTimerActive = true;
+      // infrasonic::Log::PrintLine("Held timer started");
+    }
+    else
+    {
+      if (heldTimerExpired)
+      {
+        // Held if we exceeded the held threshold
+        heldTimerActive = false;
+        held            = true;
+      }
+    }
+
+    // Handle double presses
+    bool doubleTapTimerExpired = doubleTapTimer.HasPassedMs(kDoubleTapTimeoutMs);
+    if (!doubleTapTimerActive || doubleTapTimerExpired)
+    {
+      doubleTapTimer.Init();
+      doubleTapTimerActive = true;
+      // infrasonic::Log::PrintLine("Double tap timer started");
+    }
+    else
+    {
+      if (!doubleTapTimerExpired)
+      {
+        // infrasonic::Log::PrintLine("Double-tap detected");
+        doubleTapTimerActive = false;    // reset after double-tap
+        doubleTap            = true;
+        return;
+      }
+      // infrasonic::Log::PrintLine("Double-tap timer stopped");
+    }
+    doubleTap = false;
+    return;
+  }
+}

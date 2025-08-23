@@ -58,6 +58,8 @@ class Sporadic : public Effect
                           uint8_t           start,
                           uint8_t           spanSize,
                           bool              gradient = false);
+
+    void updateBandpassDisplay (const uint8_t numLeds, uint8_t &start, uint8_t &end);
     void updateFluxDisplayState (DisplayState& view);
 
     Sporadic (const Sporadic &)           = delete;
