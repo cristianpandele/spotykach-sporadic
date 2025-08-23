@@ -256,6 +256,47 @@ void Spotykach::updateDigitalControls (const DigitalControlFrame &c)
     setReverse(c.reverse);
     setPlay(c.play);
     setAltPlay(c.altPlay);
+    setFlux(c.flux);
+    setGrit(c.grit);
+
+    // Hold Alt+Flux state
+    if (c.altFlux)
+    {
+      toggleFluxActive();
+    }
+    else
+    // Always feed flux state so release stops timer
+    {
+      bool dbl = false;
+      bool h   = false;
+      handleFluxTap(c.flux, dbl, h);
+      if (dbl || h)
+      {
+        toggleFluxMenu();
+      }
+    }
+
+    // Hold Alt+Grit state
+    if (c.altGrit)
+    {
+      toggleGritActive();
+      if (!getGritActive ())
+      {
+        // If grit is deactivated, disable the grit menu
+        setGritMenuOpen(false);
+      }
+    }
+    else
+    // Always feed grit state so release stops timer
+    {
+      bool dbl = false;
+      bool h   = false;
+      handleGritTap(c.grit, dbl, h);
+      if (dbl || h)
+      {
+        toggleGritMenu();
+      }
+    }
   }
 }
 
@@ -265,6 +306,10 @@ void Spotykach::getDigitalControls(DigitalControlFrame &c)
   c.play = play_;
   c.altPlay = record_;
   c.spotyPlay = false;  // Reset Spotykach+Play state
+  c.flux = flux_;
+  c.altFlux = false; // Reset Alt+Flux state
+  c.grit = grit_;
+  c.altGrit = false; // Reset Alt+Grit state
 }
 
 void Spotykach::populateLedRing (Effect::RingSpan &ringSpan,

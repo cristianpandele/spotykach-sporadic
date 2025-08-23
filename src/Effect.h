@@ -53,11 +53,18 @@ class Effect
       // Supported pad combinations
       bool  altPlay;      // latched Alt pad when Play pressed
       bool  spotyPlay;    // latched Spotykach pad when Play pressed
+      bool  altFlux;      // latched Alt+Flux combo toggle (enters flux mode / overrides flux)
+      bool  altGrit;      // latched Alt+Grit combo toggle (enters grit mode / overrides grit)
     };
 
     // Render-ready view the UI can draw without peeking internals
     static constexpr uint8_t kMaxRingLayers = 4;
     static constexpr uint8_t kMaxLedPhases  = 2;
+
+    // Timeout for double-tap detection
+    static constexpr uint32_t kDoubleTapTimeoutMs = 425;
+    // Timeout for held detection
+    static constexpr uint32_t kHeldTimeoutMs = 150;
 
     struct RingSpan
     {
@@ -68,7 +75,7 @@ class Effect
 
     struct DisplayState
     {
-      // Flags indicating the state of the pads
+      // Flags indicating the state of the pad LEDs
       bool reverseActive   = false;
       bool playActive      = false;
       bool altActive       = false;
@@ -159,7 +166,41 @@ class Effect
     virtual void setFlux (bool f) { flux_ = f; }
     virtual void setGrit (bool g) { grit_ = g; }
 
+    // Toggles for the effects
+    virtual void toggleFluxMenu () { fluxMenuOpen_ = !fluxMenuOpen_; }
+    virtual void toggleGritMenu () { gritMenuOpen_ = !gritMenuOpen_; }
+    virtual void toggleFluxActive() { fluxActive_ = !fluxActive_; }
+    virtual void toggleGritActive() { gritActive_ = !gritActive_; }
+
+    // Getters for the effect active states
+    virtual bool getFluxActive () const { return fluxActive_; }
+    virtual bool getGritActive () const { return gritActive_; }
+
+    // Setters for the effect menu states
+    virtual void setFluxMenuOpen (bool f) { fluxMenuOpen_ = f; }
+    virtual void setGritMenuOpen (bool g) { gritMenuOpen_ = g; }
+    // Getters for the effect menu open states
+    virtual bool getFluxMenuOpen () const { return fluxMenuOpen_; }
+    virtual bool getGritMenuOpen () const { return gritMenuOpen_; }
+
+    // Getters for the effect pad held states
+    virtual bool getFluxHeld () const { return fluxHeld_; }
+    virtual bool getGritHeld () const { return gritHeld_; }
+
+    // Getters for the effect playing states
+    virtual bool isFluxPlaying () const { return (getFluxHeld() || getFluxMenuOpen() || getFluxActive()); }
+    virtual bool isGritPlaying () const { return (getGritHeld() || getGritMenuOpen() || getGritActive()); }
+
+    // Utility functions
     bool isChannelActive (size_t ch) const;
+    // Detect if the Flux pad is held; returns true if held
+    bool detectFluxHeld ();
+    // Detect if the Grit pad is held; returns true if held
+    bool detectGritHeld ();
+    // Handle Flux tap/hold detection; returns states via references
+    void handleFluxTap (const bool flux, bool &doubleTap, bool &held);
+    // Handle Grit tap/hold detection; returns states via references
+    void handleGritTap (const bool grit, bool &doubleTap, bool &held);
 
   private:
     // Double-buffer technique to handle display state updates and publish them externally
@@ -172,6 +213,35 @@ class Effect
     DisplayBuf       dispBuf_[2];
     mutable uint32_t cntRead_  = 0;
     volatile uint8_t dispWIdx_ = 0;
+
+    // Flux
+    bool           fluxActive_               = false;
+    bool           fluxHeld_                 = false;
+    bool           fluxDoubleTapTimerActive_ = false;
+    bool           fluxHeldTimerActive_      = false;
+    bool           fluxMenuOpen_             = false;
+    StopwatchTimer fluxDoubleTapTimer_;
+    StopwatchTimer fluxHeldTimer_;
+
+    // Grit
+    bool           gritActive_               = false;
+    bool           gritHeld_                 = false;
+    bool           gritDoubleTapTimerActive_ = false;
+    bool           gritHeldTimerActive_      = false;
+    bool           gritMenuOpen_             = false;
+    StopwatchTimer gritDoubleTapTimer_;
+    StopwatchTimer gritHeldTimer_;
+
+    // Held detection
+    void detectHeld (StopwatchTimer &timer, bool &timerActive, bool &held);
+    // General tap/hold handler. Returns true if a double-tap detected; updates "held"; stops timer if pressed == false.
+    void handleTap (const bool      padPressed,
+                    StopwatchTimer &heldTimer,
+                    bool           &heldTimerActive,
+                    StopwatchTimer &doubleTapTimer,
+                    bool           &doubleTapTimerActive,
+                    bool           &held,
+                    bool           &doubleTap);
 
     Effect (const Effect &)           = delete;
     Effect &operator=(const Effect &) = delete;

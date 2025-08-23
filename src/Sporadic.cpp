@@ -93,10 +93,10 @@ void Sporadic::setSize (float s, bool fluxLatch)
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
   // Update the analog effect parameters based on the control frame
-  setMix(c.mix, c.mixFlux);
+  setMix(c.mix, c.mixFlux || getFluxMenuOpen ());
   setPitch(c.pitch);
-  setPosition(c.position, c.positionFlux);
-  setSize(c.size, c.sizeFlux);
+  setPosition(c.position, c.positionFlux || getFluxMenuOpen ());
+  setSize(c.size, c.sizeFlux || getFluxMenuOpen ());
   setShape(c.shape);
 }
 
@@ -106,6 +106,57 @@ void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
   setReverse(c.reverse);
   setPlay(c.play);
   setFlux(c.flux);
+
+  // Hold Alt+Flux state
+  if (c.altFlux)
+  {
+    toggleFluxActive();
+    if (!getFluxActive ())
+    {
+      // If flux is deactivated, disable the flux menu
+      setFluxMenuOpen(false);
+    }
+  }
+  else
+  // Always feed flux state so release stops timer
+  {
+    bool dbl = false;
+    bool h   = false;
+    handleFluxTap(c.flux, dbl, h);
+    if (dbl || h)
+    {
+      toggleFluxMenu();
+    }
+  }
+
+  // Hold Alt+Grit state
+  if (c.altGrit)
+  {
+    toggleGritActive();
+  }
+  else
+  // Always feed grit state so release stops timer
+  {
+    bool dbl = false;
+    bool h   = false;
+    handleGritTap(c.grit, dbl, h);
+    if (dbl || h)
+    {
+      toggleGritMenu();
+    }
+  }
+}
+
+void Sporadic::getDigitalControls (DigitalControlFrame &c)
+{
+  // c.reverse   = reverse_;
+  // c.play      = play_;
+  c.altPlay   = false;    // Not used in this effect
+  c.spotyPlay = false;    // Not used in this effect
+  // c.flux      = flux_;
+  c.altFlux   = false;    // Alt+Flux is just a toggle
+  // c.grit      = grit_;
+  c.altGrit   = false;    // Alt+Grit is just a toggle
 }
 
 // Logarithmic frequency to LED index mapping (integer LED index 0..numLeds-1).
@@ -170,17 +221,8 @@ void Sporadic::populateLedRing (Effect::RingSpan &ringSpan,
   std::copy(std::begin(ledColor), std::end(ledColor), std::begin(ringSpan.led));
 }
 
-void Sporadic::updateFluxDisplayState (DisplayState& view)
+void Sporadic::updateBandpassDisplay (const uint8_t numLeds, uint8_t &start, uint8_t &end)
 {
-  constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
-  Effect::RingSpan  ringSpan;
-
-  // Yellow area indicating the frequency range
-  LedRgbBrightness ledColor = {0xffff00, 1.0f};
-  populateLedRing(ringSpan, N, ledColor, 0, N);
-  view.rings[view.layerCount++] = ringSpan;
-
-  // Compute bandpass span from center frequency and width (Q).
   float centerFreq = inputSculpt_.getCenterFreq();
   float Q          = inputSculpt_.getQ();
   // Approximate 3dB bandwidth for bandpass: BW = centerFreq / Q.
@@ -202,8 +244,8 @@ void Sporadic::updateFluxDisplayState (DisplayState& view)
   fLo           = daisysp::fclamp(fLo, fMin, fMax);
   fHi           = daisysp::fclamp(fHi, fMin, fMax);
 
-  uint8_t start = freqToLed(fLo, N, fMin, fMax);
-  uint8_t end   = freqToLed(fHi, N, fMin, fMax);
+  start = freqToLed(fLo, numLeds, fMin, fMax);
+  end   = freqToLed(fHi, numLeds, fMin, fMax);
   // If we decide to switch to linear plotting:
   // uint8_t start = (fLo / (fMax - fMin)) * (N - 1);
   // uint8_t end   = (fHi / (fMax - fMin)) * (N - 1);
@@ -211,27 +253,59 @@ void Sporadic::updateFluxDisplayState (DisplayState& view)
   {
     end = start;
   }
-  end = std::min<uint8_t>(end, N);
+  end = std::min<uint8_t>(end, numLeds);
+}
 
-  // Purple span indicating the bandpass area (fade to red with overdrive)
-  ledColor = {0xff00ff, 1.0f};
-  float     od        = inputSculpt_.getOverdrive(); // 0..0.2
-  uint8_t   blueLevel = static_cast<uint8_t>(map(od, 0.5f, 0.7f, 255.0f, 0.0f));
-  ledColor.rgb        = (ledColor.rgb & 0xffffff00) | blueLevel;
+void Sporadic::updateFluxDisplayState (DisplayState& view)
+{
+  // Purple color indicating the bandpass area (fade to red with overdrive)
+  LedRgbBrightness ledColor  = {0xff00ff, 1.0f};
+  float            od        = inputSculpt_.getOverdrive();    // 0..0.2
+  uint8_t          blueLevel = static_cast<uint8_t>(map(od, 0.5f, 0.7f, 255.0f, 0.0f));
+  ledColor.rgb               = (ledColor.rgb & 0xffffff00) | blueLevel;
 
-  populateLedRing(ringSpan, N, ledColor, start, end - start, true);
-  view.rings[view.layerCount++] = ringSpan;
+  if (getFluxHeld() || getFluxMenuOpen())
+  {
+    constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
+    Effect::RingSpan  ringSpan;
+
+    // Yellow area indicating the frequency range
+    populateLedRing(ringSpan, N, {0xffff00, 1.0f}, 0, N);
+    view.rings[view.layerCount++] = ringSpan;
+
+    // Compute bandpass span from center frequency and width (Q).
+    uint8_t bandpassSpanStart;
+    uint8_t bandpassSpanEnd;
+    updateBandpassDisplay(N, bandpassSpanStart, bandpassSpanEnd);
+
+    // Purple span indicating the bandpass area
+    populateLedRing(ringSpan, N, ledColor, bandpassSpanStart, bandpassSpanEnd - bandpassSpanStart, true);
+    view.rings[view.layerCount++] = ringSpan;
+  }
 
   // Set flux pad LED state and color
   view.fluxActive = true;
-  std::fill(std::begin(view.fluxLedColors), std::end(view.fluxLedColors), LedRgbBrightness{ledColor.rgb, 1.0f});
+  view.fluxLedColors[0] = LedRgbBrightness{ledColor.rgb, 1.0f};
+  if (getFluxActive())
+  {
+    // If flux is latched active, set the second phase to the same color
+    view.fluxLedColors[1] = LedRgbBrightness{ledColor.rgb, 1.0f};    // Green for active state
+  }
+  else
+  {
+    // If flux is not latched active, set the second phase to black
+    view.fluxLedColors[1] = LedRgbBrightness{0x000000, 1.0f};
+  }
 }
 
 void Sporadic::updateDisplayState ()
 {
   DisplayState view{};
 
-  if (flux_)
+  // Check if there is an update to the held state
+  detectFluxHeld();
+
+  if (isFluxPlaying())
   {
     updateFluxDisplayState(view);
   }
@@ -240,10 +314,45 @@ void Sporadic::updateDisplayState ()
 
 void Sporadic::getDigitalControls (DigitalControlFrame &c)
 {
-  c.reverse   = reverse_;
-  c.play      = play_;
-  c.altPlay   = false;    // Not used in this effect
-  c.spotyPlay = false;    // Not used in this effect
-  c.flux      = flux_;
-  c.grit      = grit_;
+  // Pass-through if channelConfig_ is not MONO_LEFT, MONO_RIGHT, or STEREO
+  if (channelConfig_ == ChannelConfig::OFF || channelConfig_ >= ChannelConfig::CH_CONFIG_LAST)
+  {
+    return;
+  }
+
+  // Fill sculpted input (per-channel enable) into member scratch buffers
+  for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  {
+    if (isChannelActive(ch))
+    {
+      if (isFluxPlaying())
+      {
+        inputSculpt_.processBlockMono(in[ch], inputSculptBuf_[ch], blockSize);
+      }
+      else
+      {
+        // If the input sculpting is not active, copy the input to the scratch buffer
+        std::copy(in[ch], in[ch] + blockSize, inputSculptBuf_[ch]);
+      }
+      delayNetwork_.processBlockMono(inputSculptBuf_[ch], delayNetworkBuf_[ch], blockSize);
+    }
+  }
+
+  delayNetwork_.processBlock(inputSculptBuf_[0],
+                             inputSculptBuf_[1],
+                             delayNetworkBuf_[0],
+                             delayNetworkBuf_[1],
+                             blockSize);
+
+  for (size_t i = 0; i < blockSize; ++i)
+  {
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        // Apply dry-wet mix
+        out[ch][i] = infrasonic::lerp(in[ch][i], delayNetworkBuf_[ch][i], mix_);
+      }
+    }
+  }
 }

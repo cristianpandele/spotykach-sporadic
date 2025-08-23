@@ -199,7 +199,9 @@ void AppImpl::updateDigitalControlFrame(Effect::DigitalControlFrame &frame, size
     .grit    = currentGritState[slot],
     // Supported pad combinations
     .altPlay   = currentAltPlayState[slot],
-    .spotyPlay = currentSpotyPlayState[slot]
+    .spotyPlay = currentSpotyPlayState[slot],
+    .altFlux   = currentAltFluxState[slot],
+    .altGrit   = currentAltGritState[slot]
   };
 }
 
@@ -216,6 +218,8 @@ void AppImpl::pushDigitalEffectControls(Effect::DigitalControlFrame &c, size_t s
   currentGritState[slot]      = c.grit;
   currentAltPlayState[slot]   = c.altPlay;
   currentSpotyPlayState[slot] = c.spotyPlay;
+  currentAltFluxState[slot]   = c.altFlux;
+  currentAltGritState[slot]   = c.altGrit;
 }
 
 void AppImpl::loop ()
@@ -305,17 +309,19 @@ void AppImpl::loop ()
         /////////
         // Control state changes
         if (reverseStateChanged[i] || playStateChanged[i] || altPlayStateChanged[i] || spotyPlayStateChanged[i] ||
-            fluxStateChanged[i] || gritStateChanged[i])
+            fluxStateChanged[i] || altFluxStateChanged[i] || gritStateChanged[i] || altGritStateChanged[i])
         {
           updateDigitalControlFrame(digitalControlFrames[i], i);
           pushDigitalEffectControls(digitalControlFrames[i], i);
           // Reset the change flags
-          reverseStateChanged[i] = false;
-          playStateChanged[i] = false;
-          altPlayStateChanged[i] = false;
+          reverseStateChanged[i]   = false;
+          playStateChanged[i]      = false;
+          altPlayStateChanged[i]   = false;
           spotyPlayStateChanged[i] = false;
-          fluxStateChanged[i] = false;
-          gritStateChanged[i] = false;
+          fluxStateChanged[i]      = false;
+          altFluxStateChanged[i]   = false;
+          gritStateChanged[i]      = false;
+          altGritStateChanged[i]   = false;
         }
 
         /////////
@@ -809,6 +815,14 @@ void AppImpl::handleDigitalControls ()
       // Log::PrintLine("Flux state changed for side %d to: %d", side, currentFluxState[side]);
     }
 
+    if (Utils::isAltPadPressed(padTouchStates) &&
+        Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapFluxIds[side]))
+    {
+      altFluxStateChanged[side] = true;
+      currentAltFluxState[side] = !currentAltFluxState[side];
+      // Log::PrintLine("Alt+Flux state changed for side %d to: %d", side, currentAltFluxState[side]);
+    }
+
     if (Utils::hasTouchStateChanged(padTouchStates, padTouchStatesPrev, kPadMapGritIds[side]))
     {
       // GRIT A or B
@@ -1005,6 +1019,12 @@ void AppImpl::handleDisplay ()
   // is being pressed, otherwise default behavior from above
   for (uint16_t i = 0; i < kPadMappingSize; i++)
   {
+    // Skip Grit and Flux pads
+    if (i == kPadMapGritIds[0] || i == kPadMapFluxIds[0] || i == kPadMapGritIds[1] || i == kPadMapFluxIds[1])
+    {
+      continue;
+    }
+
     if (Utils::isTouchPadPressed(padTouchStates, i))
     {
       hw.leds.Set(kPadMapping[i], 0xffffff);
