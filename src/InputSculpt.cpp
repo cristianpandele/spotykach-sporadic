@@ -53,11 +53,10 @@ float InputSculpt::processSample (float in)
   return bp;
 }
 
-void InputSculpt::processBlock (const float *inL, const float *inR, float *outL, float *outR, size_t blockSize)
+void InputSculpt::processBlockMono (const float *in, float *out, size_t blockSize)
 {
   for (size_t i = 0; i < blockSize; ++i)
   {
-    outL[i] = processSample(inL[i]);
-    outR[i] = processSample(inR[i]);
+    out[i] = processSample(in[i]);
   }
 }
