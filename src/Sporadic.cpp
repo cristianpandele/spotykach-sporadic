@@ -8,47 +8,6 @@ void Sporadic::init ()
   delayNetwork_.init(sampleRate_, kNumBands, kBlockSize);
 }
 
-void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
-{
-  // Pass-through if channelConfig_ is not MONO_LEFT, MONO_RIGHT, or STEREO
-  if (channelConfig_ == ChannelConfig::OFF || channelConfig_ >= ChannelConfig::CH_CONFIG_LAST)
-  {
-    return;
-  }
-
-  // Fill sculpted input (per-channel enable) into member scratch buffers
-  for (size_t i = 0; i < blockSize; i++)
-  {
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculptBuf_[ch][i] = inputSculpt_.processSample(in[ch][i]);
-      }
-      else
-      {
-        inputSculptBuf_[ch][i] = in[ch][i];
-      }
-    }
-  }
-
-  // inputSculpt_.processBlock(inputSculptBuf_[0], inputSculptBuf_[1], delayNetworkBuf_[0], delayNetworkBuf_[1], blockSize);
-
-  delayNetwork_.processBlock(inputSculptBuf_[0], inputSculptBuf_[1], delayNetworkBuf_[0], delayNetworkBuf_[1], blockSize);
-
-  for (size_t i = 0; i < blockSize; ++i)
-  {
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        // Apply dry-wet mix
-        out[ch][i] = infrasonic::lerp(in[ch][i], delayNetworkBuf_[ch][i], mix_);
-      }
-    }
-  }
-}
-
 void Sporadic::setMix (float m, bool fluxLatch)
 {
   // If flux latch is pressed, set drive instead of mix
@@ -312,7 +271,7 @@ void Sporadic::updateDisplayState ()
   publishDisplay(view);
 }
 
-void Sporadic::getDigitalControls (DigitalControlFrame &c)
+void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
   // Pass-through if channelConfig_ is not MONO_LEFT, MONO_RIGHT, or STEREO
   if (channelConfig_ == ChannelConfig::OFF || channelConfig_ >= ChannelConfig::CH_CONFIG_LAST)
