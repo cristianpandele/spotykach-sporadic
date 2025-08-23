@@ -13,6 +13,10 @@ class InputSculpt
     InputSculpt ()  = default;
     ~InputSculpt () = default;
 
+    // Drive amount range
+    float kMinDriveAmt = 0.1f;
+    float kMaxDriveAmt = 0.5f;
+
     void init (float sampleRate);
 
     // Process one sample
@@ -41,10 +45,8 @@ class InputSculpt
     float centerFreq_ = 1000.0f;
     float q_          = 0.0f;
     // Overdrive parameters
-    float kMinDriveAmt      = 0.5f;
-    float kMaxDriveAmt      = 0.7f;
-    float kMinDriveGainComp = 0.5f;
-    float kMaxDriveGainComp = 0.1f;
+    float kMinDriveGainComp = 1.0f;
+    float kMaxDriveGainComp = 16.0f;
     float overdriveAmt_     = kMinDriveAmt;
 
     daisysp::Svf       svf_;

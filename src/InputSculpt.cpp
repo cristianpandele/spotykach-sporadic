@@ -3,7 +3,7 @@
 void InputSculpt::init (float sampleRate)
 {
   svf_.Init(sampleRate);
-  overdrive_.Init();
+  overdrive_.SetDrive(kMinDriveAmt);
   updateFilter(centerFreq_, q_);
 }
 
@@ -43,9 +43,11 @@ float InputSculpt::processSample (float in)
 {
   // Apply overdrive
   float od = overdrive_.Process(in);
-  // Compensate the overdrive gain
-  float gain = infrasonic::map(overdriveAmt_, kMinDriveAmt, kMaxDriveAmt, kMinDriveGainComp, kMaxDriveGainComp);
+  // Compensate the overdrive gain (in reverse, higher drive -> lower gain)
+  float invOd = kMinDriveAmt + (kMaxDriveAmt - overdriveAmt_);
+  float gain  = infrasonic::map(invOd, kMinDriveAmt, kMaxDriveAmt, kMinDriveGainComp, kMaxDriveGainComp);
   od *= gain;
+
   // Apply the filtering
   svf_.Process(od);
   float bp = svf_.Band();

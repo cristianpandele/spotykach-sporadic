@@ -220,7 +220,7 @@ void Sporadic::updateFluxDisplayState (DisplayState& view)
   // Purple color indicating the bandpass area (fade to red with overdrive)
   LedRgbBrightness ledColor  = {0xff00ff, 1.0f};
   float            od        = inputSculpt_.getOverdrive();    // 0..0.2
-  uint8_t          blueLevel = static_cast<uint8_t>(map(od, 0.5f, 0.7f, 255.0f, 0.0f));
+  uint8_t          blueLevel = static_cast<uint8_t>(map(od, inputSculpt_.kMinDriveAmt, inputSculpt_.kMaxDriveAmt, 255.0f, 0.0f));
   ledColor.rgb               = (ledColor.rgb & 0xffffff00) | blueLevel;
 
   if (getFluxHeld() || getFluxMenuOpen())
