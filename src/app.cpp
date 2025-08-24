@@ -172,7 +172,8 @@ void AppImpl::updateAnalogControlFrame(Deck::AnalogControlFrame &frame, size_t s
                                                      : sizeControls[slot].getTargetVal(),
     .sizeGrit     = sizeGritLatch[slot],
     .shape        = shapeControls[slot].isSmoothing() ? shapeControls[slot].getSmoothVal()
-                                                      : shapeControls[slot].getTargetVal()
+                                                      : shapeControls[slot].getTargetVal(),
+    .shapeGrit    = shapeGritLatch[slot]
   };
 }
 
@@ -505,6 +506,12 @@ void AppImpl::processUIQueue ()
         {
           // Use Grit pad latch to modify Position (drives InputSculpt frequency)
           positionGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+        }
+
+        if (event.asPotMoved.id == Hardware::kCtrlShapeIds[side])
+        {
+          // Use Grit pad latch to modify Shape (drives InputSculpt shape)
+          shapeGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
         }
 
         if (event.asPotMoved.id == Hardware::kCtrlSizeIds[side])

@@ -25,6 +25,11 @@ void InputSculpt::setWidth (float w)
   updateFilter(centerFreq_, q_);
 }
 
+void InputSculpt::setShape (float s)
+{
+  shape_ = daisysp::fclamp(s, 0.0f, 1.0f);
+}
+
 void InputSculpt::setOverdrive (float od)
 {
   overdriveAmt_ = daisysp::fclamp(od, 0.0f, 1.0f);
@@ -49,8 +54,25 @@ float InputSculpt::processSample (float in)
 
   // Apply the filtering
   svf_.Process(od);
-  float bp = svf_.Band();
-  return bp;
+
+  float t = shape_;
+  float out;
+  if (t < 0.33333334f)
+  {
+    float u = t / 0.33333334f;
+    out     = infrasonic::lerp(od, svf_.Low(), u);
+  }
+  else if (t < 0.6666667f)
+  {
+    float u = (t - 0.33333334f) / 0.33333334f;
+    out     = infrasonic::lerp(svf_.Low(), svf_.Band(), u);
+  }
+  else
+  {
+    float u = (t - 0.6666667f) / 0.33333334f;
+    out     = infrasonic::lerp(svf_.Band(), svf_.High(), u);
+  }
+  return out;
 }
 
 void InputSculpt::processBlockMono (const float *in, float *out, size_t blockSize)
