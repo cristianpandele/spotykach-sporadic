@@ -162,15 +162,15 @@ void AppImpl::updateAnalogControlFrame(Deck::AnalogControlFrame &frame, size_t s
   frame = {
     .mix          = mixControls[slot].isSmoothing() ? mixControls[slot].getSmoothVal() : mixControls[slot].getTargetVal(),
     .mixAlt       = mixAltLatch[slot],
-    .mixFlux      = mixFluxLatch[slot],
+    .mixGrit      = mixGritLatch[slot],
     .pitch        = pitchControls[slot].isSmoothing() ? pitchControls[slot].getSmoothVal()
                                                       : pitchControls[slot].getTargetVal(),
     .position     = positionControls[slot].isSmoothing() ? positionControls[slot].getSmoothVal()
                                                          : positionControls[slot].getTargetVal(),
-    .positionFlux = positionFluxLatch[slot],
+    .positionGrit = positionGritLatch[slot],
     .size         = sizeControls[slot].isSmoothing() ? sizeControls[slot].getSmoothVal()
                                                      : sizeControls[slot].getTargetVal(),
-    .sizeFlux     = sizeFluxLatch[slot],
+    .sizeGrit     = sizeGritLatch[slot],
     .shape        = shapeControls[slot].isSmoothing() ? shapeControls[slot].getSmoothVal()
                                                       : shapeControls[slot].getTargetVal()
   };
@@ -492,26 +492,34 @@ void AppImpl::processUIQueue ()
       for (size_t side = 0; side < kNumberDeckSlots; side++)
       {
         if (event.asPotMoved.id == Hardware::kCtrlModFreqIds[side])
+        {
+          // Use Alt pad latch to modify Modulation Frequency
           modFreqAltLatch[side] = Utils::isAltPadPressed(padTouchStates);
+        }
 
         if (event.asPotMoved.id == Hardware::kCtrlSosIds[side])
         {
+          // Use Alt pad latch to modify Mix
           mixAltLatch[side]  = Utils::isAltPadPressed(padTouchStates);
-          mixFluxLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapFluxIds[side]);
+          // Use Grit pad latch to modify Mix
+          mixGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
         }
 
         if (event.asPotMoved.id == Hardware::kCtrlPosIds[side])
         {
-          positionFluxLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapFluxIds[side]);
+          // Use Grit pad latch to modify Position (drives InputSculpt frequency)
+          positionGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
         }
 
         if (event.asPotMoved.id == Hardware::kCtrlSizeIds[side])
         {
-          sizeFluxLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapFluxIds[side]);
+          // Use Grit pad latch to modify Size (drives InputSculpt width)
+          sizeGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
         }
 
         if (event.asPotMoved.id == Hardware::CTRL_SPOTYKACH)
         {
+          // Use Spotykach pad latch to modify Spotykach slider
           spotySpotyLatch = Utils::isSpotykachPadPressed(padTouchStates);
         }
 
@@ -592,28 +600,28 @@ void AppImpl::handleAnalogControls ()
 
     // Read the mix controls for both sides
     mixControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSosIds[side]);
-    if (!mixAltLatch[side] || !mixFluxLatch[side])
+    if (!mixAltLatch[side] || !mixGritLatch[side])
     {
-      // Add the mix CV values when Alt or Flux are not latched
+      // Add the mix CV values when Alt or Grit are not latched
       mixControls[side] += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
     }
 
     // Read the position knobs and CVs
     positionControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPosIds[side]);
-    if (!positionFluxLatch[side])
+    if (!positionGritLatch[side])
     {
       if ((sizePosSwitch[side] == SizePosSwitchState::POSITION) || (sizePosSwitch[side] == SizePosSwitchState::BOTH))
       {
-        // Add the position CV values when Flux is not latched
+        // Add the position CV values when Grit is not latched
         positionControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
       }
     }
 
     // Read the size knobs and CVs
     sizeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSizeIds[side]);
-    if (!sizeFluxLatch[side])
+    if (!sizeGritLatch[side])
     {
-      // Add the size CV values when Flux is not latched
+      // Add the size CV values when Grit is not latched
       if ((sizePosSwitch[side] == SizePosSwitchState::SIZE) || (sizePosSwitch[side] == SizePosSwitchState::BOTH))
       {
         sizeControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
@@ -817,9 +825,19 @@ void AppImpl::handleDigitalControls ()
     if (Utils::isAltPadPressed(padTouchStates) &&
         Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapFluxIds[side]))
     {
+      // ALT + FLUX A or B
       altFluxStateChanged[side] = true;
       currentAltFluxState[side] = !currentAltFluxState[side];
       // Log::PrintLine("Alt+Flux state changed for side %d to: %d", side, currentAltFluxState[side]);
+    }
+
+    if (Utils::isAltPadPressed(padTouchStates) &&
+        Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapGritIds[side]))
+    {
+      // ALT + GRIT A or B
+      altGritStateChanged[side] = true;
+      currentAltGritState[side] = !currentAltGritState[side];
+      // Log::PrintLine("Alt+Grit state changed for side %d to: %d", side, currentAltGritState[side]);
     }
 
     if (Utils::hasTouchStateChanged(padTouchStates, padTouchStatesPrev, kPadMapGritIds[side]))
