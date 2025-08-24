@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Effect.h"
+#include "Deck.h"
 #include "common.h"
 #include "daisy_seed.h"
 #include "daisysp.h"
@@ -11,7 +11,7 @@ using namespace daisysp;
 using namespace spotykach_hwtest;
 
 // Class for Spotykach looper implementation
-class Spotykach : public Effect
+class Spotykach : public Deck
 {
   public:
     enum State
@@ -21,7 +21,7 @@ class Spotykach : public Effect
       RECORDING,
       LOOP_PLAYBACK
     };
-    Spotykach (size_t sampleRate, uint8_t side) : Effect(sampleRate), effectSide_(side) {}
+    Spotykach (size_t sampleRate, uint8_t side) : Deck(sampleRate), deckSide_(side) {}
     ~Spotykach () = default;
 
     void init ();
@@ -80,8 +80,8 @@ class Spotykach : public Effect
       T end;
     };
 
-    // Override the EffectMode enum to define specific modes for Spotykach
-    enum EffectMode
+    // Override the DeckMode enum to define specific modes for Spotykach
+    enum DeckMode
     {
       REEL  = 0,
       SLICE = 1,
@@ -99,10 +99,10 @@ class Spotykach : public Effect
     // Record flag
     bool record_ = false;
 
-    // Spotykach effect state
+    // Spotykach deck state
     State state_ = OFF;
     // Current side being processed (0 or 1)
-    uint8_t effectSide_ = 0;
+    uint8_t deckSide_ = 0;
 
     // Envelope generators for window shapes
     daisysp::Adsr envSquare_;
@@ -141,12 +141,12 @@ class Spotykach : public Effect
 
     void ledBrightnessGradient (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
 
-    void populateLedRing (Effect::RingSpan &ringSpan,
-                          uint8_t           ringSize,
-                          LedRgbBrightness  colorBright,
-                          uint8_t           start,
-                          uint8_t           spanSize,
-                          bool              gradient = false);
+    void populateLedRing (Deck::RingSpan  &ringSpan,
+                          uint8_t          ringSize,
+                          LedRgbBrightness colorBright,
+                          uint8_t          start,
+                          uint8_t          spanSize,
+                          bool             gradient = false);
 
     void  setState (State s) { state_ = s; }
     State getState () const { return state_; }

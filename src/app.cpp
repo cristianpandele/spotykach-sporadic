@@ -1,5 +1,5 @@
 #include "app.h"
-#include "Effect.h"
+#include "Deck.h"
 #include "Sporadic.h"
 #include "Spotykach.h"
 #include "color.h"
@@ -30,17 +30,17 @@ namespace spotykach_hwtest
 }    // namespace spotykach_hwtest
 
 static AppImpl   impl;
-static Spotykach spotykachLooper[kNumberEffectSlots] = {Spotykach(kSampleRate, 0), Spotykach(kSampleRate, 1)};
+static Spotykach spotykachLooper[kNumberDeckSlots] = {Spotykach(kSampleRate, 0), Spotykach(kSampleRate, 1)};
 static Sporadic  sporadic(kSampleRate);
 
-// Array of pointers to Effects
-Effect* effects[kNumberEffectSlots];
+// Array of pointers to Decks
+Deck* decks[kNumberDeckSlots];
 
-// Control frame for the effects
-Effect::AnalogControlFrame analogControlFrames[kNumberEffectSlots];
-Effect::DigitalControlFrame digitalControlFrames[kNumberEffectSlots];
-// Display state for the effects
-Effect::DisplayState displayStates[kNumberEffectSlots];
+// Control frame for the decks
+Deck::AnalogControlFrame analogControlFrames[kNumberDeckSlots];
+Deck::DigitalControlFrame digitalControlFrames[kNumberDeckSlots];
+// Display state for the decks
+Deck::DisplayState displayStates[kNumberDeckSlots];
 
 #if DEBUG
 CpuLoadMeter loadMeter;
@@ -106,7 +106,7 @@ void AppImpl::init ()
   audio.SetBlockSize(kBlockSize);
 
   // Initialize the Spotykach looper
-  for (size_t i = 0; i < kNumberEffectSlots; i++)
+  for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
     spotykachLooper[i].init();
   }
@@ -121,45 +121,44 @@ void AppImpl::init ()
   audio.Start(AudioCallback);
 }
 
-using ChannelConfig = Effect::ChannelConfig;
+using ChannelConfig = Deck::ChannelConfig;
 
 void AppImpl::setRoutingMode (AppImpl::AppMode mode)
 {
-  // Pass the mode to the Spotykach looper and Sporadic effect
   if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
   {
     spotykachLooper[0].setChannelConfig(ChannelConfig::STEREO);
     spotykachLooper[1].setChannelConfig(ChannelConfig::STEREO);
     sporadic.setChannelConfig(ChannelConfig::STEREO);
-    effects[0] = &spotykachLooper[0];
-    effects[1] = &spotykachLooper[1];
+    decks[0] = &spotykachLooper[0];
+    decks[1] = &spotykachLooper[1];
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_MONO)
   {
     spotykachLooper[0].setChannelConfig(ChannelConfig::MONO_LEFT);
     spotykachLooper[1].setChannelConfig(ChannelConfig::OFF);
     sporadic.setChannelConfig(ChannelConfig::MONO_RIGHT);
-    effects[0] = &spotykachLooper[0];
-    effects[1] = &sporadic;
+    decks[0] = &spotykachLooper[0];
+    decks[1] = &sporadic;
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_STEREO)
   {
     spotykachLooper[0].setChannelConfig(ChannelConfig::STEREO);
     spotykachLooper[1].setChannelConfig(ChannelConfig::OFF);
     sporadic.setChannelConfig(ChannelConfig::STEREO);
-    effects[0] = &spotykachLooper[0];
-    effects[1] = &sporadic;
+    decks[0] = &spotykachLooper[0];
+    decks[1] = &sporadic;
   }
 }
 
-void AppImpl::updateAnalogControlFrame(Effect::AnalogControlFrame &frame, size_t slot)
+void AppImpl::updateAnalogControlFrame(Deck::AnalogControlFrame &frame, size_t slot)
 {
-  if (slot >= kNumberEffectSlots)
+  if (slot >= kNumberDeckSlots)
   {
     return; // Invalid slot
   }
 
-  // Update the control frame for the specified effect slot
+  // Update the control frame for the specified deck slot
   frame = {
     .mix          = mixControls[slot].isSmoothing() ? mixControls[slot].getSmoothVal() : mixControls[slot].getTargetVal(),
     .mixAlt       = mixAltLatch[slot],
@@ -177,20 +176,20 @@ void AppImpl::updateAnalogControlFrame(Effect::AnalogControlFrame &frame, size_t
   };
 }
 
-void AppImpl::pushAnalogEffectControls(Effect::AnalogControlFrame &c, size_t slot)
+void AppImpl::pushAnalogDeckControls(Deck::AnalogControlFrame &c, size_t slot)
 {
-  // Push the controls to the Spotykach looper and Sporadic effect
-  effects[slot]->updateAnalogControls(c);
+  // Push the controls to the Spotykach looper and Sporadic deck
+  decks[slot]->updateAnalogControls(c);
 }
 
-void AppImpl::updateDigitalControlFrame(Effect::DigitalControlFrame &frame, size_t slot)
+void AppImpl::updateDigitalControlFrame(Deck::DigitalControlFrame &frame, size_t slot)
 {
-  if (slot >= kNumberEffectSlots)
+  if (slot >= kNumberDeckSlots)
   {
     return; // Invalid slot
   }
 
-  // Update the control frame for the specified effect slot
+  // Update the control frame for the specified deck slot
   frame = {
     // Simple pad presses
     .reverse = currentReverseState[slot],
@@ -205,12 +204,12 @@ void AppImpl::updateDigitalControlFrame(Effect::DigitalControlFrame &frame, size
   };
 }
 
-void AppImpl::pushDigitalEffectControls(Effect::DigitalControlFrame &c, size_t slot)
+void AppImpl::pushDigitalDeckControls(Deck::DigitalControlFrame &c, size_t slot)
 {
-  // Push the controls to the Spotykach looper and Sporadic effect
-  effects[slot]->updateDigitalControls(c);
+  // Push the controls to the Spotykach looper and Sporadic deck
+  decks[slot]->updateDigitalControls(c);
   // Get back the updated controls
-  effects[slot]->getDigitalControls(c);
+  decks[slot]->getDigitalControls(c);
   // Store consequences of the control changes
   currentReverseState[slot]   = c.reverse;
   currentPlayState[slot]      = c.play;
@@ -259,7 +258,7 @@ void AppImpl::loop ()
       {
         hw.midi_uart.EnqueueMessage(MidiTxMessage::NoteOff(0, 60, 64));
       }
-      for (uint8_t i = 0; i < kNumberEffectSlots; i++)
+      for (uint8_t i = 0; i < kNumberDeckSlots; i++)
       {
         hw.SetGateOut(i, test_note_on);
       }
@@ -286,7 +285,7 @@ void AppImpl::loop ()
         routingModeChanged = false;
       }
 
-      for (size_t i = 0; i < kNumberEffectSlots; i++)
+      for (size_t i = 0; i < kNumberDeckSlots; i++)
       {
         /////////
         // Modulators
@@ -300,10 +299,10 @@ void AppImpl::loop ()
 
         /////////
         // Global routing changed
-        if (effectModeChanged[i])
+        if (deckModeChanged[i])
         {
-          effects[i]->setMode(currentEffectMode[i]);
-          effectModeChanged[i] = false;
+          decks[i]->setMode(currentDeckMode[i]);
+          deckModeChanged[i] = false;
         }
 
         /////////
@@ -312,7 +311,7 @@ void AppImpl::loop ()
             fluxStateChanged[i] || altFluxStateChanged[i] || gritStateChanged[i] || altGritStateChanged[i])
         {
           updateDigitalControlFrame(digitalControlFrames[i], i);
-          pushDigitalEffectControls(digitalControlFrames[i], i);
+          pushDigitalDeckControls(digitalControlFrames[i], i);
           // Reset the change flags
           reverseStateChanged[i]   = false;
           playStateChanged[i]      = false;
@@ -326,7 +325,7 @@ void AppImpl::loop ()
 
         /////////
         // LED Ring display updates
-        effects[i]->updateDisplayState();
+        decks[i]->updateDisplayState();
       }
 
       // View part of MVC
@@ -337,7 +336,7 @@ void AppImpl::loop ()
       hw.leds.Show();
 
       // Piggy back on this timer for very rough CV output demo
-      for (size_t i = 0; i < kNumberEffectSlots; i++)
+      for (size_t i = 0; i < kNumberDeckSlots; i++)
       {
         hw.WriteCVOut(i, modCv[i]);
       }
@@ -346,7 +345,7 @@ void AppImpl::loop ()
     // Debug logging / LED phase advancement
     if (log_timer.HasPassedMs(kDebugLogPeriodMs))
     {
-      padLedPhase = (padLedPhase + 1) % Effect::kMaxLedPhases;
+      padLedPhase = (padLedPhase + 1) % Deck::kMaxLedPhases;
 #if DEBUG
       logDebugInfo();
 #endif
@@ -357,13 +356,13 @@ void AppImpl::loop ()
 
 void AppImpl::processModulatorControls (size_t slot)
 {
-  if (slot >= kNumberEffectSlots)
+  if (slot >= kNumberDeckSlots)
   {
     return; // Invalid slot
   }
 
-  // Process the modulation for the specified effect slot
-  for (size_t i = 0; i < kNumberEffectSlots; i++)
+  // Process the modulation for the specified deck slot
+  for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
     modulator[i].setFrequency(modulationFreq[i].getSmoothVal(), modFreqAltLatch[i]);
     modulator[i].setAmplitude(modulationAmount[i].getSmoothVal());
@@ -372,35 +371,35 @@ void AppImpl::processModulatorControls (size_t slot)
 
 void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
-  // Clear temp buffers for each effect/channel
-  for (size_t slot = 0; slot < kNumberEffectSlots; ++slot)
+  // Clear temp buffers for each deck/channel
+  for (size_t slot = 0; slot < kNumberDeckSlots; ++slot)
   {
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
-      std::fill(std::begin(effectOutputs_[slot][ch]), std::end(effectOutputs_[slot][ch]), 0.0f);
+      std::fill(std::begin(deckOutputs_[slot][ch]), std::end(deckOutputs_[slot][ch]), 0.0f);
     }
   }
 
-  // Process each effect into its own temporary buffer (effectOutputs_)
-  for (size_t slot = 0; slot < kNumberEffectSlots; ++slot)
+  // Process each deck into its own temporary buffer (deckOutputs_)
+  for (size_t slot = 0; slot < kNumberDeckSlots; ++slot)
   {
     float *slotOut[kNumberChannelsStereo];
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
-      slotOut[ch] = effectOutputs_[slot][ch];
+      slotOut[ch] = deckOutputs_[slot][ch];
     }
-    effects[slot]->processAudio(in, slotOut, blockSize);
+    decks[slot]->processAudio(in, slotOut, blockSize);
   }
 
-  // Crossfade / blend between effect 0 and 1 outputs into final out (linear)
+  // Crossfade / blend between deck 0 and 1 outputs into final out (linear)
   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
-    const float *a = effectOutputs_[0][ch];
-    const float *b = effectOutputs_[1][ch];
+    const float *a = deckOutputs_[0][ch];
+    const float *b = deckOutputs_[1][ch];
     float *outCh   = out[ch];
     for (size_t n = 0; n < blockSize; ++n)
     {
-      outCh[n] = lerp(a[n], b[n], effectMix_);
+      outCh[n] = lerp(a[n], b[n], deckMix_);
     }
   }
 }
@@ -412,17 +411,17 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
   // Handle the analog controls that affect the audio processing
   handleAnalogControls();
 
-  for (size_t i = 0; i < kNumberEffectSlots; i++)
+  for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
     /////////
-    // Apply the analog controls to the effects
+    // Apply the analog controls to the decks
 
     if (mixControls[i].isSmoothing() || pitchControls[i].isSmoothing() ||
         positionControls[i].isSmoothing() || sizeControls[i].isSmoothing() ||
         shapeControls[i].isSmoothing())
     {
       updateAnalogControlFrame(analogControlFrames[i], i);
-      pushAnalogEffectControls(analogControlFrames[i], i);
+      pushAnalogDeckControls(analogControlFrames[i], i);
     }
 
     /////////
@@ -490,7 +489,7 @@ void AppImpl::processUIQueue ()
     auto event = ui_queue.GetAndRemoveNextEvent();
     if (event.type == UiEventQueue::Event::EventType::potMoved)
     {
-      for (size_t side = 0; side < kNumberEffectSlots; side++)
+      for (size_t side = 0; side < kNumberDeckSlots; side++)
       {
         if (event.asPotMoved.id == Hardware::kCtrlModFreqIds[side])
           modFreqAltLatch[side] = Utils::isAltPadPressed(padTouchStates);
@@ -572,7 +571,7 @@ void AppImpl::handleAnalogControls ()
 {
   // Spotykach slider (mapped to -1.. +1)
   spotyControl = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
-  // If the Spotykach pad is pressed, set the effect mix
+  // If the Spotykach pad is pressed, set the deck mix
   if (!spotySpotyLatch)
   {
     // Add the Spotykach CV value when the Spotykach pad is not latched
@@ -580,11 +579,11 @@ void AppImpl::handleAnalogControls ()
   }
   else
   {
-    // Set the effect mix level
-    effectMix_ = spotyControl.getSmoothVal();
+    // Set the deck mix level
+    deckMix_ = spotyControl.getSmoothVal();
   }
 
-  for (size_t side = 0; side < kNumberEffectSlots; side++)
+  for (size_t side = 0; side < kNumberDeckSlots; side++)
   {
     // Read and smooth pitch controls for both sides
     pitchControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPitchIds[side]);
@@ -692,41 +691,41 @@ void AppImpl::handleDigitalControls ()
   }
 
   // Mode A switch (sr1 bits 6,7)
-  EffectMode newEffectMode[2];
+  DeckMode newDeckMode[2];
   if (sr1.test(6))
   {
-    newEffectMode[0] = EffectMode::MODE_3;
+    newDeckMode[0] = DeckMode::MODE_3;
   }
   else if (sr1.test(7))
   {
-    newEffectMode[0] = EffectMode::MODE_1;
+    newDeckMode[0] = DeckMode::MODE_1;
   }
   else
   {
-    newEffectMode[0] = EffectMode::MODE_2;
+    newDeckMode[0] = DeckMode::MODE_2;
   }
 
   // Mode B switch (sr2 bits 2,3)
   if (sr2.test(2))
   {
-    newEffectMode[1] = EffectMode::MODE_3;
+    newDeckMode[1] = DeckMode::MODE_3;
   }
   else if (sr2.test(3))
   {
-    newEffectMode[1] = EffectMode::MODE_1;
+    newDeckMode[1] = DeckMode::MODE_1;
   }
   else
   {
-    newEffectMode[1] = EffectMode::MODE_2;
+    newDeckMode[1] = DeckMode::MODE_2;
   }
 
-  for (size_t i = 0; i < kNumberEffectSlots; i++)
+  for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
-    if (newEffectMode[i] != currentEffectMode[i])
+    if (newDeckMode[i] != currentDeckMode[i])
     {
-      effectModeChanged[i] = true;
-      currentEffectMode[i] = newEffectMode[i];
-      // Log::PrintLine("Effect mode changed for side %d to: %d", i, currentEffectMode[i]);
+      deckModeChanged[i] = true;
+      currentDeckMode[i] = newDeckMode[i];
+      // Log::PrintLine("Deck mode changed for side %d to: %d", i, currentDeckMode[i]);
     }
   }
 
@@ -760,7 +759,7 @@ void AppImpl::handleDigitalControls ()
     newModType[1] = modulationTypes[1][1];
   }
 
-  for (size_t i = 0; i < kNumberEffectSlots; i++)
+  for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
     if (newModType[i] != currentModType[i])
     {
@@ -773,7 +772,7 @@ void AppImpl::handleDigitalControls ()
   // Touch controls
   padTouchStates = hw.GetMpr121TouchStates();
 
-  for (uint8_t side = 0; side < kNumberEffectSlots; side++)
+  for (uint8_t side = 0; side < kNumberDeckSlots; side++)
   {
     if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapRevIds[side]))
     {
@@ -844,7 +843,7 @@ void AppImpl::handleDisplay ()
     hw.leds.Set(Hardware::LED_CLOCK_IN, 0xff0000, 1.0f);
   }
 
-  for (size_t i = 0; i < kNumberEffectSlots; i++)
+  for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
     if (hw.GetGateInputState(i))
     {
@@ -877,7 +876,7 @@ void AppImpl::handleDisplay ()
 
   // Modulator A & B Type switch LED
   using ModType = ModulationEngine::ModType;
-  for (size_t side = 0; side < kNumberEffectSlots; side++)
+  for (size_t side = 0; side < kNumberDeckSlots; side++)
   {
     float modLedBrightness = modCv[side]; //modulationAmount[side].getSmoothVal();
     switch (currentModType[side])
@@ -902,13 +901,13 @@ void AppImpl::handleDisplay ()
   }
 
   // Mode A & B switches
-  for (size_t side = 0; side < kNumberEffectSlots; side++)
+  for (size_t side = 0; side < kNumberDeckSlots; side++)
   {
-    if (currentEffectMode[side] == EffectMode::MODE_3)
+    if (currentDeckMode[side] == DeckMode::MODE_3)
     {
       hw.leds.Set(Hardware::kLedGritIds[side], 0x00ff00, 1.0f);
     }
-    else if (currentEffectMode[side] == EffectMode::MODE_1)
+    else if (currentDeckMode[side] == DeckMode::MODE_1)
     {
       hw.leds.Set(Hardware::kLedGritIds[side], 0x0000ff, 1.0f);
     }
@@ -924,12 +923,12 @@ void AppImpl::handleDisplay ()
     hw.leds.Set(Hardware::LED_CLOCK_IN, 0xffffff, 1.0f);
   }
 
-  for (size_t side = 0; side < kNumberEffectSlots; side++)
+  for (size_t side = 0; side < kNumberDeckSlots; side++)
   {
-    // If the effect on this side has an updated display state
-    if (effects[side]->getDisplayState(displayStates[side]))
+    // If the deck on this side has an updated display state
+    if (decks[side]->getDisplayState(displayStates[side]))
     {
-      for (size_t layer = 0; layer < std::min(displayStates[side].layerCount, Effect::kMaxRingLayers); ++layer)
+      for (size_t layer = 0; layer < std::min(displayStates[side].layerCount, Deck::kMaxRingLayers); ++layer)
       {
         const auto &seg = displayStates[side].rings[layer];
         for (uint8_t i = 0; i < Hardware::kNumLedsPerRing; ++i)
@@ -964,7 +963,7 @@ void AppImpl::handleDisplay ()
   // --- CV INPUTS ---
 
   // For these we just add together the 3 CVs on each side and render to drift LEDs
-  for (uint8_t side = 0; side < kNumberEffectSlots; side++)
+  for (uint8_t side = 0; side < kNumberDeckSlots; side++)
   {
     float cv = 0;
     cv += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
@@ -978,7 +977,7 @@ void AppImpl::handleDisplay ()
     hw.leds.Set(Hardware::LED_SPOTY_PAD, 0xff0000);
 
   // --- TOUCH PAD LEDs ---
-  for (size_t i = 0; i < kNumberEffectSlots; i++)
+  for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
     // Alternating phase for FLUX LEDs
     if (displayStates[i].fluxActive)

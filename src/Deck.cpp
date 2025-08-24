@@ -1,10 +1,10 @@
 // #include "app.h"
 #include "common.h"
-#include "Effect.h"
+#include "Deck.h"
 
 using infrasonic::Log;
 
-void Effect::setChannelConfig (ChannelConfig mode)
+void Deck::setChannelConfig (ChannelConfig mode)
 {
   if (mode < ChannelConfig::OFF || mode >= ChannelConfig::CH_CONFIG_LAST)
   {
@@ -14,18 +14,18 @@ void Effect::setChannelConfig (ChannelConfig mode)
   channelConfig_ = mode;
 }
 
-void Effect::setMode (EffectMode m)
+void Deck::setMode (DeckMode m)
 {
-  if (m < EffectMode::MODE_1 || m >= EffectMode::MODE_LAST)
+  if (m < DeckMode::MODE_1 || m >= DeckMode::MODE_LAST)
   {
-    Log::PrintLine("Invalid effect mode: %d", m);
+    Log::PrintLine("Invalid deck mode: %d", m);
     return;
   }
-  // Set the effect mode
+  // Set the deck mode
   mode_ = m;
 }
 
-bool Effect::getDisplayState (DisplayState &out) const
+bool Deck::getDisplayState (DisplayState &out) const
 {
   uint8_t     r   = dispWIdx_;    // read the last published buffer index
   const auto &src = dispBuf_[r];
@@ -38,7 +38,7 @@ bool Effect::getDisplayState (DisplayState &out) const
   return true;
 }
 
-void Effect::publishDisplay(const DisplayState &state)
+void Deck::publishDisplay(const DisplayState &state)
 {
   uint8_t w         = dispWIdx_ ^ 1;  // toggle write index
   dispBuf_[w].state = state;
@@ -47,7 +47,7 @@ void Effect::publishDisplay(const DisplayState &state)
 }
 
 // Helper to determine if a channel should be processed in the current channel configuration
-bool Effect::isChannelActive (size_t ch) const
+bool Deck::isChannelActive (size_t ch) const
 {
   // Example logic: only process left channel in MONO_LEFT, right in MONO_RIGHT, both in STEREO
   switch (channelConfig_)
@@ -71,19 +71,19 @@ bool Effect::isChannelActive (size_t ch) const
   }
 }
 
-bool Effect::detectFluxHeld ()
+bool Deck::detectFluxHeld ()
 {
   detectHeld(fluxHeldTimer_, fluxHeldTimerActive_, fluxHeld_);
   return fluxHeld_;
 }
 
-bool Effect::detectGritHeld ()
+bool Deck::detectGritHeld ()
 {
   detectHeld(gritHeldTimer_, gritHeldTimerActive_, gritHeld_);
   return gritHeld_;
 }
 
-void Effect::handleFluxTap (const bool flux, bool &doubleTap, bool &held)
+void Deck::handleFluxTap (const bool flux, bool &doubleTap, bool &held)
 {
   handleTap(flux,
             fluxHeldTimer_,
@@ -95,7 +95,7 @@ void Effect::handleFluxTap (const bool flux, bool &doubleTap, bool &held)
   held = fluxHeld_;
 }
 
-void Effect::handleGritTap (const bool grit, bool &doubleTap, bool &held)
+void Deck::handleGritTap (const bool grit, bool &doubleTap, bool &held)
 {
   handleTap(grit,
             gritHeldTimer_,
@@ -107,12 +107,12 @@ void Effect::handleGritTap (const bool grit, bool &doubleTap, bool &held)
   held = gritHeld_;
 }
 
-void Effect::detectHeld (StopwatchTimer &timer, bool &heldTimerActive, bool &held)
+void Deck::detectHeld (StopwatchTimer &timer, bool &heldTimerActive, bool &held)
 {
   held = ((heldTimerActive) && timer.HasPassedMs(kHeldTimeoutMs));
 }
 
-void Effect::handleTap (const bool      padPressed,
+void Deck::handleTap (const bool      padPressed,
                         StopwatchTimer &heldTimer,
                         bool           &heldTimerActive,
                         StopwatchTimer &doubleTapTimer,

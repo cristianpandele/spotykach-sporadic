@@ -5,7 +5,7 @@ static constexpr size_t kLooperAudioDataSamples = 15.0f * kSampleRate * kNumberC
 static constexpr size_t kEchoAudioDataSamples = 2.0f * kSampleRate;
 
 // Reserve two buffers for 15-second Spotykach loopers for each side - 16bit mono audio file at 48khz (about 0.172 MB each)
-static DSY_SDRAM_BSS float   looperAudioData[kNumberEffectSlots][kNumberChannelsStereo][kLooperAudioDataSamples] {{{0.0f}}};
+static DSY_SDRAM_BSS float   looperAudioData[kNumberDeckSlots][kNumberChannelsStereo][kLooperAudioDataSamples] {{{0.0f}}};
 
 using namespace infrasonic;
 
@@ -26,7 +26,7 @@ void Spotykach::init ()
   {
     if (isChannelActive(ch))
     {
-      std::fill(std::begin(looperAudioData[effectSide_][ch]), std::end(looperAudioData[effectSide_][ch]), 0.0f);
+      std::fill(std::begin(looperAudioData[deckSide_][ch]), std::end(looperAudioData[deckSide_][ch]), 0.0f);
     }
   }
 }
@@ -138,7 +138,7 @@ void Spotykach::setPlay (bool p)
         {
           if (isChannelActive(ch))
           {
-            std::fill(std::begin(looperAudioData[effectSide_][ch]), std::end(looperAudioData[effectSide_][ch]), 0.0f);
+            std::fill(std::begin(looperAudioData[deckSide_][ch]), std::end(looperAudioData[deckSide_][ch]), 0.0f);
           }
         }
       }
@@ -192,7 +192,7 @@ void Spotykach::setAltPlay (bool r)
         {
           if (isChannelActive(ch))
           {
-            std::fill(std::begin(looperAudioData[effectSide_][ch]), std::end(looperAudioData[effectSide_][ch]), 0.0f);
+            std::fill(std::begin(looperAudioData[deckSide_][ch]), std::end(looperAudioData[deckSide_][ch]), 0.0f);
           }
         }
 
@@ -233,7 +233,7 @@ void Spotykach::setReverse (bool r)
 
 void Spotykach::updateAnalogControls (const AnalogControlFrame &c)
 {
-  // Update the analog effect parameters based on the control frame
+  // Update the analog deck parameters based on the control frame
   setMix(c.mix, c.mixAlt);
   setPitch(c.pitch);
   setPosition(c.position);
@@ -243,7 +243,7 @@ void Spotykach::updateAnalogControls (const AnalogControlFrame &c)
 
 void Spotykach::updateDigitalControls (const DigitalControlFrame &c)
 {
-  // Update the digital effect parameters based on the control frame
+  // Update the digital deck parameters based on the control frame
   setSpotyPlay(c.spotyPlay);
   if (c.spotyPlay)
   {
@@ -312,12 +312,12 @@ void Spotykach::getDigitalControls(DigitalControlFrame &c)
   c.altGrit = false; // Reset Alt+Grit state
 }
 
-void Spotykach::populateLedRing (Effect::RingSpan &ringSpan,
-                                 uint8_t ringSize,
+void Spotykach::populateLedRing (Deck::RingSpan  &ringSpan,
+                                 uint8_t          ringSize,
                                  LedRgbBrightness colorBright,
-                                 uint8_t start,
-                                 uint8_t spanSize,
-                                 bool gradient)
+                                 uint8_t          start,
+                                 uint8_t          spanSize,
+                                 bool             gradient)
 {
   LedRgbBrightness ledColor[Hardware::kNumLedsPerRing];
   // Clear ledColor
@@ -401,7 +401,7 @@ void Spotykach::updateDisplayState()
   }
 
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
-  Effect::RingSpan  ringSpan;
+  Deck::RingSpan    ringSpan;
 
   switch (state_)
   {
@@ -622,7 +622,7 @@ void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
     // Only process if this channel is active in the current mode
     if (isChannelActive(ch))
     {
-      float *currentLooperChannel = &looperAudioData[effectSide_][ch][0];
+      float *currentLooperChannel = &looperAudioData[deckSide_][ch][0];
 
       // Neighbouring sample indices
       size_t rIdx0 = static_cast<size_t>(readIx_);
