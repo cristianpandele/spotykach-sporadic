@@ -396,11 +396,7 @@ void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::Outpu
   {
     const float *a = deckOutputs_[0][ch];
     const float *b = deckOutputs_[1][ch];
-    float *outCh   = out[ch];
-    for (size_t n = 0; n < blockSize; ++n)
-    {
-      outCh[n] = lerp(a[n], b[n], deckMix_);
-    }
+    Utils::audioBlockLerp(a, b, out[ch], deckMix_, blockSize);
   }
 }
 
