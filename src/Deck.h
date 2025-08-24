@@ -33,12 +33,12 @@ class Deck
     {
       float mix;
       bool  mixAlt;       // latched Alt pad at move time for Mix knob
-      bool  mixFlux;      // latched Flux pad at move time for Mix knob
+      bool  mixGrit;      // latched Flux pad at move time for Mix knob
       float pitch;
       float position;
-      bool  positionFlux; // latched Flux pad at move time for Position knob
+      bool  positionGrit; // latched Flux pad at move time for Position knob
       float size;
-      bool  sizeFlux;     // latched Flux pad at move time for Size knob
+      bool  sizeGrit;     // latched Flux pad at move time for Size knob
       float shape;
     };
 

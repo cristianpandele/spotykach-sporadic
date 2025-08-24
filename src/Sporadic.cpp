@@ -8,10 +8,10 @@ void Sporadic::init ()
   delayNetwork_.init(sampleRate_, kNumBands, kBlockSize);
 }
 
-void Sporadic::setMix (float m, bool fluxLatch)
+void Sporadic::setMix (float m, bool gritLatch)
 {
-  // If flux latch is pressed, set drive instead of mix
-  if (fluxLatch)
+  // If grit latched, set drive instead of mix
+  if (gritLatch)
   {
     inputSculpt_.setOverdrive(m);
   }
@@ -21,10 +21,10 @@ void Sporadic::setMix (float m, bool fluxLatch)
   }
 }
 
-void Sporadic::setPosition (float p, bool fluxLatch)
+void Sporadic::setPosition (float p, bool gritLatch)
 {
-  // If flux latch is pressed, set input sculpt frequency instead of position
-  if (fluxLatch)
+  // If grit latched, set input sculpt frequency instead of position
+  if (gritLatch)
   {
     // Map the frequency to the input sculpt
     inputSculpt_.setFreq(p);
@@ -35,10 +35,10 @@ void Sporadic::setPosition (float p, bool fluxLatch)
   }
 }
 
-void Sporadic::setSize (float s, bool fluxLatch)
+void Sporadic::setSize (float s, bool gritLatch)
 {
-  // If flux latch is pressed, set input sculpt width instead of size
-  if (fluxLatch)
+  // If grit latched, set input sculpt width instead of size
+  if (gritLatch)
   {
     // Map the width to the input sculpt
     inputSculpt_.setWidth(s);
@@ -52,10 +52,11 @@ void Sporadic::setSize (float s, bool fluxLatch)
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame
-  setMix(c.mix, c.mixFlux || getFluxMenuOpen ());
+  // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
+  setMix(c.mix, c.mixGrit || getGritMenuOpen());
   setPitch(c.pitch);
-  setPosition(c.position, c.positionFlux || getFluxMenuOpen ());
-  setSize(c.size, c.sizeFlux || getFluxMenuOpen ());
+  setPosition(c.position, c.positionGrit || getGritMenuOpen());
+  setSize(c.size, c.sizeGrit || getGritMenuOpen());
   setShape(c.shape);
 }
 
@@ -65,16 +66,12 @@ void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
   setReverse(c.reverse);
   setPlay(c.play);
   setFlux(c.flux);
+  setGrit(c.grit);
 
   // Hold Alt+Flux state
   if (c.altFlux)
   {
     toggleFluxActive();
-    if (!getFluxActive ())
-    {
-      // If flux is deactivated, disable the flux menu
-      setFluxMenuOpen(false);
-    }
   }
   else
   // Always feed flux state so release stops timer
@@ -92,6 +89,11 @@ void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
   if (c.altGrit)
   {
     toggleGritActive();
+    if (!getGritActive ())
+    {
+      // If grit is deactivated, disable the grit menu
+      setGritMenuOpen(false);
+    }
   }
   else
   // Always feed grit state so release stops timer
@@ -215,7 +217,7 @@ void Sporadic::updateBandpassDisplay (const uint8_t numLeds, uint8_t &start, uin
   end = std::min<uint8_t>(end, numLeds);
 }
 
-void Sporadic::updateFluxDisplayState (DisplayState& view)
+void Sporadic::updateGritDisplayState (DisplayState& view)
 {
   // Purple color indicating the bandpass area (fade to red with overdrive)
   LedRgbBrightness ledColor  = {0xff00ff, 1.0f};
@@ -223,7 +225,7 @@ void Sporadic::updateFluxDisplayState (DisplayState& view)
   uint8_t          blueLevel = static_cast<uint8_t>(map(od, inputSculpt_.kMinDriveAmt, inputSculpt_.kMaxDriveAmt, 255.0f, 0.0f));
   ledColor.rgb               = (ledColor.rgb & 0xffffff00) | blueLevel;
 
-  if (getFluxHeld() || getFluxMenuOpen())
+  if (getGritHeld() || getGritMenuOpen())
   {
     constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
     Deck::RingSpan    ringSpan;
@@ -242,18 +244,18 @@ void Sporadic::updateFluxDisplayState (DisplayState& view)
     view.rings[view.layerCount++] = ringSpan;
   }
 
-  // Set flux pad LED state and color
-  view.fluxActive = true;
-  view.fluxLedColors[0] = LedRgbBrightness{ledColor.rgb, 1.0f};
-  if (getFluxActive())
+  // Set grit pad LED state and color
+  view.gritActive = true;
+  view.gritLedColors[0] = LedRgbBrightness{ledColor.rgb, 1.0f};
+  if (getGritActive())
   {
-    // If flux is latched active, set the second phase to the same color
-    view.fluxLedColors[1] = LedRgbBrightness{ledColor.rgb, 1.0f};    // Green for active state
+    // If grit is latched active, set the second phase to the same color
+    view.gritLedColors[1] = LedRgbBrightness{ledColor.rgb, 1.0f};    // Green for active state
   }
   else
   {
-    // If flux is not latched active, set the second phase to black
-    view.fluxLedColors[1] = LedRgbBrightness{0x000000, 1.0f};
+    // If grit is not latched active, set the second phase to black
+    view.gritLedColors[1] = LedRgbBrightness{0x000000, 1.0f};
   }
 }
 
@@ -262,11 +264,11 @@ void Sporadic::updateDisplayState ()
   DisplayState view{};
 
   // Check if there is an update to the held state
-  detectFluxHeld();
+  detectGritHeld();
 
-  if (isFluxPlaying())
+  if (isGritPlaying())
   {
-    updateFluxDisplayState(view);
+    updateGritDisplayState(view);
   }
   publishDisplay(view);
 }
@@ -284,7 +286,7 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
   {
     if (isChannelActive(ch))
     {
-      if (isFluxPlaying())
+      if (isGritPlaying())
       {
         inputSculpt_.processBlockMono(in[ch], inputSculptBuf_[ch], blockSize);
       }

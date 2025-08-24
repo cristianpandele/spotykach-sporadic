@@ -261,14 +261,14 @@ namespace spotykach_hwtest
       // Mix control alt latch for the two sides
       bool mixAltLatch[kNumberDeckSlots] = {false};
 
-      // Mix knob Flux latch (captured when Mix pot moved while holding Flux pad)
-      bool mixFluxLatch[kNumberDeckSlots] = {false};
+      // Mix knob Grit latch
+      bool mixGritLatch[kNumberDeckSlots] = {false};
 
-      // Position knob Flux latch
-      bool positionFluxLatch[kNumberDeckSlots] = {false};
+      // Position knob Grit latch
+      bool positionGritLatch[kNumberDeckSlots] = {false};
 
-      // Size knob Flux latch
-      bool sizeFluxLatch[kNumberDeckSlots] = {false};
+      // Size knob Grit latch
+      bool sizeGritLatch[kNumberDeckSlots] = {false};
 
       // Spotykach slider Spotykach latch
       bool spotySpotyLatch = false;

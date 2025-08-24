@@ -43,11 +43,11 @@ class Sporadic : public Deck
     float delayNetworkBuf_[kNumberChannelsStereo][kBlockSize] {};
 
     // Setters for mix, position and size (overloads point to Sporadic versions)
-    void setMix (float m, bool fluxLatch = false);
+    void setMix (float m, bool gritLatch = false);
     void setMix (float m) override { setMix(m, false); }
-    void setPosition (float p, bool fluxLatch = false);
+    void setPosition (float p, bool gritLatch = false);
     void setPosition (float p) override { setPosition(p, false); }
-    void setSize (float s, bool fluxLatch = false);
+    void setSize (float s, bool gritLatch = false);
     void setSize (float s) override { setSize(s, false); }
 
     uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
@@ -60,7 +60,7 @@ class Sporadic : public Deck
                              bool             gradient = false);
 
     void updateBandpassDisplay (const uint8_t numLeds, uint8_t &start, uint8_t &end);
-    void updateFluxDisplayState (DisplayState& view);
+    void updateGritDisplayState (DisplayState& view);
 
     Sporadic (const Sporadic &)           = delete;
     Sporadic &operator=(const Sporadic &) = delete;

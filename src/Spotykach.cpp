@@ -307,7 +307,7 @@ void Spotykach::getDigitalControls(DigitalControlFrame &c)
   c.altPlay = record_;
   c.spotyPlay = false;  // Reset Spotykach+Play state
   c.flux = flux_;
-  c.altFlux = false; // Reset Alt+Flux state
+  c.altGrit = false; // Reset Alt+Flux state
   c.grit = grit_;
   c.altGrit = false; // Reset Alt+Grit state
 }
