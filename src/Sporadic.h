@@ -3,7 +3,7 @@
 #include "common.h"
 #include "daisy_seed.h"
 #include "daisysp.h"
-#include "Effect.h"
+#include "Deck.h"
 #include "hardware.h"
 #include "InputSculpt.h"
 #include "DelayNetwork.h"
@@ -11,11 +11,11 @@
 using namespace daisy;
 using namespace spotykach_hwtest;
 
-// Class for Sporadic effect implementation
-class Sporadic : public Effect
+// Class for Sporadic deck implementation
+class Sporadic : public Deck
 {
   public:
-    Sporadic (size_t sampleRate) : Effect(sampleRate) {}
+    Sporadic (size_t sampleRate) : Deck(sampleRate) {}
     ~Sporadic () = default;
 
     void init () override;
@@ -52,12 +52,12 @@ class Sporadic : public Effect
 
     uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
     void ledBrightnessTriangleGradient (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
-    void populateLedRing (Effect::RingSpan &ringSpan,
-                          uint8_t           ringSize,
-                          LedRgbBrightness  colorBright,
-                          uint8_t           start,
-                          uint8_t           spanSize,
-                          bool              gradient = false);
+    void    populateLedRing (Deck::RingSpan  &ringSpan,
+                             uint8_t          ringSize,
+                             LedRgbBrightness colorBright,
+                             uint8_t          start,
+                             uint8_t          spanSize,
+                             bool             gradient = false);
 
     void updateBandpassDisplay (const uint8_t numLeds, uint8_t &start, uint8_t &end);
     void updateFluxDisplayState (DisplayState& view);

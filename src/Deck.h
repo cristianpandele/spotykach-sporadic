@@ -7,8 +7,8 @@ using namespace daisy;
 using namespace spotykach;
 using namespace infrasonic;
 
-// Base class for Effect implementation
-class Effect
+// Base class for Deck implementation
+class Deck
 {
   public:
     enum ChannelConfig
@@ -20,7 +20,7 @@ class Effect
       CH_CONFIG_LAST
     };
 
-    enum EffectMode
+    enum DeckMode
     {
       MODE_1,
       MODE_2,
@@ -94,13 +94,13 @@ class Effect
       LedRgbBrightness altLedColors[kMaxLedPhases];
     };
 
-    Effect (size_t sampleRate) : sampleRate_(sampleRate) {}
-    Effect ()            = delete;
-    virtual ~Effect ()   = default;
+    Deck (size_t sampleRate) : sampleRate_(sampleRate) {}
+    Deck ()            = delete;
+    virtual ~Deck ()   = default;
 
     virtual void init () = 0;
     virtual void setChannelConfig (ChannelConfig cfg);
-    virtual void setMode (EffectMode m);
+    virtual void setMode (DeckMode m);
 
     // Unified controls update
     virtual void updateAnalogControls (const AnalogControlFrame &c) = 0;
@@ -116,10 +116,10 @@ class Effect
     virtual void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) = 0;
 
   protected:
-    // Channel configuration for the effect
+    // Channel configuration for the deck
     ChannelConfig channelConfig_ = ChannelConfig::OFF;
 
-    // Sample rate for the effect
+    // Sample rate for the deck
     size_t sampleRate_;
 
     // Update the display state with the current values
@@ -152,10 +152,10 @@ class Effect
     // Grit flag
     bool grit_ = false;
 
-    // Current effect mode
-    EffectMode mode_ = MODE_1;
+    // Current deck mode
+    DeckMode mode_ = MODE_1;
 
-    // Setters for effect parameters
+    // Setters for deck parameters
     virtual void setMix (float m) { mix_ = infrasonic::unitclamp(m); }
     virtual void setPitch (float p) { pitch_ = infrasonic::unitclamp(p); }
     virtual void setPosition (float p) { position_ = infrasonic::unitclamp(p); }
@@ -172,22 +172,22 @@ class Effect
     virtual void toggleFluxActive() { fluxActive_ = !fluxActive_; }
     virtual void toggleGritActive() { gritActive_ = !gritActive_; }
 
-    // Getters for the effect active states
+    // Getters for the effects active states
     virtual bool getFluxActive () const { return fluxActive_; }
     virtual bool getGritActive () const { return gritActive_; }
 
-    // Setters for the effect menu states
+    // Setters for the effects menu states
     virtual void setFluxMenuOpen (bool f) { fluxMenuOpen_ = f; }
     virtual void setGritMenuOpen (bool g) { gritMenuOpen_ = g; }
-    // Getters for the effect menu open states
+    // Getters for the effects menu open states
     virtual bool getFluxMenuOpen () const { return fluxMenuOpen_; }
     virtual bool getGritMenuOpen () const { return gritMenuOpen_; }
 
-    // Getters for the effect pad held states
+    // Getters for the effects pad held states
     virtual bool getFluxHeld () const { return fluxHeld_; }
     virtual bool getGritHeld () const { return gritHeld_; }
 
-    // Getters for the effect playing states
+    // Getters for the effects playing states
     virtual bool isFluxPlaying () const { return (getFluxHeld() || getFluxMenuOpen() || getFluxActive()); }
     virtual bool isGritPlaying () const { return (getGritHeld() || getGritMenuOpen() || getGritActive()); }
 
@@ -243,6 +243,6 @@ class Effect
                     bool           &held,
                     bool           &doubleTap);
 
-    Effect (const Effect &)           = delete;
-    Effect &operator=(const Effect &) = delete;
+    Deck (const Deck &)           = delete;
+    Deck &operator=(const Deck &) = delete;
 };

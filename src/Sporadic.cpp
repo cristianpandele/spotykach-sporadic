@@ -51,7 +51,7 @@ void Sporadic::setSize (float s, bool fluxLatch)
 
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
-  // Update the analog effect parameters based on the control frame
+  // Update the analog deck parameters based on the control frame
   setMix(c.mix, c.mixFlux || getFluxMenuOpen ());
   setPitch(c.pitch);
   setPosition(c.position, c.positionFlux || getFluxMenuOpen ());
@@ -61,7 +61,7 @@ void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 
 void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
 {
-  // Update the digital effect parameters based on the control frame
+  // Update the digital deck parameters based on the control frame
   setReverse(c.reverse);
   setPlay(c.play);
   setFlux(c.flux);
@@ -110,8 +110,8 @@ void Sporadic::getDigitalControls (DigitalControlFrame &c)
 {
   // c.reverse   = reverse_;
   // c.play      = play_;
-  c.altPlay   = false;    // Not used in this effect
-  c.spotyPlay = false;    // Not used in this effect
+  c.altPlay   = false;    // Not used in this deck
+  c.spotyPlay = false;    // Not used in this deck
   // c.flux      = flux_;
   c.altFlux   = false;    // Alt+Flux is just a toggle
   // c.grit      = grit_;
@@ -149,12 +149,12 @@ void Sporadic::ledBrightnessTriangleGradient (uint8_t spanSize, float minBrightn
   }
 }
 
-void Sporadic::populateLedRing (Effect::RingSpan &ringSpan,
-                                uint8_t           ringSize,
-                                LedRgbBrightness  colorBright,
-                                uint8_t           start,
-                                uint8_t           spanSize,
-                                bool              gradient)
+void Sporadic::populateLedRing (Deck::RingSpan  &ringSpan,
+                                uint8_t          ringSize,
+                                LedRgbBrightness colorBright,
+                                uint8_t          start,
+                                uint8_t          spanSize,
+                                bool             gradient)
 {
   LedRgbBrightness ledColor[Hardware::kNumLedsPerRing];
   // Clear ledColor
@@ -226,7 +226,7 @@ void Sporadic::updateFluxDisplayState (DisplayState& view)
   if (getFluxHeld() || getFluxMenuOpen())
   {
     constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
-    Effect::RingSpan  ringSpan;
+    Deck::RingSpan    ringSpan;
 
     // Yellow area indicating the frequency range
     populateLedRing(ringSpan, N, {0xffff00, 1.0f}, 0, N);

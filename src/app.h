@@ -1,5 +1,5 @@
 #pragma once
-#include "Effect.h"
+#include "Deck.h"
 #include "Modulation.h"
 #include "hardware.h"
 #include <bitset>
@@ -16,7 +16,7 @@ namespace spotykach_hwtest
   constexpr float  kSamplePeriodMs       = 1000.0f / kSampleRate;
   constexpr size_t kBlockSize            = 48;
 
-  constexpr uint8_t kNumberEffectSlots    = Hardware::kNumInPair;
+  constexpr uint8_t kNumberDeckSlots      = Hardware::kNumInPair;
   constexpr uint8_t kNumberChannelsStereo = 2;
   constexpr uint8_t kNumberChannelsMono   = 1;
 
@@ -34,7 +34,7 @@ namespace spotykach_hwtest
   };
 
   // Utils class
-  using ChannelConfig = Effect::ChannelConfig;
+  using ChannelConfig = Deck::ChannelConfig;
   class Utils
   {
     public:
@@ -197,14 +197,14 @@ namespace spotykach_hwtest
                                                           Hardware::LED_SPOTY_PAD,
                                                           Hardware::LED_ALT_A};
 
-      static constexpr size_t  kPadMappingSize = sizeof(kPadMapping) / sizeof(kPadMapping[0]);
-      static constexpr size_t  kPadMapPlayIds[kNumberEffectSlots]  = {0, 9};
-      static constexpr size_t  kPadMapRevIds[kNumberEffectSlots]   = {1, 8};
-      static constexpr size_t  kPadMapGritIds[kNumberEffectSlots]  = {2, 7};
-      static constexpr size_t  kPadMapFluxIds[kNumberEffectSlots]  = {3, 6};
-      static constexpr size_t  kPadMapCycleIds[kNumberEffectSlots] = {4, 5};
-      static constexpr size_t  kPadMapSpotyId                      = 10;
-      static constexpr size_t  kPadMapAltId                        = 11;
+      static constexpr size_t kPadMappingSize                   = sizeof(kPadMapping) / sizeof(kPadMapping[0]);
+      static constexpr size_t kPadMapPlayIds[kNumberDeckSlots]  = {0, 9};
+      static constexpr size_t kPadMapRevIds[kNumberDeckSlots]   = {1, 8};
+      static constexpr size_t kPadMapGritIds[kNumberDeckSlots]  = {2, 7};
+      static constexpr size_t kPadMapFluxIds[kNumberDeckSlots]  = {3, 6};
+      static constexpr size_t kPadMapCycleIds[kNumberDeckSlots] = {4, 5};
+      static constexpr size_t kPadMapSpotyId                    = 10;
+      static constexpr size_t kPadMapAltId                      = 11;
 
       AppImpl ()  = default;
       ~AppImpl () = default;
@@ -213,21 +213,21 @@ namespace spotykach_hwtest
       void loop ();
 
       // Update the control frame with the current values
-      void updateAnalogControlFrame (Effect::AnalogControlFrame &c, size_t effectSlot);
+      void updateAnalogControlFrame (Deck::AnalogControlFrame &c, size_t deckSlot);
 
       // Update the control frame with the current values
-      void updateDigitalControlFrame (Effect::DigitalControlFrame &c, size_t effectSlot);
+      void updateDigitalControlFrame (Deck::DigitalControlFrame &c, size_t deckSlot);
 
-      // Push the control frame to the effects
-      void pushAnalogEffectControls (Effect::AnalogControlFrame &c, size_t effectSlot);
+      // Push the control frame to the decks
+      void pushAnalogDeckControls (Deck::AnalogControlFrame &c, size_t deckSlot);
 
-      // Push the control frame to the effects
-      void pushDigitalEffectControls (Effect::DigitalControlFrame &c, size_t effectSlot);
+      // Push the control frame to the decks
+      void pushDigitalDeckControls (Deck::DigitalControlFrame &c, size_t deckSlot);
 
-      // Process the modulation controls for the specified effect slot
+      // Process the modulation controls for the specified deck slot
       void processModulatorControls (size_t slot);
 
-      // Audio processing functions for the Spotykach looper and Sporadic effect
+      // Audio processing functions for the Spotykach looper and Sporadic deck
       void processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize);
 
       // This is the main audio processing function that will be called from the AudioCallback
@@ -235,7 +235,7 @@ namespace spotykach_hwtest
 
     private:
       using ModType = ModulationEngine::ModType;
-      static constexpr ModType modulationTypes[kNumberEffectSlots][ModulationEngine::kNumModsPerSide] =
+      static constexpr ModType modulationTypes[kNumberDeckSlots][ModulationEngine::kNumModsPerSide] =
         {
           {ModType::ENV_FOLLOWER,  ModType::S_H, ModType::SQUARE},
           {ModType::ENV_FOLLOWER, ModType::SINE,   ModType::RAMP},
@@ -254,21 +254,21 @@ namespace spotykach_hwtest
       AppMode currentRoutingMode = AppMode::OFF;
 
       // Mix controls for the two sides (updated at audio sample rate)
-      using SmoothValue = Utils::SmoothValue;
-      SmoothValue mixControls[kNumberEffectSlots] = {SmoothValue(25.0f, kSamplePeriodMs),
-                                                     SmoothValue(25.0f, kSamplePeriodMs)};
+      using SmoothValue                         = Utils::SmoothValue;
+      SmoothValue mixControls[kNumberDeckSlots] = {SmoothValue(25.0f, kSamplePeriodMs),
+                                                   SmoothValue(25.0f, kSamplePeriodMs)};
 
       // Mix control alt latch for the two sides
-      bool mixAltLatch[kNumberEffectSlots] = {false};
+      bool mixAltLatch[kNumberDeckSlots] = {false};
 
       // Mix knob Flux latch (captured when Mix pot moved while holding Flux pad)
-      bool mixFluxLatch[kNumberEffectSlots] = {false};
+      bool mixFluxLatch[kNumberDeckSlots] = {false};
 
       // Position knob Flux latch
-      bool positionFluxLatch[kNumberEffectSlots] = {false};
+      bool positionFluxLatch[kNumberDeckSlots] = {false};
 
       // Size knob Flux latch
-      bool sizeFluxLatch[kNumberEffectSlots] = {false};
+      bool sizeFluxLatch[kNumberDeckSlots] = {false};
 
       // Spotykach slider Spotykach latch
       bool spotySpotyLatch = false;
@@ -277,100 +277,99 @@ namespace spotykach_hwtest
       SmoothValue spotyControl {SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
 
       // Smooth pitch for each side (updated at audio sample rate)
-      SmoothValue pitchControls[kNumberEffectSlots] {SmoothValue(75.0f, kSamplePeriodMs),
-                                                     SmoothValue(75.0f, kSamplePeriodMs)};
+      SmoothValue pitchControls[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs),
+                                                  SmoothValue(75.0f, kSamplePeriodMs)};
 
       // Position knob for each side (updated at audio sample rate)
-      SmoothValue positionControls[kNumberEffectSlots] {SmoothValue(150.0f, kSamplePeriodMs),
-                                                        SmoothValue(150.0f, kSamplePeriodMs)};
+      SmoothValue positionControls[kNumberDeckSlots]{SmoothValue(150.0f, kSamplePeriodMs),
+                                                     SmoothValue(150.0f, kSamplePeriodMs)};
       // Position/size switch state for each side
-      SizePosSwitchState sizePosSwitch[kNumberEffectSlots] {SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
+      SizePosSwitchState sizePosSwitch[kNumberDeckSlots]{SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
 
       // Size controls for each side (updated at audio sample rate)
-      SmoothValue sizeControls[kNumberEffectSlots] {SmoothValue(250.0f, kSamplePeriodMs),
-                                                    SmoothValue(250.0f, kSamplePeriodMs)};
+      SmoothValue sizeControls[kNumberDeckSlots]{SmoothValue(250.0f, kSamplePeriodMs),
+                                                 SmoothValue(250.0f, kSamplePeriodMs)};
 
       // Shape controls for each side (updated at audio sample rate)
-      SmoothValue shapeControls[kNumberEffectSlots] {SmoothValue(250.0f, kSamplePeriodMs),
-                                                     SmoothValue(250.0f, kSamplePeriodMs)};
+      SmoothValue shapeControls[kNumberDeckSlots]{SmoothValue(250.0f, kSamplePeriodMs),
+                                                  SmoothValue(250.0f, kSamplePeriodMs)};
 
       // Modulation amount controls for each side (updated at audio block rate)
-      SmoothValue modulationAmount[kNumberEffectSlots] {SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-                                                        SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue modulationAmount[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs *kBlockSize),
+                                                     SmoothValue(75.0f, kSamplePeriodMs *kBlockSize)};
 
       // Modulation frequency controls for each side (updated at audio block rate)
-      SmoothValue modulationFreq[kNumberEffectSlots] {SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-                                                      SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue modulationFreq[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs *kBlockSize),
+                                                   SmoothValue(75.0f, kSamplePeriodMs *kBlockSize)};
 
       // Modulation frequency alt latch for each side
       bool modFreqAltLatch[2] = {false};
 
-      // Mode switch changed flag and current effect mode for each side
-      using EffectMode                                    = Effect::EffectMode;
-      bool       effectModeChanged[kNumberEffectSlots] {false};
-      EffectMode currentEffectMode[kNumberEffectSlots] {EffectMode::MODE_1, EffectMode::MODE_1};
+      // Mode switch changed flag and current deck mode for each side
+      using DeckMode = Deck::DeckMode;
+      bool     deckModeChanged[kNumberDeckSlots]{false};
+      DeckMode currentDeckMode[kNumberDeckSlots]{DeckMode::MODE_1, DeckMode::MODE_1};
 
       // Mod type switch flag and current mod type for each side
-      bool    modTypeChanged[kNumberEffectSlots] {false};
-      ModType currentModType[kNumberEffectSlots] {ModType::MOD_TYPE_LAST,
-                                                  ModType::MOD_TYPE_LAST};
+      bool    modTypeChanged[kNumberDeckSlots]{false};
+      ModType currentModType[kNumberDeckSlots]{ModType::MOD_TYPE_LAST, ModType::MOD_TYPE_LAST};
 
       // Reverse flag for each side
-      bool reverseStateChanged[kNumberEffectSlots] {false};
-      bool currentReverseState[kNumberEffectSlots] {false};
+      bool reverseStateChanged[kNumberDeckSlots]{false};
+      bool currentReverseState[kNumberDeckSlots]{false};
 
       // Play flag for each side
-      bool playStateChanged[kNumberEffectSlots] {false};
-      bool currentPlayState[kNumberEffectSlots] {false};
+      bool playStateChanged[kNumberDeckSlots]{false};
+      bool currentPlayState[kNumberDeckSlots]{false};
 
       // Alt + Play flag for each side
-      bool altPlayStateChanged[kNumberEffectSlots] {false};
-      bool currentAltPlayState[kNumberEffectSlots] {false};
+      bool altPlayStateChanged[kNumberDeckSlots]{false};
+      bool currentAltPlayState[kNumberDeckSlots]{false};
 
       // Spotykach + Play flag for each side
-      bool spotyPlayStateChanged[kNumberEffectSlots] {false};
-      bool currentSpotyPlayState[kNumberEffectSlots] {false};
+      bool spotyPlayStateChanged[kNumberDeckSlots]{false};
+      bool currentSpotyPlayState[kNumberDeckSlots]{false};
 
       // Flux flag for each side
-      bool fluxStateChanged[kNumberEffectSlots]{false};
-      bool currentFluxState[kNumberEffectSlots]{false};
+      bool fluxStateChanged[kNumberDeckSlots]{false};
+      bool currentFluxState[kNumberDeckSlots]{false};
 
       // Alt+Flux combo toggle flag for each side
-      bool altFluxStateChanged[kNumberEffectSlots]{false};
-      bool currentAltFluxState[kNumberEffectSlots]{false};
+      bool altFluxStateChanged[kNumberDeckSlots]{false};
+      bool currentAltFluxState[kNumberDeckSlots]{false};
 
       // Grit flag for each side
-      bool gritStateChanged[kNumberEffectSlots]{false};
-      bool currentGritState[kNumberEffectSlots]{false};
+      bool gritStateChanged[kNumberDeckSlots]{false};
+      bool currentGritState[kNumberDeckSlots]{false};
 
       // Alt+Grit combo toggle flag for each side
-      bool altGritStateChanged[kNumberEffectSlots]{false};
-      bool currentAltGritState[kNumberEffectSlots]{false};
+      bool altGritStateChanged[kNumberDeckSlots]{false};
+      bool currentAltGritState[kNumberDeckSlots]{false};
 
       // Pad touch states
       std::bitset<16> padTouchStates;
       std::bitset<16> padTouchStatesPrev;
 
       // Modulator CV value for each side
-      float    modCv[kNumberEffectSlots] {0.0f};
+      float modCv[kNumberDeckSlots]{0.0f};
 
-      // Crossfade mix between effect slot outputs (0.0 = slot 0 only, 1.0 = slot 1 only)
-      float effectMix_ = 0.5f;
+      // Crossfade mix between deck slot outputs (0.0 = slot 0 only, 1.0 = slot 1 only)
+      float deckMix_ = 0.5f;
 
-      // Per-effect temporary output buffers for crossfading (stereo, blocksize frames)
-      float effectOutputs_[kNumberEffectSlots][kNumberChannelsStereo][kBlockSize] {};
+      // Per-deck temporary output buffers for crossfading (stereo, blocksize frames)
+      float deckOutputs_[kNumberDeckSlots][kNumberChannelsStereo][kBlockSize]{};
 
       // LED Phase for blinking LEDs
       uint8_t padLedPhase = 0;
 
-      uint16_t last_pot_moved[kNumberEffectSlots] {0};
+      uint16_t last_pot_moved[kNumberDeckSlots]{0};
 
       bool    test_note_on;
       bool    midi_in_note_on;
       uint8_t midi_in_nn;
 
       // Modulator instances for each side
-      Modulator modulator[kNumberEffectSlots] = {
+      Modulator modulator[kNumberDeckSlots] = {
         Modulator(modulationTypes[0], ModulationEngine::kNumModsPerSide, kLedUpdateRate),
         Modulator(modulationTypes[1], ModulationEngine::kNumModsPerSide, kLedUpdateRate)
       };
