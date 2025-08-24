@@ -49,6 +49,8 @@ class Sporadic : public Deck
     void setPosition (float p) override { setPosition(p, false); }
     void setSize (float s, bool gritLatch = false);
     void setSize (float s) override { setSize(s, false); }
+    void setShape (float s, bool gritLatch = false);
+    void setShape (float s) override { setShape(s, false); }
 
     uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
     void ledBrightnessTriangleGradient (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
@@ -59,7 +61,7 @@ class Sporadic : public Deck
                              uint8_t          spanSize,
                              bool             gradient = false);
 
-    void updateBandpassDisplay (const uint8_t numLeds, uint8_t &start, uint8_t &end);
+    void updateBandpassDisplaySize (const uint8_t numLeds, uint8_t &start, uint8_t &end);
     void updateGritDisplayState (DisplayState& view);
 
     Sporadic (const Sporadic &)           = delete;

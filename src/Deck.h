@@ -40,6 +40,7 @@ class Deck
       float size;
       bool  sizeGrit;     // latched Flux pad at move time for Size knob
       float shape;
+      bool  shapeGrit;    // latched Flux pad at move time for Shape knob
     };
 
     // Digital control payload pushed  on change (at most once per loop iteration) from AppImpl

@@ -49,6 +49,20 @@ void Sporadic::setSize (float s, bool gritLatch)
   }
 }
 
+void Sporadic::setShape (float s, bool gritLatch)
+{
+  // If grit latched, set input sculpt shape instead of shape
+  if (gritLatch)
+  {
+    // Map the shape to the input sculpt
+    inputSculpt_.setShape(s);
+  }
+  else
+  {
+    shape_ = s;
+  }
+}
+
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame
@@ -57,7 +71,7 @@ void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
   setPitch(c.pitch);
   setPosition(c.position, c.positionGrit || getGritMenuOpen());
   setSize(c.size, c.sizeGrit || getGritMenuOpen());
-  setShape(c.shape);
+  setShape(c.shape, c.shapeGrit || getGritMenuOpen());
 }
 
 void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
@@ -167,13 +181,41 @@ void Sporadic::populateLedRing (Deck::RingSpan  &ringSpan,
   // Compute per-LED gradient values, using the brightness indicated in colorBright as maximum value
   if (gradient)
   {
-    float ledGradient[Hardware::kNumLedsPerRing] = {0.0f};
-    ledBrightnessTriangleGradient(spanSize, (colorBright.brightness / 3.0f), colorBright.brightness, ledGradient);
+    float ledSquareGradient[Hardware::kNumLedsPerRing]   = {0.0f};
+    float ledFallingGradient[Hardware::kNumLedsPerRing]  = {0.0f};
+    float ledTriangleGradient[Hardware::kNumLedsPerRing] = {0.0f};
+    float ledRampGradient[Hardware::kNumLedsPerRing]     = {0.0f};
+
+    std::fill(std::begin(ledSquareGradient), std::end(ledSquareGradient), 1.0f);
+    std::fill(std::begin(ledFallingGradient), std::end(ledFallingGradient), 0.0f);
+    ledBrightnessTriangleGradient(spanSize,
+                                  (colorBright.brightness / 3.0f),
+                                  colorBright.brightness,
+                                  ledTriangleGradient);
+    std::fill(std::begin(ledRampGradient), std::end(ledRampGradient), 0.0f);
 
     for (uint8_t i = 0; i < spanSize; ++i)
     {
+      // Interpolate between the LED gradient shapes
+      float t = inputSculpt_.getShape(); // 0..1
+      float v;
+      if (t < 0.33333334f)
+      {
+        float u = t / 0.33333334f;
+        v       = infrasonic::lerp(ledSquareGradient[i], ledFallingGradient[i], u);
+      }
+      else if (t < 0.6666667f)
+      {
+        float u = (t - 0.33333334f) / 0.33333334f;
+        v       = infrasonic::lerp(ledFallingGradient[i], ledTriangleGradient[i], u);
+      }
+      else
+      {
+        float u = (t - 0.6666667f) / 0.33333334f;
+        v       = infrasonic::lerp(ledTriangleGradient[i], ledRampGradient[i], u);
+      }
       // Copy resulting gradients to the ledColor array
-      ledColor[start + i] = {colorBright.rgb, ledGradient[i]};
+      ledColor[start + i] = {colorBright.rgb, v};
     }
   }
 
@@ -182,7 +224,7 @@ void Sporadic::populateLedRing (Deck::RingSpan  &ringSpan,
   std::copy(std::begin(ledColor), std::end(ledColor), std::begin(ringSpan.led));
 }
 
-void Sporadic::updateBandpassDisplay (const uint8_t numLeds, uint8_t &start, uint8_t &end)
+void Sporadic::updateBandpassDisplaySize (const uint8_t numLeds, uint8_t &start, uint8_t &end)
 {
   float centerFreq = inputSculpt_.getCenterFreq();
   float Q          = inputSculpt_.getQ();
@@ -234,13 +276,44 @@ void Sporadic::updateGritDisplayState (DisplayState& view)
     populateLedRing(ringSpan, N, {0xffff00, 1.0f}, 0, N);
     view.rings[view.layerCount++] = ringSpan;
 
-    // Compute bandpass span from center frequency and width (Q).
-    uint8_t bandpassSpanStart;
-    uint8_t bandpassSpanEnd;
-    updateBandpassDisplay(N, bandpassSpanStart, bandpassSpanEnd);
+    uint8_t squareSpanStart       = 0;
+    uint8_t squareSpanEnd         = N;
 
-    // Purple span indicating the bandpass area
-    populateLedRing(ringSpan, N, ledColor, bandpassSpanStart, bandpassSpanEnd - bandpassSpanStart, true);
+    uint8_t fallingSpanStart      = 0;
+    uint8_t fallingSpanEnd        = N / 2;
+
+    // Compute bandpass span from center frequency and width (Q).
+    uint8_t triangleSpanStart;
+    uint8_t triangleSpanEnd;
+    updateBandpassDisplaySize(N, triangleSpanStart, triangleSpanEnd);
+
+    uint8_t rampSpanStart         = N / 2;
+    uint8_t rampSpanEnd           = N;
+
+    float t                       = inputSculpt_.getShape();    // 0..1
+    float spanStart;
+    float spanEnd;
+    if (t < 0.33333334f)
+    {
+      float u   = t / 0.33333334f;
+      spanStart = infrasonic::lerp(squareSpanStart, fallingSpanStart, u);
+      spanEnd   = infrasonic::lerp(squareSpanEnd, fallingSpanEnd, u);
+    }
+    else if (t < 0.6666667f)
+    {
+      float u   = (t - 0.33333334f) / 0.33333334f;
+      spanStart = infrasonic::lerp(fallingSpanStart, triangleSpanStart, u);
+      spanEnd   = infrasonic::lerp(fallingSpanEnd, triangleSpanEnd, u);
+    }
+    else
+    {
+      float u   = (t - 0.6666667f) / 0.33333334f;
+      spanStart = infrasonic::lerp(triangleSpanStart, rampSpanStart, u);
+      spanEnd   = infrasonic::lerp(triangleSpanEnd, rampSpanEnd, u);
+    }
+
+    // Purple span indicating the filter area
+    populateLedRing(ringSpan, N, ledColor, spanStart, spanEnd - spanStart, true);
     view.rings[view.layerCount++] = ringSpan;
   }
 

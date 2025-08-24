@@ -31,9 +31,13 @@ class InputSculpt
     // Normalized 0..1 -> Q 0.5.. 12 (inverse exponential so higher knob widens bandwidth)
     void setWidth (float w);
 
+    // Normalized 0..1 -> Shape 0..1 (linear mapping)
+    void setShape (float s);
+
     // Getters for filter parameters
     float getCenterFreq () const { return centerFreq_; }
     float getQ () const { return q_; }
+    float getShape () const { return shape_; }
 
     // Set overdrive amount (mapped to kMinDriveAmt.. kMaxDriveAmt range)
     void setOverdrive (float od);
@@ -44,6 +48,7 @@ class InputSculpt
     // Filter parameters
     float centerFreq_ = 1000.0f;
     float q_          = 0.0f;
+    float shape_      = 0.0f;
     // Overdrive parameters
     float kMinDriveGainComp = 1.0f;
     float kMaxDriveGainComp = 16.0f;

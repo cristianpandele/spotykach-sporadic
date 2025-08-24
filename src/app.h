@@ -279,6 +279,9 @@ namespace spotykach_hwtest
       // Size knob Grit latch
       bool sizeGritLatch[kNumberDeckSlots] = {false};
 
+      // Shape knob Grit latch
+      bool shapeGritLatch[kNumberDeckSlots] = {false};
+
       // Spotykach slider Spotykach latch
       bool spotySpotyLatch = false;
 
