@@ -296,18 +296,9 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
         std::copy(in[ch], in[ch] + blockSize, inputSculptBuf_[ch]);
       }
       delayNetwork_.processBlockMono(inputSculptBuf_[ch], delayNetworkBuf_[ch], blockSize);
-    }
-  }
 
-  for (size_t i = 0; i < blockSize; ++i)
-  {
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        // Apply dry-wet mix
-        out[ch][i] = infrasonic::lerp(in[ch][i], delayNetworkBuf_[ch][i], mix_);
-      }
+      // Apply dry-wet mix
+      Utils::audioBlockLerp(in[ch], delayNetworkBuf_[ch], out[ch], mix_, blockSize);
     }
   }
 }

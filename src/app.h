@@ -79,6 +79,15 @@ namespace spotykach_hwtest
         return current.test(index);
       }
 
+      static void audioBlockLerp (const float *in1, const float *in2, float *out, float mix, size_t blockSize)
+      {
+        // Perform linear interpolation between two audio blocks
+        for (size_t i = 0; i < blockSize; i++)
+        {
+          out[i] = infrasonic::lerp(in1[i], in2[i], mix);
+        }
+      }
+
       // SmoothValue class for smoothing parameter changes
       class SmoothValue
       {
