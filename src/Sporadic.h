@@ -30,17 +30,25 @@ class Sporadic : public Deck
 #endif
 
   private:
+    enum FilterType
+    {
+      kLowPass,
+      kHighPass,
+      kBandPass,
+    };
     // Input sculpting bandpass filter
     InputSculpt  inputSculpt_;
     // Delay network for feedback and modulation
     DelayNetwork delayNetwork_;
 
     // Constants
-    static constexpr uint8_t kNumBands = 4; // Number of bands for diffusion
+    static constexpr uint8_t kNumBands     = 4;    // Number of bands for diffusion
+    static constexpr float   filterMinFreq = 50.0f;
+    static constexpr float   filterMaxFreq = 18000.0f;
 
     // Internal working buffers (single block) to avoid per-callback allocations.
-    float inputSculptBuf_[kNumberChannelsStereo][kBlockSize] {};
-    float delayNetworkBuf_[kNumberChannelsStereo][kBlockSize] {};
+    float inputSculptBuf_[kNumberChannelsStereo][kBlockSize]{};
+    float delayNetworkBuf_[kNumberChannelsStereo][kBlockSize]{};
 
     // Setters for mix, position and size (overloads point to Sporadic versions)
     void setMix (float m, bool gritLatch = false);
@@ -53,16 +61,28 @@ class Sporadic : public Deck
     void setShape (float s) override { setShape(s, false); }
 
     uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
-    void ledBrightnessTriangleGradient (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
-    void    populateLedRing (Deck::RingSpan  &ringSpan,
-                             uint8_t          ringSize,
-                             LedRgbBrightness colorBright,
-                             uint8_t          start,
-                             uint8_t          spanSize,
-                             bool             gradient = false);
+    void    ledBrightnessFilterGradient (
+         FilterType type, uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+    // Falling: full max until cutoff LED index, then linear descent over Q-based width to min
+    void ledBrightnessFallingGradient (
+      uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+    // Ramp: linear ascent over Q-based width up to cutoff LED index, then full max
+    void ledBrightnessRampGradient (
+      uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+    void populateLedRing (Deck::RingSpan  &ringSpan,
+                          uint8_t          ringSize,
+                          LedRgbBrightness colorBright,
+                          uint8_t          spanStart,
+                          uint8_t          spanSize,
+                          bool             gradient = false);
 
-    void updateBandpassDisplaySize (const uint8_t numLeds, uint8_t &start, uint8_t &end);
-    void updateGritDisplayState (DisplayState& view);
+    float calculateFilterHalfBandwidth (float centerFreq, float Q);
+    void  calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, uint8_t &start, uint8_t &end);
+    void  updateGritDisplayState (DisplayState &view);
+
+    // Helpers to derive LED indices from filter params
+    uint8_t computeCutoffIdx (uint8_t ringSize);
+    uint8_t computeWidthFromQ (uint8_t ringSize);
 
     Sporadic (const Sporadic &)           = delete;
     Sporadic &operator=(const Sporadic &) = delete;
