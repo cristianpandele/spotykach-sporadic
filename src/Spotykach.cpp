@@ -11,6 +11,9 @@ using namespace infrasonic;
 
 void Spotykach::init ()
 {
+  // Initialize the input sculpt effect
+  inputSculpt_.init(sampleRate_);
+
   // Initialize the Spotykach looper pointers
   readIx_  = 0;
   writeIx_ = 0;
@@ -85,6 +88,80 @@ void Spotykach::configureEnvelopeLength (float windowLenSamples)
   envRise_.SetReleaseTime(std::min(0.001f, 0.05f * windowLenSec));
 }
 
+void Spotykach::setMix (float m, bool altLatch, bool gritLatch)
+{
+  // If alt latch is pressed, set feedback instead of mix
+  if (altLatch)
+  {
+    setFeedback(m);
+  }
+  // If grit latched, set drive instead of mix
+  else if (gritLatch)
+  {
+    inputSculpt_.setOverdrive(m);
+  }
+  else if (!getGritMenuOpen())
+  {
+    mix_ = m;
+  }
+}
+
+void Spotykach::setPosition (float p, bool gritLatch)
+{
+  // If grit latched, set input sculpt frequency instead of position
+  if (gritLatch)
+  {
+    // Map the frequency to the input sculpt
+    inputSculpt_.setFreq(p);
+  }
+  else if (!getGritMenuOpen())
+  {
+    position_ = p;
+  }
+}
+
+void Spotykach::setSize (float s, bool gritLatch)
+{
+  // If grit latched, set input sculpt shape instead of shape
+  if (gritLatch)
+  {
+    // Map the shape to the input sculpt
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setWidth(s);
+      }
+    }
+  }
+  else if (!getGritMenuOpen())
+  {
+    // Ensure size is just a hair above 0 at all times
+    size_ = infrasonic::map(s, 0.0f, 1.0f, 0.05f, 1.0f);
+    size_ = std::clamp(size_, 0.05f, 1.0f);
+  }
+}
+
+void Spotykach::setShape (float s, bool gritLatch)
+{
+  // If grit latched, set input sculpt width instead of looper shape
+  if (gritLatch)
+  {
+    // Map the width to the input sculpt
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setShape(s);
+      }
+    }
+  }
+  else if (!getGritMenuOpen())
+  {
+    shape_ = s;
+  }
+}
+
 void Spotykach::setPitch (float s)
 {
   // Map the pitch to 0..4
@@ -94,31 +171,11 @@ void Spotykach::setPitch (float s)
     // Reverse playback, set speed to negative
     speed_ = -std::abs(speed_);
   }
-  else
+  else if (!getGritMenuOpen())
   {
     // Normal playback, set speed to positive
     speed_ = std::abs(speed_);
   }
-}
-
-void Spotykach::setMix (float m, bool altLatch)
-{
-  // If alt latch is pressed, set feedback instead of mix
-  if (altLatch)
-  {
-    setFeedback(m);
-  }
-  else
-  {
-    mix_ = m;
-  }
-}
-
-void Spotykach::setSize (float s)
-{
-  // Ensure size is just a hair above 0 at all times
-  size_ = infrasonic::map(s, 0.0f, 1.0f, 0.05f, 1.0f);
-  size_ = std::clamp(size_, 0.05f, 1.0f);
 }
 
 void Spotykach::setPlay (bool p)
@@ -234,11 +291,12 @@ void Spotykach::setReverse (bool r)
 void Spotykach::updateAnalogControls (const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame
-  setMix(c.mix, c.mixAlt);
+  // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
+  setMix(c.mix, c.mixAlt, c.mixGrit || getGritMenuOpen());
   setPitch(c.pitch);
-  setPosition(c.position);
-  setSize(c.size);
-  setShape(c.shape);
+  setPosition(c.position, c.positionGrit || getGritMenuOpen());
+  setSize(c.size, c.sizeGrit || getGritMenuOpen());
+  setShape(c.shape, c.shapeGrit || getGritMenuOpen());
 }
 
 void Spotykach::updateDigitalControls (const DigitalControlFrame &c)
@@ -307,7 +365,7 @@ void Spotykach::getDigitalControls(DigitalControlFrame &c)
   c.altPlay = record_;
   c.spotyPlay = false;  // Reset Spotykach+Play state
   c.flux = flux_;
-  c.altGrit = false; // Reset Alt+Flux state
+  c.altGrit = false; // Reset Alt+Grit state
   c.grit = grit_;
   c.altGrit = false; // Reset Alt+Grit state
 }
@@ -395,10 +453,17 @@ void Spotykach::updateDisplayState()
   view.playActive     = play_;
   view.reverseActive  = reverse_;
 
+  // Reverse pad LED handling
   if (reverse_)
   {
     std::fill(std::begin(view.reverseLedColors), std::end(view.reverseLedColors), LedRgbBrightness{0x0000ff, 1.0f});
   }
+
+  // Check if there is an update to the held state of the effect pads
+  detectEffectPadsHeld();
+
+  // Flux/Grit pad LEDs and ring display
+  updateEffectDisplayStates(view);
 
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
   Deck::RingSpan    ringSpan;
@@ -407,43 +472,47 @@ void Spotykach::updateDisplayState()
   {
     case ECHO:
     {
-      // Factor the length of the echo into the LED ring (and zoom in twice for a better view)
-      float positionFactor = 2.0f * position_ * (float)kEchoAudioDataSamples / (float)kLooperAudioDataSamples;
-
-      // Compute spans in LED index space
-      uint8_t start    = static_cast<uint8_t>((1.0f - positionFactor) * (N - 1));
-      uint8_t spanSize = static_cast<uint8_t>(size_ * positionFactor * N);
-      spanSize         = std::min(spanSize, (uint8_t)(Hardware::kNumLedsPerRing - start));
-
-      // Yellow area indicating the position
-      LedRgbBrightness ledColor = {0xffff00, 1.0f};
-      populateLedRing(ringSpan, N, ledColor, start, N - start + 1);
-      view.rings[view.layerCount++] = ringSpan;
-
-      // Orange span indicating the size
-      ledColor = {0xff8000, 1.0f};
-      populateLedRing(ringSpan, N, ledColor, start, spanSize + 1, true);
-      view.rings[view.layerCount++] = ringSpan;
-
-      // Compute the span between the read and write heads
-      float relativePos = writeIx_ - readIx_;
-      if (relativePos < 0)
+      // If any effect is playing, do not calculate the LED rings for the deck
+      if (!isEffectDisplayed())
       {
-        relativePos += kLooperAudioDataSamples;
+        // Factor the length of the echo into the LED ring (and zoom in twice for a better view)
+        float positionFactor = 2.0f * position_ * (float)kEchoAudioDataSamples / (float)kLooperAudioDataSamples;
+
+        // Compute spans in LED index space
+        uint8_t start    = static_cast<uint8_t>((1.0f - positionFactor) * (N - 1));
+        uint8_t spanSize = static_cast<uint8_t>(size_ * positionFactor * N);
+        spanSize         = std::min(spanSize, (uint8_t)(Hardware::kNumLedsPerRing - start));
+
+        // Yellow area indicating the position
+        LedRgbBrightness ledColor = {0xffff00, 1.0f};
+        populateLedRing(ringSpan, N, ledColor, start, N - start + 1);
+        view.rings[view.layerCount++] = ringSpan;
+
+        // Orange span indicating the size
+        ledColor = {0xff8000, 1.0f};
+        populateLedRing(ringSpan, N, ledColor, start, spanSize + 1, true);
+        view.rings[view.layerCount++] = ringSpan;
+
+        // Compute the span between the read and write heads
+        float relativePos = writeIx_ - readIx_;
+        if (relativePos < 0)
+        {
+          relativePos += kLooperAudioDataSamples;
+        }
+
+        // Convert span between the read and write heads to proportion of the echo buffer
+        positionFactor = relativePos / (float)kEchoAudioDataSamples;
+        // Invert position factor for LED mapping
+        positionFactor = 1.0f - positionFactor;
+
+        // Read head position in LED index space
+        uint8_t readIxLed = std::min(static_cast<uint8_t>(start + positionFactor * spanSize), N);
+
+        // Display read head position
+        ledColor = {0xff00ff, 0.5f};
+        populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
+        view.rings[view.layerCount++] = ringSpan;
       }
-
-      // Convert span between the read and write heads to proportion of the echo buffer
-      positionFactor = relativePos / (float)kEchoAudioDataSamples;
-      // Invert position factor for LED mapping
-      positionFactor = 1.0f - positionFactor;
-
-      // Read head position in LED index space
-      uint8_t readIxLed = std::min(static_cast<uint8_t>(start + positionFactor * spanSize), N);
-
-      // Display read head position
-      ledColor = {0xff00ff, 0.5f};
-      populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
-      view.rings[view.layerCount++] = ringSpan;
 
       // Play LED colors
       view.playLedColors[0] = {0x00ff00, 1.0f};    // Green
@@ -454,51 +523,55 @@ void Spotykach::updateDisplayState()
 
     case RECORDING:
     {
-      // Compute spans in LED index space
-      uint8_t start    = 0;
-
-      // Read head position
-      uint8_t readIxLed  = static_cast<uint8_t>(readIx_ * (N - 1) / kLooperAudioDataSamples);
-
-      // Write head position
-      uint8_t writeIxLed = static_cast<uint8_t>(writeIx_ * (N - 1) / kLooperAudioDataSamples);
-
-      // Yellow area indicating the writable area
-      LedRgbBrightness ledColor = {0xffff00, 1.0f};
-      populateLedRing(ringSpan, N, ledColor, start, N);
-      view.rings[view.layerCount++] = ringSpan;
-
-      // Orange area indicating the actively written area
-      ledColor = {0xff8000, 1.0f};
-      if (speed_ > 0)
+      // If any effect is playing, do not calculate the LED rings for the deck
+      if (!isEffectDisplayed())
       {
-        populateLedRing(ringSpan, N, ledColor, readIxLed, N - readIxLed);
-      }
-      else
-      {
-        populateLedRing(ringSpan, N, ledColor, 0, writeIxLed);
-      }
-      view.rings[view.layerCount++] = ringSpan;
+        // Compute spans in LED index space
+        uint8_t start = 0;
 
-      // Display read head position
-      ledColor = {0xff00ff, 0.5f};
-      populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
-      view.rings[view.layerCount++] = ringSpan;
+        // Read head position
+        uint8_t readIxLed = static_cast<uint8_t>(readIx_ * (N - 1) / kLooperAudioDataSamples);
 
-      // Display write head position
-      ledColor = {0xff0000, 0.5f};
-      populateLedRing(ringSpan, N, ledColor, writeIxLed, 1);
-      view.rings[view.layerCount++] = ringSpan;
+        // Write head position
+        uint8_t writeIxLed = static_cast<uint8_t>(writeIx_ * (N - 1) / kLooperAudioDataSamples);
+
+        // Yellow area indicating the writable area
+        LedRgbBrightness ledColor = {0xffff00, 1.0f};
+        populateLedRing(ringSpan, N, ledColor, start, N);
+        view.rings[view.layerCount++] = ringSpan;
+
+        // Orange area indicating the actively written area
+        ledColor = {0xff8000, 1.0f};
+        if (speed_ > 0)
+        {
+          populateLedRing(ringSpan, N, ledColor, readIxLed, N - readIxLed);
+        }
+        else
+        {
+          populateLedRing(ringSpan, N, ledColor, 0, writeIxLed);
+        }
+        view.rings[view.layerCount++] = ringSpan;
+
+        // Display read head position
+        ledColor = {0xff00ff, 0.5f};
+        populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
+        view.rings[view.layerCount++] = ringSpan;
+
+        // Display write head position
+        ledColor = {0xff0000, 0.5f};
+        populateLedRing(ringSpan, N, ledColor, writeIxLed, 1);
+        view.rings[view.layerCount++] = ringSpan;
+      }
 
       // Play LED colors (always displayed in RECORDING state)
       view.playActive = true;
       if (play_)
       {
-        view.playLedColors[0] = {0x00ff00, 1.0f};  // Green
+        view.playLedColors[0] = {0x00ff00, 1.0f};    // Green
       }
       else
       {
-        view.playLedColors[0] = {0x000000, 0.0f};  // Off
+        view.playLedColors[0] = {0x000000, 0.0f};    // Off
       }
       view.playLedColors[1] = {0xff0000, 1.0f};    // Red
 
@@ -507,28 +580,32 @@ void Spotykach::updateDisplayState()
 
     case LOOP_PLAYBACK:
     {
-      // Compute spans in LED index space
-      uint8_t start    = static_cast<uint8_t>(position_ * (N - 1));
-      uint8_t spanSize = static_cast<uint8_t>((1.0f - position_) * size_ * N);
-      spanSize         = std::min(spanSize, (uint8_t)(Hardware::kNumLedsPerRing - start));
+      // If any effect is playing, do not calculate the LED rings for the deck
+      if (!isEffectDisplayed())
+      {
+        // Compute spans in LED index space
+        uint8_t start    = static_cast<uint8_t>(position_ * (N - 1));
+        uint8_t spanSize = static_cast<uint8_t>((1.0f - position_) * size_ * N);
+        spanSize         = std::min(spanSize, (uint8_t)(Hardware::kNumLedsPerRing - start));
 
-      // Read head position
-      uint8_t readIxLed  = static_cast<uint8_t>(readIx_ * (N - 1) / kLooperAudioDataSamples);
+        // Read head position
+        uint8_t readIxLed = static_cast<uint8_t>(readIx_ * (N - 1) / kLooperAudioDataSamples);
 
-      // Yellow area indicating the buffer
-      LedRgbBrightness ledColor = {0xffff00, 1.0f};
-      populateLedRing(ringSpan, N, ledColor, 0, N);
-      view.rings[view.layerCount++] = ringSpan;
+        // Yellow area indicating the buffer
+        LedRgbBrightness ledColor = {0xffff00, 1.0f};
+        populateLedRing(ringSpan, N, ledColor, 0, N);
+        view.rings[view.layerCount++] = ringSpan;
 
-      // Orange span indicating the position and size
-      ledColor = {0xff8000, 1.0f};
-      populateLedRing(ringSpan, N, ledColor, start, spanSize, true);
-      view.rings[view.layerCount++] = ringSpan;
+        // Orange span indicating the position and size
+        ledColor = {0xff8000, 1.0f};
+        populateLedRing(ringSpan, N, ledColor, start, spanSize, true);
+        view.rings[view.layerCount++] = ringSpan;
 
-      // Display read head position
-      ledColor = {0xff00ff, 0.5f};
-      populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
-      view.rings[view.layerCount++] = ringSpan;
+        // Display read head position
+        ledColor = {0xff00ff, 0.5f};
+        populateLedRing(ringSpan, N, ledColor, readIxLed, 1);
+        view.rings[view.layerCount++] = ringSpan;
+      }
 
       // Play LED colors
       if (play_)
@@ -543,13 +620,14 @@ void Spotykach::updateDisplayState()
     default:
     {
       // OFF state - no active rings
-      view.layerCount = 0;
       // Play LED colors
       view.playLedColors[0] = {0x000000, 0.0f};    // Off
       view.playLedColors[1] = {0x000000, 0.0f};    // Off
       break;
     }
   }
+
+  // Publish the state of the display
   publishDisplay(view);
 }
 
