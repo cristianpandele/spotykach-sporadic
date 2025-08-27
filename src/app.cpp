@@ -88,13 +88,6 @@ void AppImpl::init ()
   pot_monitor.Init(ui_queue, hw, 500, 0.005f, 0.002f);
   std::fill(std::begin(last_pot_moved), std::end(last_pot_moved), 0);
 
-  for (size_t i = 0; i < 8; i++)
-  {
-    osc[i].Init(kSampleRate);
-    osc[i].SetWaveform(daisysp::Oscillator::WAVE_POLYBLEP_TRI);
-    osc[i].SetAmp(0.25f);
-  }
-
   // Uncomment this if you want to test the SD card -
   // this takes about 10s and is blocking
   // testSDCard();
@@ -243,7 +236,7 @@ void AppImpl::loop ()
     hw.ProcessDigitalControls();
     pot_monitor.Process();
     processUIQueue();
-    processMidi();
+    // processMidi();
 
 #if 0
     // Every 500ms toggle MIDI note out and gate outs
@@ -535,6 +528,7 @@ void AppImpl::processUIQueue ()
   }
 }
 
+/*
 void AppImpl::processMidi ()
 {
   hw.midi_uart.Listen();
@@ -564,6 +558,7 @@ void AppImpl::processMidi ()
     }
   }
 }
+*/
 
 void AppImpl::drawRainbowRoad ()
 {
