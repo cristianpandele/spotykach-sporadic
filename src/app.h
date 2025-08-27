@@ -386,8 +386,6 @@ namespace spotykach_hwtest
         Modulator(modulationTypes[1], ModulationEngine::kNumModsPerSide, kLedUpdateRate)
       };
 
-      daisysp::Oscillator osc[8];
-
       StopwatchTimer log_timer;
 #if DEBUG
       void           logDebugInfo ();
