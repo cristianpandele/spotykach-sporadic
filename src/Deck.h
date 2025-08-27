@@ -1,5 +1,6 @@
 #pragma once
 
+#include "InputSculpt.h"
 #include "common.h"
 #include "daisy_seed.h"
 #include "hardware.h"
@@ -123,8 +124,11 @@ class Deck
     // Sample rate for the deck
     size_t sampleRate_;
 
-    // Update the display state with the current values
-    void publishDisplay (const DisplayState &state);
+    // Input sculpting bandpass filter
+    InputSculpt inputSculpt_;
+
+    // Internal working buffers (single block) to avoid per-callback allocations.
+    float inputSculptBuf_[kNumberChannelsStereo][kBlockSize]{};
 
     // Mix control
     float mix_ = 0.5f;
@@ -156,6 +160,27 @@ class Deck
     // Current deck mode
     DeckMode mode_ = MODE_1;
 
+    // Update the display state with the current values
+    void publishDisplay (const DisplayState &state);
+
+    // Update the Grit pad LED state
+    void updateGritPadLedState (DisplayState &view);
+
+    // Update the Grit display state specifically
+    void updateGritRingState (DisplayState &view);
+
+    // Update the Flux pad LED state
+    void updateFluxPadLedState (DisplayState &view);
+
+    // // Update the Flux display state specifically
+    // void updateFluxRingState (DisplayState &view);
+
+    // Update the LED states for the effect pads
+    void updateEffectDisplayStates (DisplayState &view);
+
+    // Check if there is an update to the held state of the effect pads
+    void detectEffectPadsHeld ();
+
     // Setters for deck parameters
     virtual void setMix (float m) { mix_ = infrasonic::unitclamp(m); }
     virtual void setPitch (float p) { pitch_ = infrasonic::unitclamp(p); }
@@ -183,14 +208,22 @@ class Deck
     // Getters for the effects menu open states
     virtual bool getFluxMenuOpen () const { return fluxMenuOpen_; }
     virtual bool getGritMenuOpen () const { return gritMenuOpen_; }
+    virtual bool isEffectMenuOpen () const { return (getFluxMenuOpen() || getGritMenuOpen()); }
 
     // Getters for the effects pad held states
     virtual bool getFluxHeld () const { return fluxHeld_; }
     virtual bool getGritHeld () const { return gritHeld_; }
+    virtual bool isEffectPadHeld () const { return (getFluxHeld() || getGritHeld()); }
+
+    // Getters for effects being displayed
+    virtual bool isFluxDisplayed () const { return (getFluxMenuOpen() || getFluxHeld()); }
+    virtual bool isGritDisplayed () const { return (getGritMenuOpen() || getGritHeld()); }
+    virtual bool isEffectDisplayed () const { return (isEffectMenuOpen() || isEffectPadHeld()); }
 
     // Getters for the effects playing states
     virtual bool isFluxPlaying () const { return (getFluxHeld() || getFluxMenuOpen() || getFluxActive()); }
     virtual bool isGritPlaying () const { return (getGritHeld() || getGritMenuOpen() || getGritActive()); }
+    virtual bool isEffectPlaying () const { return (isFluxPlaying() || isGritPlaying()); }
 
     // Utility functions
     bool isChannelActive (size_t ch) const;
@@ -211,11 +244,24 @@ class Deck
       uint32_t     cnt;
     };
 
+    enum FilterType
+    {
+      kLowPass,
+      kHighPass,
+      kBandPass,
+    };
+
+    // Display buffer for state updates
     DisplayBuf       dispBuf_[2];
     mutable uint32_t cntRead_  = 0;
     volatile uint8_t dispWIdx_ = 0;
 
-    // Flux
+    // Frequency filter range for Grit
+    static constexpr float gritFilterMinFreq = 50.0f;
+    static constexpr float gritFilterMaxFreq = 18000.0f;
+
+    ///////////
+    // Flux pad states
     bool           fluxActive_               = false;
     bool           fluxHeld_                 = false;
     bool           fluxDoubleTapTimerActive_ = false;
@@ -224,7 +270,7 @@ class Deck
     StopwatchTimer fluxDoubleTapTimer_;
     StopwatchTimer fluxHeldTimer_;
 
-    // Grit
+    // Grit pad states
     bool           gritActive_               = false;
     bool           gritHeld_                 = false;
     bool           gritDoubleTapTimerActive_ = false;
@@ -233,6 +279,7 @@ class Deck
     StopwatchTimer gritDoubleTapTimer_;
     StopwatchTimer gritHeldTimer_;
 
+    ///////////
     // Held detection
     void detectHeld (StopwatchTimer &timer, bool &timerActive, bool &held);
     // General tap/hold handler. Returns true if a double-tap detected; updates "held"; stops timer if pressed == false.
@@ -244,6 +291,32 @@ class Deck
                     bool           &held,
                     bool           &doubleTap);
 
+    ///////////
+    // Grit display handling functions
+    uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
+    void    ledBrightnessFilterGradient (
+         FilterType type, uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+    // Falling: full max until cutoff LED index, then linear descent over Q-based width to min
+    void ledBrightnessFallingGradient (
+      uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+    // Ramp: linear ascent over Q-based width up to cutoff LED index, then full max
+    void ledBrightnessRampGradient (
+      uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+    void populateGritLedRing (Deck::RingSpan  &ringSpan,
+                          uint8_t          ringSize,
+                          LedRgbBrightness colorBright,
+                          uint8_t          spanStart,
+                          uint8_t          spanSize,
+                          bool             gradient = false);
+
+    float calculateFilterHalfBandwidth (float centerFreq, float Q);
+    void  calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, uint8_t &start, uint8_t &end);
+
+    // Helpers to derive LED indices from filter params
+    uint8_t computeCutoffIdx (uint8_t ringSize);
+    uint8_t computeWidthFromQ (uint8_t ringSize);
+
+    ///////////
     Deck (const Deck &)           = delete;
     Deck &operator=(const Deck &) = delete;
 };
