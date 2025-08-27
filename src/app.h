@@ -388,8 +388,8 @@ namespace spotykach_hwtest
 
       daisysp::Oscillator osc[8];
 
-#if DEBUG
       StopwatchTimer log_timer;
+#if DEBUG
       void           logDebugInfo ();
 #endif
       // Set the current operating mode of the application
