@@ -106,9 +106,12 @@ namespace spotykach_hwtest
           // Overload assignment to set targetValue
           SmoothValue &operator=(float v)
           {
-            targetValue_ = v;
-            // Check if the value is undergoing smoothing
-            setSmoothing(targetValue_, currentValue_);
+            if (std::abs(v - targetValue_) > 0.015f)
+            {
+              targetValue_ = v;
+              // Check if the value is undergoing smoothing
+              setSmoothing(targetValue_, currentValue_);
+            }
             return *this;
           }
 
