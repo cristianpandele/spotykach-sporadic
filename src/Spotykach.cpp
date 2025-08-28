@@ -19,9 +19,9 @@ void Spotykach::init ()
   writeIx_ = 0;
 
   // Initialize ADSR envelopes
-  initEnvelopes(kSampleRate);
+  initEnvelopes(sampleRate_);
   // Default lengths; will be reconfigured each block based on window size
-  configureEnvelopeLength(kBlockSize);
+  configureEnvelopeLength(blockSize_);
   prevReadIx_ = 0.0f;
 
   // Initialize the looper audio data buffers

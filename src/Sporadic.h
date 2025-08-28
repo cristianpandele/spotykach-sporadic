@@ -14,7 +14,7 @@ using namespace spotykach_hwtest;
 class Sporadic : public Deck
 {
   public:
-    Sporadic (size_t sampleRate) : Deck(sampleRate) {}
+    Sporadic (size_t sampleRate, size_t blockSize) : Deck(sampleRate, blockSize) { init(); }
     ~Sporadic () = default;
 
     void init () override;

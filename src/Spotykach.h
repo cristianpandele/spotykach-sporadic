@@ -21,7 +21,9 @@ class Spotykach : public Deck
       RECORDING,
       LOOP_PLAYBACK
     };
-    Spotykach (size_t sampleRate, uint8_t side) : Deck(sampleRate), deckSide_(side) {}
+
+    Spotykach (size_t sampleRate, size_t blockSize, uint8_t side) : Deck(sampleRate, blockSize), deckSide_(side) {
+      init(); }
     ~Spotykach () = default;
 
     void init ();

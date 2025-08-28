@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cassert>
 
-void DelayNetwork::init (float sampleRate, int numBands, size_t blockSize)
+void DelayNetwork::init (float sampleRate, size_t blockSize, int numBands)
 {
   sampleRate_ = sampleRate;
   numBands_   = std::max(1, numBands);
