@@ -7,7 +7,7 @@ void Sporadic::init ()
   // Initialize the input sculpt effect
   inputSculpt_.init(sampleRate_);
   // Initialize the delay network
-  delayNetwork_.init(sampleRate_, kNumBands, kBlockSize);
+  delayNetwork_.init(sampleRate_, blockSize_, kNumBands);
 }
 
 void Sporadic::setMix (float m, bool gritLatch)

@@ -15,7 +15,7 @@ class DelayNetwork
 
     // Provide expected processing block size so internal buffers can be
     // allocated once and re-used every audio callback (no per-block allocs).
-    void init (float sampleRate, int numBands, size_t blockSize);
+    void init (float sampleRate, size_t blockSize, int numBands);
     void setParameters (const Parameters &p);
 
     void getBandFrequencies (std::vector<float> &frequencies) const;

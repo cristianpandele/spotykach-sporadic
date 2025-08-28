@@ -30,8 +30,8 @@ namespace spotykach_hwtest
 }    // namespace spotykach_hwtest
 
 static AppImpl   impl;
-static Spotykach spotykachLooper[kNumberDeckSlots] = {Spotykach(kSampleRate, 0), Spotykach(kSampleRate, 1)};
-static Sporadic  sporadic(kSampleRate);
+static Spotykach spotykachLooper[kNumberDeckSlots] = {Spotykach(kSampleRate, kBlockSize, 0), Spotykach(kSampleRate, kBlockSize, 1)};
+static Sporadic  sporadic(kSampleRate, kBlockSize);
 
 // Array of pointers to Decks
 Deck* decks[kNumberDeckSlots];

@@ -96,7 +96,7 @@ class Deck
       LedRgbBrightness altLedColors[kMaxLedPhases];
     };
 
-    Deck (size_t sampleRate) : sampleRate_(sampleRate) {}
+    Deck (size_t sampleRate, size_t blockSize) : sampleRate_(sampleRate), blockSize_(blockSize) { }
     Deck ()            = delete;
     virtual ~Deck ()   = default;
 
@@ -123,6 +123,9 @@ class Deck
 
     // Sample rate for the deck
     size_t sampleRate_;
+
+    // Block size for the deck
+    size_t blockSize_;
 
     // Input sculpting bandpass filter
     InputSculpt inputSculpt_;
