@@ -718,10 +718,12 @@ void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
         // Linear interpolation when between the two samples
         loopOut = infrasonic::lerp(s0, s1, frac);
       }
-      // Mix the input with the loop output, with windowed envelope (if applied)
+      // Mix the (sculpted) input with the loop output, with windowed envelope (if applied)
       float env  = applyEnvelope ? processEnvelope(play_) : 1.0f;
       float wet  = loopOut * env;
-      out[ch][sample] = infrasonic::lerp(in[ch][sample], wet, mix_);
+      // Process the input audio through the input sculpt effect
+      float sculptedInput = inputSculpt_.processSample(in[ch][sample]);
+      out[ch][sample] = infrasonic::lerp(sculptedInput, wet, mix_);
 
       if (record)
       {
@@ -730,8 +732,10 @@ void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
         size_t wIdx1                 = static_cast<size_t>((wIdx0 + 1) % kLooperAudioDataSamples);
         float  old0                  = currentLooperChannel[wIdx0];
         float  old1                  = currentLooperChannel[wIdx1];
-        currentLooperChannel[wIdx0] = in[ch][sample] + feedback_ * old0;
-        currentLooperChannel[wIdx1] = in[ch][sample] + feedback_ * old1;
+
+        // Record the sculpted input (with potential feedback)
+        currentLooperChannel[wIdx0] = sculptedInput + feedback_ * old0;
+        currentLooperChannel[wIdx1] = sculptedInput + feedback_ * old1;
       }
     }
   }
@@ -745,6 +749,7 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
   {
     return;
   }
+
   switch (state_)
   {
     case OFF:
@@ -758,7 +763,9 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
           // Only process if this channel is active in the current mode
           if (isChannelActive(ch))
           {
-            out[ch][i] = infrasonic::lerp(in[ch][i], 0.0f, mix_);
+            // Process the input audio through the input sculpt effect
+            inputSculptBuf_[ch][i] = inputSculpt_.processSample(in[ch][i]);
+            out[ch][i] = infrasonic::lerp(inputSculptBuf_[ch][i], 0.0f, mix_);
           }
         }
       }
