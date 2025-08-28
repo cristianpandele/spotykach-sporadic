@@ -4,8 +4,8 @@
 static constexpr size_t kLooperAudioDataSamples = 15.0f * kSampleRate * kNumberChannelsMono;
 static constexpr size_t kEchoAudioDataSamples = 2.0f * kSampleRate;
 
-// Reserve two buffers for 15-second Spotykach loopers for each side - 16bit mono audio file at 48khz (about 0.172 MB each)
-static DSY_SDRAM_BSS float   looperAudioData[kNumberDeckSlots][kNumberChannelsStereo][kLooperAudioDataSamples] {{{0.0f}}};
+// Reserve a buffer for the 15-second Spotykach looper (for each channel) - 16bit mono audio at 48khz (about 0.172 MB each)
+static DSY_SDRAM_BSS float   looperAudioData[kNumberChannelsStereo][kLooperAudioDataSamples] {{0.0f}};
 
 using namespace infrasonic;
 
@@ -29,7 +29,7 @@ void Spotykach::init ()
   {
     if (isChannelActive(ch))
     {
-      std::fill(std::begin(looperAudioData[deckSide_][ch]), std::end(looperAudioData[deckSide_][ch]), 0.0f);
+      std::fill(std::begin(looperAudioData[ch]), std::end(looperAudioData[ch]), 0.0f);
     }
   }
 }
@@ -195,7 +195,7 @@ void Spotykach::setPlay (bool p)
         {
           if (isChannelActive(ch))
           {
-            std::fill(std::begin(looperAudioData[deckSide_][ch]), std::end(looperAudioData[deckSide_][ch]), 0.0f);
+            std::fill(std::begin(looperAudioData[ch]), std::end(looperAudioData[ch]), 0.0f);
           }
         }
       }
@@ -249,7 +249,7 @@ void Spotykach::setAltPlay (bool r)
         {
           if (isChannelActive(ch))
           {
-            std::fill(std::begin(looperAudioData[deckSide_][ch]), std::end(looperAudioData[deckSide_][ch]), 0.0f);
+            std::fill(std::begin(looperAudioData[ch]), std::end(looperAudioData[ch]), 0.0f);
           }
         }
 
@@ -662,7 +662,7 @@ void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
     // Only process if this channel is active in the current mode
     if (isChannelActive(ch))
     {
-      float *currentLooperChannel = &looperAudioData[deckSide_][ch][0];
+      float *currentLooperChannel = &looperAudioData[ch][0];
 
       // Neighbouring sample indices
       size_t rIdx0 = static_cast<size_t>(readIx_);

@@ -22,8 +22,7 @@ class Spotykach : public Deck
       LOOP_PLAYBACK
     };
 
-    Spotykach (size_t sampleRate, size_t blockSize, uint8_t side) : Deck(sampleRate, blockSize), deckSide_(side) {
-      init(); }
+    Spotykach (size_t sampleRate, size_t blockSize) : Deck(sampleRate, blockSize) { init(); }
     ~Spotykach () = default;
 
     void init ();
@@ -103,8 +102,6 @@ class Spotykach : public Deck
 
     // Spotykach deck state
     State state_ = OFF;
-    // Current side being processed (0 or 1)
-    uint8_t deckSide_ = 0;
 
     // Envelope generators for window shapes
     daisysp::Adsr envSquare_;

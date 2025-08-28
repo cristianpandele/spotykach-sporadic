@@ -30,7 +30,7 @@ namespace spotykach_hwtest
 }    // namespace spotykach_hwtest
 
 static AppImpl   impl;
-static Spotykach spotykachLooper[kNumberDeckSlots] = {Spotykach(kSampleRate, kBlockSize, 0), Spotykach(kSampleRate, kBlockSize, 1)};
+static Spotykach spotykachLooper = Spotykach(kSampleRate, kBlockSize);
 static Sporadic  sporadic(kSampleRate, kBlockSize);
 
 // Array of pointers to Decks
@@ -99,10 +99,7 @@ void AppImpl::init ()
   audio.SetBlockSize(kBlockSize);
 
   // Initialize the Spotykach looper
-  for (size_t i = 0; i < kNumberDeckSlots; i++)
-  {
-    spotykachLooper[i].init();
-  }
+  spotykachLooper.init();
   sporadic.init();
 
 #if DEBUG
@@ -120,26 +117,23 @@ void AppImpl::setRoutingMode (AppImpl::AppMode mode)
 {
   if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
   {
-    spotykachLooper[0].setChannelConfig(ChannelConfig::STEREO);
-    spotykachLooper[1].setChannelConfig(ChannelConfig::STEREO);
+    spotykachLooper.setChannelConfig(ChannelConfig::STEREO);
     sporadic.setChannelConfig(ChannelConfig::STEREO);
-    decks[0] = &spotykachLooper[0];
-    decks[1] = &spotykachLooper[1];
+    decks[0] = &spotykachLooper;
+    decks[1] = &sporadic;
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_MONO)
   {
-    spotykachLooper[0].setChannelConfig(ChannelConfig::MONO_LEFT);
-    spotykachLooper[1].setChannelConfig(ChannelConfig::OFF);
+    spotykachLooper.setChannelConfig(ChannelConfig::MONO_LEFT);
     sporadic.setChannelConfig(ChannelConfig::MONO_RIGHT);
-    decks[0] = &spotykachLooper[0];
+    decks[0] = &spotykachLooper;
     decks[1] = &sporadic;
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_STEREO)
   {
-    spotykachLooper[0].setChannelConfig(ChannelConfig::STEREO);
-    spotykachLooper[1].setChannelConfig(ChannelConfig::OFF);
+    spotykachLooper.setChannelConfig(ChannelConfig::STEREO);
     sporadic.setChannelConfig(ChannelConfig::STEREO);
-    decks[0] = &spotykachLooper[0];
+    decks[0] = &spotykachLooper;
     decks[1] = &sporadic;
   }
 }
