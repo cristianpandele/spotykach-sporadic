@@ -128,8 +128,8 @@ class Deck
     // Block size for the deck
     size_t blockSize_;
 
-    // Input sculpting bandpass filter
-    InputSculpt inputSculpt_;
+    // Input sculpting bandpass filter (per-channel)
+    InputSculpt inputSculpt_[kNumberChannelsStereo];
 
     // Internal working buffers (single block) to avoid per-callback allocations.
     float inputSculptBuf_[kNumberChannelsStereo][kBlockSize]{};
