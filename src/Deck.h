@@ -2,6 +2,7 @@
 
 #include "InputSculpt.h"
 #include "common.h"
+#include "constants.h"
 #include "daisy_seed.h"
 #include "hardware.h"
 using namespace daisy;

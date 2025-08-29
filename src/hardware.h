@@ -7,12 +7,14 @@
 
 namespace spotykach
 {
+  // Constants for the hardware setup
+  constexpr uint8_t kNumberDeckSlots      = 2;
+  constexpr uint8_t kNumberChannelsStereo = 2;
+  constexpr uint8_t kNumberChannelsMono   = 1;
+
   class Hardware
   {
     public:
-      // Number of elements in a pair
-      static constexpr uint8_t kNumInPair = 2;
-
       // LED indexes in order of chain
       static constexpr uint8_t kNumLedsPerRing = 32;
 
@@ -55,15 +57,15 @@ namespace spotykach
         LED_LAST
       };
 
-      static constexpr LedId kLedAltIds[kNumInPair]   = {LED_ALT_A, LED_ALT_B};
-      static constexpr LedId kLedPlayIds[kNumInPair]  = {LED_PLAY_A, LED_PLAY_B};
-      static constexpr LedId kLedRevIds[kNumInPair]   = {LED_REV_A, LED_REV_B};
-      static constexpr LedId kLedRingIds[kNumInPair]  = {LED_RING_A, LED_RING_B};
-      static constexpr LedId kLedGritIds[kNumInPair]  = {LED_GRIT_A, LED_GRIT_B};
-      static constexpr LedId kLedFluxIds[kNumInPair]  = {LED_FLUX_A, LED_FLUX_B};
-      static constexpr LedId kLedGateIds[kNumInPair]  = {LED_GATE_OUT_A, LED_GATE_OUT_B};
-      static constexpr LedId kLedCycleIds[kNumInPair] = {LED_CYCLE_A, LED_CYCLE_B};
-      static constexpr LedId kLedSpotyIds[kNumInPair] = {LED_SPOTY_SLIDER_A, LED_SPOTY_SLIDER_B};
+      static constexpr LedId kLedAltIds[kNumberDeckSlots]   = {LED_ALT_A, LED_ALT_B};
+      static constexpr LedId kLedPlayIds[kNumberDeckSlots]  = {LED_PLAY_A, LED_PLAY_B};
+      static constexpr LedId kLedRevIds[kNumberDeckSlots]   = {LED_REV_A, LED_REV_B};
+      static constexpr LedId kLedRingIds[kNumberDeckSlots]  = {LED_RING_A, LED_RING_B};
+      static constexpr LedId kLedGritIds[kNumberDeckSlots]  = {LED_GRIT_A, LED_GRIT_B};
+      static constexpr LedId kLedFluxIds[kNumberDeckSlots]  = {LED_FLUX_A, LED_FLUX_B};
+      static constexpr LedId kLedGateIds[kNumberDeckSlots]  = {LED_GATE_OUT_A, LED_GATE_OUT_B};
+      static constexpr LedId kLedCycleIds[kNumberDeckSlots] = {LED_CYCLE_A, LED_CYCLE_B};
+      static constexpr LedId kLedSpotyIds[kNumberDeckSlots] = {LED_SPOTY_SLIDER_A, LED_SPOTY_SLIDER_B};
 
       // Pots/sliders - these are on muxes
       enum AnalogControlId : uint16_t
@@ -89,14 +91,14 @@ namespace spotykach
         CTRL_LAST
       };
 
-      static constexpr AnalogControlId kCtrlSosIds[kNumInPair]      = {CTRL_SOS_A, CTRL_SOS_B};
-      static constexpr AnalogControlId kCtrlModFreqIds[kNumInPair]  = {CTRL_MOD_FREQ_A, CTRL_MOD_FREQ_B};
-      static constexpr AnalogControlId kCtrlModAmtIds[kNumInPair]   = {CTRL_MOD_AMT_A, CTRL_MOD_AMT_B};
-      static constexpr AnalogControlId kCtrlSizeIds[kNumInPair]     = {CTRL_SIZE_A, CTRL_SIZE_B};
-      static constexpr AnalogControlId kCtrlPitchIds[kNumInPair]    = {CTRL_PITCH_A, CTRL_PITCH_B};
-      static constexpr AnalogControlId kCtrlPosIds[kNumInPair]      = {CTRL_POS_A, CTRL_POS_B};
-      static constexpr AnalogControlId kCtrlShapeIds[kNumInPair]    = {CTRL_SHAPE_A, CTRL_SHAPE_B};
-      static constexpr AnalogControlId kCtrlLastSideIds[kNumInPair] = {CTRL_SHAPE_A, CTRL_SHAPE_B};
+      static constexpr AnalogControlId kCtrlSosIds[kNumberDeckSlots]      = {CTRL_SOS_A, CTRL_SOS_B};
+      static constexpr AnalogControlId kCtrlModFreqIds[kNumberDeckSlots]  = {CTRL_MOD_FREQ_A, CTRL_MOD_FREQ_B};
+      static constexpr AnalogControlId kCtrlModAmtIds[kNumberDeckSlots]   = {CTRL_MOD_AMT_A, CTRL_MOD_AMT_B};
+      static constexpr AnalogControlId kCtrlSizeIds[kNumberDeckSlots]     = {CTRL_SIZE_A, CTRL_SIZE_B};
+      static constexpr AnalogControlId kCtrlPitchIds[kNumberDeckSlots]    = {CTRL_PITCH_A, CTRL_PITCH_B};
+      static constexpr AnalogControlId kCtrlPosIds[kNumberDeckSlots]      = {CTRL_POS_A, CTRL_POS_B};
+      static constexpr AnalogControlId kCtrlShapeIds[kNumberDeckSlots]    = {CTRL_SHAPE_A, CTRL_SHAPE_B};
+      static constexpr AnalogControlId kCtrlLastSideIds[kNumberDeckSlots] = {CTRL_SHAPE_A, CTRL_SHAPE_B};
 
       // These are in order as they are labeled on the schematic
       enum CvInputId : uint16_t
@@ -114,9 +116,9 @@ namespace spotykach
         CV_LAST
       };
 
-      static constexpr CvInputId kCvSizePosIds[kNumInPair] = {CV_SIZE_POS_A, CV_SIZE_POS_B};
-      static constexpr CvInputId kCvVOctIds[kNumInPair]    = {CV_V_OCT_A, CV_V_OCT_B};
-      static constexpr CvInputId kCvSosInIds[kNumInPair]   = {CV_SOS_IN_A, CV_SOS_IN_B};
+      static constexpr CvInputId kCvSizePosIds[kNumberDeckSlots] = {CV_SIZE_POS_A, CV_SIZE_POS_B};
+      static constexpr CvInputId kCvVOctIds[kNumberDeckSlots]    = {CV_V_OCT_A, CV_V_OCT_B};
+      static constexpr CvInputId kCvSosInIds[kNumberDeckSlots]   = {CV_SOS_IN_A, CV_SOS_IN_B};
 
       Hardware ()                          = default;
       ~Hardware ()                         = default;
@@ -186,8 +188,8 @@ namespace spotykach
       daisy::Mpr121I2C mpr121_;
 
       daisy::GPIO clock_in_;
-      daisy::GPIO gate_in[kNumInPair];
-      daisy::GPIO gate_out[kNumInPair];
+      daisy::GPIO gate_in[kNumberDeckSlots];
+      daisy::GPIO gate_out[kNumberDeckSlots];
 
       daisy::Switch boot_btn_;
 

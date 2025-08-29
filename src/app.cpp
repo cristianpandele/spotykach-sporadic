@@ -14,7 +14,6 @@ using namespace daisy;
 using namespace daisysp;
 using namespace infrasonic;
 using infrasonic::Log;
-using spotykach::Hardware;
 
 namespace spotykach_hwtest
 {
