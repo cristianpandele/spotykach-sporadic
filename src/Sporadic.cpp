@@ -4,18 +4,27 @@
 
 void Sporadic::init ()
 {
-  // Initialize the input sculpt effect
-  inputSculpt_.init(sampleRate_);
+  for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  {
+    // Initialize the input sculpt effect
+    inputSculpt_[ch].init(sampleRate_);
+  }
   // Initialize the delay network
   delayNetwork_.init(sampleRate_, blockSize_, kNumBands);
 }
 
 void Sporadic::setMix (float m, bool gritLatch)
 {
-  // If grit latched, set drive instead of mix
   if (gritLatch)
   {
-    inputSculpt_.setOverdrive(m);
+    // If grit latched, set drive instead of mix
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setOverdrive(m);
+      }
+    }
   }
   else if (!getGritMenuOpen())
   {
@@ -25,11 +34,16 @@ void Sporadic::setMix (float m, bool gritLatch)
 
 void Sporadic::setPosition (float p, bool gritLatch)
 {
-  // If grit latched, set input sculpt frequency instead of position
   if (gritLatch)
   {
-    // Map the frequency to the input sculpt
-    inputSculpt_.setFreq(p);
+    // If grit latched, set input sculpt frequency instead of position
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setFreq(p);
+      }
+    }
   }
   else if (!getGritMenuOpen())
   {
@@ -39,11 +53,16 @@ void Sporadic::setPosition (float p, bool gritLatch)
 
 void Sporadic::setSize (float s, bool gritLatch)
 {
-  // If grit latched, set input sculpt width instead of size
   if (gritLatch)
   {
-    // Map the width to the input sculpt
-    inputSculpt_.setWidth(s);
+    // If grit latched, set input sculpt width instead of size
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setWidth(s);
+      }
+    }
   }
   else if (!getGritMenuOpen())
   {
@@ -53,11 +72,16 @@ void Sporadic::setSize (float s, bool gritLatch)
 
 void Sporadic::setShape (float s, bool gritLatch)
 {
-  // If grit latched, set input sculpt shape instead of shape
   if (gritLatch)
   {
-    // Map the shape to the input sculpt
-    inputSculpt_.setShape(s);
+    // If grit latched, set input sculpt shape instead of shape
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setShape(s);
+      }
+    }
   }
   else if (!getGritMenuOpen())
   {
@@ -133,7 +157,7 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     {
       if (isGritPlaying())
       {
-        inputSculpt_.processBlockMono(in[ch], inputSculptBuf_[ch], blockSize);
+        inputSculpt_[ch].processBlockMono(in[ch], inputSculptBuf_[ch], blockSize);
       }
       else
       {

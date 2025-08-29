@@ -309,7 +309,7 @@ void Deck::ledBrightnessFilterGradient (
 
 uint8_t Deck::computeCutoffIdx (uint8_t ringSize)
 {
-  float cf = inputSculpt_.getCenterFreq();
+  float cf = inputSculpt_[0].getCenterFreq();
   return freqToLed(cf, ringSize, gritFilterMinFreq, gritFilterMaxFreq);
 }
 
@@ -377,7 +377,7 @@ void Deck::populateGritLedRing (Deck::RingSpan  &ringSpan,
     for (uint8_t i = 0; i < ringSize; ++i)
     {
       // Interpolate between the LED gradient shapes
-      float t = inputSculpt_.getShape();    // 0..1
+      float t = inputSculpt_[0].getShape();    // 0..1
       float v;
       if (t < 0.33333334f)
       {
@@ -422,8 +422,8 @@ float Deck::calculateFilterHalfBandwidth (float centerFreq, float Q)
 
 void Deck::calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, uint8_t &start, uint8_t &end)
 {
-  float centerFreq = inputSculpt_.getCenterFreq();
-  float Q          = inputSculpt_.getQ();
+  float centerFreq = inputSculpt_[0].getCenterFreq();
+  float Q          = inputSculpt_[0].getQ();
   float halfBW     = calculateFilterHalfBandwidth(centerFreq, Q);
 
   // Convert additive bandwidth into a multiplicative ratio for log symmetry.
@@ -519,9 +519,10 @@ void Deck::updateGritRingState (DisplayState &view)
 {
   // Purple color indicating the bandpass area (fade to red with overdrive)
   LedRgbBrightness ledColor = {0xff00ff, 1.0f};
-  float            od       = inputSculpt_.getOverdrive();    // 0..0.2
-  uint8_t blueLevel = static_cast<uint8_t>(map(od, inputSculpt_.kMinDriveAmt, inputSculpt_.kMaxDriveAmt, 255.0f, 0.0f));
-  ledColor.rgb      = (ledColor.rgb & 0xffffff00) | blueLevel;
+  float            od       = inputSculpt_[0].getOverdrive();    // 0..0.2
+  uint8_t          blueLevel =
+    static_cast<uint8_t>(map(od, inputSculpt_[0].kMinDriveAmt, inputSculpt_[0].kMaxDriveAmt, 255.0f, 0.0f));
+  ledColor.rgb = (ledColor.rgb & 0xffffff00) | blueLevel;
 
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
   Deck::RingSpan    ringSpan;

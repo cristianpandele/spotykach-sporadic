@@ -11,9 +11,6 @@ using namespace infrasonic;
 
 void Spotykach::init ()
 {
-  // Initialize the input sculpt effect
-  inputSculpt_.init(sampleRate_);
-
   // Initialize the Spotykach looper pointers
   readIx_  = 0;
   writeIx_ = 0;
@@ -24,13 +21,10 @@ void Spotykach::init ()
   configureEnvelopeLength(blockSize_);
   prevReadIx_ = 0.0f;
 
-  // Initialize the looper audio data buffers
   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
-    if (isChannelActive(ch))
-    {
-      std::fill(std::begin(looperAudioData[ch]), std::end(looperAudioData[ch]), 0.0f);
-    }
+    // Initialize the input sculpt effect
+    inputSculpt_[ch].init(sampleRate_);
   }
 }
 
@@ -98,7 +92,13 @@ void Spotykach::setMix (float m, bool altLatch, bool gritLatch)
   // If grit latched, set drive instead of mix
   else if (gritLatch)
   {
-    inputSculpt_.setOverdrive(m);
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setOverdrive(m);
+      }
+    }
   }
   else if (!getGritMenuOpen())
   {
@@ -112,7 +112,13 @@ void Spotykach::setPosition (float p, bool gritLatch)
   if (gritLatch)
   {
     // Map the frequency to the input sculpt
-    inputSculpt_.setFreq(p);
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setFreq(p);
+      }
+    }
   }
   else if (!getGritMenuOpen())
   {
@@ -684,7 +690,7 @@ void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
       float env  = applyEnvelope ? processEnvelope(play_) : 1.0f;
       float wet  = loopOut * env;
       // Process the input audio through the input sculpt effect
-      float sculptedInput = inputSculpt_.processSample(in[ch][sample]);
+      float sculptedInput = inputSculpt_[ch].processSample(in[ch][sample]);
       out[ch][sample] = infrasonic::lerp(sculptedInput, wet, mix_);
 
       if (record)
@@ -726,7 +732,7 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
           if (isChannelActive(ch))
           {
             // Process the input audio through the input sculpt effect
-            inputSculptBuf_[ch][i] = inputSculpt_.processSample(in[ch][i]);
+            inputSculptBuf_[ch][i] = inputSculpt_[ch].processSample(in[ch][i]);
             out[ch][i] = infrasonic::lerp(inputSculptBuf_[ch][i], 0.0f, mix_);
           }
         }
