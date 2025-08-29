@@ -51,7 +51,7 @@ class InputSculpt
     float shape_      = 0.0f;
     // Overdrive parameters
     float kMinDriveGainComp = 1.0f;
-    float kMaxDriveGainComp = 16.0f;
+    float kMaxDriveGainComp = 24.0f;
     float overdriveAmt_     = kMinDriveAmt;
 
     daisysp::Svf       svf_;
