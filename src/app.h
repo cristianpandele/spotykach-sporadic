@@ -1,24 +1,15 @@
 #pragma once
 #include "Deck.h"
 #include "Modulation.h"
+#include "constants.h"
 #include "hardware.h"
 #include <bitset>
 #include <daisy_seed.h>
 
-using spotykach::Hardware;
 namespace spotykach_hwtest
 {
   // Definitions
   #define PRINT_CPU_LOAD
-
-  // Constants
-  constexpr size_t kSampleRate           = 48000;
-  constexpr float  kSamplePeriodMs       = 1000.0f / kSampleRate;
-  constexpr size_t kBlockSize            = 48;
-
-  constexpr uint8_t kNumberDeckSlots      = Hardware::kNumInPair;
-  constexpr uint8_t kNumberChannelsStereo = 2;
-  constexpr uint8_t kNumberChannelsMono   = 1;
 
   // Timers
   constexpr size_t kDebugLogPeriodMs      = 500;
@@ -372,7 +363,7 @@ namespace spotykach_hwtest
       float deckMix_ = 0.5f;
 
       // Per-deck temporary output buffers for crossfading (stereo, blocksize frames)
-      float deckOutputs_[kNumberDeckSlots][kNumberChannelsStereo][kBlockSize]{};
+      float deckOutputs_[kNumberDeckSlots][kNumberChannelsStereo][kBlockSize] = {{{0.0f}}};
 
       // LED Phase for blinking LEDs
       uint8_t padLedPhase = 0;

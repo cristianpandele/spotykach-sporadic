@@ -5,37 +5,37 @@ using namespace daisy;
 
 namespace spotykach
 {
-  static constexpr Pin kLEDDataPin        = seed::D17;
+  static constexpr Pin kLEDDataPin                      = seed::D17;
 
-  static constexpr Pin kClockInputPin     = seed::D3;
-  static constexpr Pin kGateInputPin[Hardware::kNumInPair] = {seed::D1, seed::D0};
-  static constexpr Pin kGateOutputPin[Hardware::kNumInPair] = {seed::D31, seed::D32};
+  static constexpr Pin kClockInputPin                   = seed::D3;
+  static constexpr Pin kGateInputPin[kNumberDeckSlots]  = {seed::D1, seed::D0};
+  static constexpr Pin kGateOutputPin[kNumberDeckSlots] = {seed::D31, seed::D32};
 
-  static constexpr Pin kSRDataPin         = seed::D27;
-  static constexpr Pin kSRClockPin        = seed::D26;
-  static constexpr Pin kSRLoadPin         = seed::D7;
+  static constexpr Pin kSRDataPin                       = seed::D27;
+  static constexpr Pin kSRClockPin                      = seed::D26;
+  static constexpr Pin kSRLoadPin                       = seed::D7;
 
-  static constexpr Pin kI2CSdaPin         = seed::D12;
-  static constexpr Pin kI2CSclPin         = seed::D11;
+  static constexpr Pin kI2CSdaPin                       = seed::D12;
+  static constexpr Pin kI2CSclPin                       = seed::D11;
 
-  static constexpr Pin kMux1SignalPin     = seed::A9;
-  static constexpr Pin kMux2SignalPin     = seed::A10;
-  static constexpr Pin kMuxAddrAPin       = seed::D8;
-  static constexpr Pin kMuxAddrBPin       = seed::D9;
-  static constexpr Pin kMuxAddrCPin       = seed::D10;
+  static constexpr Pin kMux1SignalPin                   = seed::A9;
+  static constexpr Pin kMux2SignalPin                   = seed::A10;
+  static constexpr Pin kMuxAddrAPin                     = seed::D8;
+  static constexpr Pin kMuxAddrBPin                     = seed::D9;
+  static constexpr Pin kMuxAddrCPin                     = seed::D10;
 
-  static constexpr Pin kCVInput1Pin       = seed::A4;
-  static constexpr Pin kCVInput2Pin       = seed::A11;
-  static constexpr Pin kCVInput3Pin       = seed::A5;
-  static constexpr Pin kCVInput4Pin       = seed::A3;
-  static constexpr Pin kCVInput5Pin       = seed::A0;
-  static constexpr Pin kCVInput6Pin       = seed::A6;
-  static constexpr Pin kCVInput7Pin       = seed::A1;
+  static constexpr Pin kCVInput1Pin                     = seed::A4;
+  static constexpr Pin kCVInput2Pin                     = seed::A11;
+  static constexpr Pin kCVInput3Pin                     = seed::A5;
+  static constexpr Pin kCVInput4Pin                     = seed::A3;
+  static constexpr Pin kCVInput5Pin                     = seed::A0;
+  static constexpr Pin kCVInput6Pin                     = seed::A6;
+  static constexpr Pin kCVInput7Pin                     = seed::A1;
 
-  static constexpr Pin kMidiUartRxPin     = seed::D14;
-  static constexpr Pin kMidiUartTxPin     = seed::D13;
+  static constexpr Pin kMidiUartRxPin                   = seed::D14;
+  static constexpr Pin kMidiUartTxPin                   = seed::D13;
 
-  static constexpr size_t kNumAdcChannels = 9;    // 7 CV + 2 Mux
+  static constexpr size_t kNumAdcChannels               = 9;    // 7 CV + 2 Mux
 
 }    // namespace spotykach
 
@@ -65,7 +65,7 @@ void Hardware::Init (float sr, size_t blocksize)
   gpio_cfg.pin  = kClockInputPin;
   clock_in_.Init(gpio_cfg);
 
-  for (uint8_t i = 0; i < kNumInPair; i++)
+  for (uint8_t i = 0; i < kNumberDeckSlots; i++)
   {
     gpio_cfg.mode = GPIO::Mode::INPUT;
     gpio_cfg.pin = kGateInputPin[i];
@@ -223,7 +223,7 @@ bool Hardware::GetClockInputState ()
 
 bool Hardware::GetGateInputState (uint8_t side)
 {
-  if (side >= kNumInPair)
+  if (side >= kNumberDeckSlots)
     return false;
 
   return !gate_in[side].Read();

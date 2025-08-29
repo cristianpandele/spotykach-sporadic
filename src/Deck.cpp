@@ -1,4 +1,3 @@
-// #include "app.h"
 #include "common.h"
 #include "Deck.h"
 
