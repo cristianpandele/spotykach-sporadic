@@ -13,9 +13,16 @@ void Sporadic::init ()
   delayNetwork_.init(sampleRate_, blockSize_, kNumBands);
 }
 
+//////////
+// Handle parameter changes
+
+static constexpr float paramChThreshold = 0.001f;
 void Sporadic::setMix (float m, bool gritLatch)
 {
-  if (gritLatch)
+  bool mixChanged                  = (std::abs(m - mix_) > paramChThreshold);
+  bool mixChangedWhileGritMenuOpen = (mixChanged && getGritMenuOpen());
+
+  if (gritLatch || mixChangedWhileGritMenuOpen)
   {
     // If grit latched, set drive instead of mix
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
@@ -34,7 +41,10 @@ void Sporadic::setMix (float m, bool gritLatch)
 
 void Sporadic::setPosition (float p, bool gritLatch)
 {
-  if (gritLatch)
+  bool positionChanged                  = (std::abs(p - position_) > paramChThreshold);
+  bool positionChangedWhileGritMenuOpen = (positionChanged && getGritMenuOpen());
+
+  if (gritLatch || positionChangedWhileGritMenuOpen)
   {
     // If grit latched, set input sculpt frequency instead of position
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
@@ -53,7 +63,10 @@ void Sporadic::setPosition (float p, bool gritLatch)
 
 void Sporadic::setSize (float s, bool gritLatch)
 {
-  if (gritLatch)
+  bool sizeChanged                  = (std::abs(s - size_) > paramChThreshold);
+  bool sizeChangedWhileGritMenuOpen = (sizeChanged && getGritMenuOpen());
+
+  if (gritLatch || sizeChangedWhileGritMenuOpen)
   {
     // If grit latched, set input sculpt width instead of size
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
@@ -72,7 +85,10 @@ void Sporadic::setSize (float s, bool gritLatch)
 
 void Sporadic::setShape (float s, bool gritLatch)
 {
-  if (gritLatch)
+  bool shapeChanged                  = (std::abs(s - shape_) > paramChThreshold);
+  bool shapeChangedWhileGritMenuOpen = (shapeChanged && getGritMenuOpen());
+
+  if (gritLatch || shapeChangedWhileGritMenuOpen)
   {
     // If grit latched, set input sculpt shape instead of shape
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
@@ -93,11 +109,11 @@ void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame
   // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
-  setMix(c.mix, c.mixGrit || getGritMenuOpen());
+  setMix(c.mix, c.mixGrit);
   setPitch(c.pitch);
-  setPosition(c.position, c.positionGrit || getGritMenuOpen());
-  setSize(c.size, c.sizeGrit || getGritMenuOpen());
-  setShape(c.shape, c.shapeGrit || getGritMenuOpen());
+  setPosition(c.position, c.positionGrit);
+  setSize(c.size, c.sizeGrit);
+  setShape(c.shape, c.shapeGrit);
 }
 
 void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
