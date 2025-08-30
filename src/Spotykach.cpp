@@ -209,8 +209,6 @@ void Spotykach::setPlay (bool p)
     {
       if (play_)
       {
-        // Log::PrintLine("Switching to ECHO state");
-        state_ = ECHO;
         // Clear the audio buffers
         for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
         {
@@ -219,6 +217,13 @@ void Spotykach::setPlay (bool p)
             std::fill(std::begin(looperAudioData[ch]), std::end(looperAudioData[ch]), 0.0f);
           }
         }
+
+        // Mark as not safe to play until we accumulate at least a buffer's worth of audio
+        safeToPlay        = false;
+        envSampleCounter_ = 0;
+
+        // Log::PrintLine("Switching to ECHO state");
+        state_ = ECHO;
       }
       break;
     }
@@ -250,6 +255,8 @@ void Spotykach::setAltPlay (bool r)
     {
       if (!record_)
       {
+        // Reset envelope sample counter
+        envSampleCounter_ = 0;
         // If recording, switch to LOOP_PLAYBACK state
         // Log::PrintLine("Switching to LOOP_PLAYBACK state");
         state_ = LOOP_PLAYBACK;
@@ -710,6 +717,29 @@ float Spotykach::processEnvelope(bool gate)
   }
 }
 
+void Spotykach::retriggerEnvelopesOnSpanWrap(float prevReadIx, Span<float> readSpan)
+{
+  // Retrigger envelope on span wrap and constrain
+  if (speed_ >= 0)
+  {
+    if (readIx_ < prevReadIx)
+    {
+      retriggerEnvelopes(false);
+      readIx_           = readSpan.start;
+      envSampleCounter_ = 0;
+    }
+  }
+  else
+  {
+    if (readIx_ >= prevReadIx)
+    {
+      retriggerEnvelopes(false);
+      readIx_           = readSpan.end - 1;
+      envSampleCounter_ = 0;
+    }
+  }
+}
+
 void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
                                     AudioHandle::OutputBuffer out,
                                     size_t sample,
@@ -734,7 +764,7 @@ void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
 
       // If not playing, audition the input crossfaded with silence
       float loopOut = 0.0f;
-      if (play_)
+      if (play_ && safeToPlay)
       {
         // Linear interpolation when between the two samples
         loopOut = infrasonic::lerp(s0, s1, frac);
@@ -799,24 +829,29 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
       float readWindowMargin = std::abs(speed_ * kBlockSize);
       // Using same span rule as display: (writeIx_ - position_, writeIx_ - position_*(1.0f-size_))
       float windowLen = std::max(1.0f, position_ * (float)kEchoAudioDataSamples * size_ - readWindowMargin);
-      configureEnvelopeLength(windowLen * speed_);
+
+      float writeIxSpeed = 1.0f;
+      float relSpeed     = std::max(std::abs(speed_ - writeIxSpeed), 0.001f);
+      configureEnvelopeLength(windowLen * relSpeed);
 
       for (size_t i = 0; i < blockSize; ++i)
       {
-        // Periodic envelope retrigger based on window length in samples
-        if (envSampleCounter_ >= static_cast<uint32_t>(windowSamples_))
+        if (!safeToPlay)
         {
-          retriggerEnvelopes(false);
-          envSampleCounter_ = 0;
+          // When ECHO is first enabled, switch safeToPlay to true based on window length in samples
+          if (envSampleCounter_ >= static_cast<uint32_t>(windowSamples_))
+          {
+            safeToPlay = true;
+          }
+          envSampleCounter_++;
         }
-        envSampleCounter_++;
 
         // Process audio for the current sample
         processAudioSample(in, out, i, true, true);
 
         // Update the write index
         Span<float> writeSpan = {0.0f, kLooperAudioDataSamples};
-        updateIndex(writeIx_, 1.0f, writeSpan);
+        updateIndex(writeIx_, writeIxSpeed, writeSpan);
 
         // Map position_ in (0,1) to (0, kEchoAudioDataSamples)
         float readWindowOffset = position_ * (float)kEchoAudioDataSamples;
@@ -830,9 +865,15 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
           readWindowEnd -= kLooperAudioDataSamples;
         }
 
+        // Save the read index before updating
+        float prevReadIx = readIx_;
+
         // Update the read index
         Span<float> readSpan = {readWindowStart, readWindowEnd};
         updateIndex(readIx_, speed_, readSpan);
+
+        // Retrigger envelopes on span wrap
+        retriggerEnvelopesOnSpanWrap(prevReadIx, readSpan);
       }
       return;
     }
@@ -857,7 +898,10 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     case LOOP_PLAYBACK:
     {
       float windowLen = std::max(1.0f, (1.0f - position_) * size_ * kLooperAudioDataSamples);
-      configureEnvelopeLength(windowLen * speed_);
+
+      float writeIxSpeed = speed_;
+
+      configureEnvelopeLength(windowLen * writeIxSpeed);
       for (size_t i = 0; i < blockSize; ++i)
       {
         // Process audio for the current sample
@@ -872,33 +916,21 @@ void Spotykach::processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuf
         {
           spanEnd -= kLooperAudioDataSamples;
         }
+        // Save the loop span
+        Span<float> loopSpan = {spanStart, spanEnd};
+
+        // Save the read index before updating
         float prevReadIx = readIx_;
 
         if (play_)
         {
-          // Advance read, write follows read
-          Span<float> loopSpan = {spanStart, spanEnd};
-          updateIndex(readIx_, speed_, loopSpan);
-          writeIx_ = readIx_;
+          // Advance write, read follows write
+          updateIndex(writeIx_, writeIxSpeed, loopSpan);
+          readIx_ = writeIx_;
         }
 
-        // Retrigger envelope on span wrap and constrain
-        if (speed_ >= 0)
-        {
-          if (readIx_ < prevReadIx)
-          {
-            retriggerEnvelopes(false);
-            readIx_ = spanStart;
-          }
-        }
-        else
-        {
-          if (readIx_ >= prevReadIx)
-          {
-            retriggerEnvelopes(false);
-            readIx_ = spanEnd - 1;
-          }
-        }
+        // Retrigger envelopes on span wrap
+        retriggerEnvelopesOnSpanWrap(prevReadIx, loopSpan);
       }
       return;
     }

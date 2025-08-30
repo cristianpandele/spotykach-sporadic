@@ -100,6 +100,9 @@ class Spotykach : public Deck
     // Record flag
     bool record_ = false;
 
+    // Safe to play flag for ECHO mode
+    bool safeToPlay = false;
+
     // Spotykach deck state
     State state_ = OFF;
 
@@ -132,12 +135,15 @@ class Spotykach : public Deck
     void setSpotyPlay (bool s);
 
     void updateIndex (float &index, float increment, Span<float> window);
+    // Retrigger envelopes when the read index wraps around
+    void retriggerEnvelopesOnSpanWrap (float prevReadIx, Span<float> readSpan);
 
+    // Helper to process audio samples
     void processAudioSample (AudioHandle::InputBuffer  in,
                              AudioHandle::OutputBuffer out,
                              size_t                    sample,
                              bool                      applyEnvelope = false,
-                             bool                      record = false);
+                             bool                      record        = false);
 
     void initEnvelopes(float sampleRate);
     void retriggerEnvelopes (bool hard);
