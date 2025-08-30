@@ -28,6 +28,7 @@ void Spotykach::init ()
   }
 }
 
+//////////
 // Initialize the envelopes
 void Spotykach::initEnvelopes (float sampleRate)
 {
@@ -82,16 +83,24 @@ void Spotykach::configureEnvelopeLength (float windowLenSamples)
   envRise_.SetReleaseTime(std::min(0.001f, 0.05f * windowLenSec));
 }
 
+//////////
+// Handle parameter changes
+
+static constexpr float paramChThreshold = 0.001f;
+
 void Spotykach::setMix (float m, bool altLatch, bool gritLatch)
 {
-  // If alt latch is pressed, set feedback instead of mix
+  bool mixChanged                  = (std::abs(m - mix_) > paramChThreshold);
+  bool mixChangedWhileGritMenuOpen = (mixChanged && getGritMenuOpen());
+
   if (altLatch)
   {
+    // If alt latch is pressed, set feedback instead of mix
     setFeedback(m);
   }
-  // If grit latched, set drive instead of mix
-  else if (gritLatch)
+  else if (gritLatch || mixChangedWhileGritMenuOpen)
   {
+    // If grit latched, set drive instead of mix
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
@@ -108,10 +117,12 @@ void Spotykach::setMix (float m, bool altLatch, bool gritLatch)
 
 void Spotykach::setPosition (float p, bool gritLatch)
 {
-  // If grit latched, set input sculpt frequency instead of position
-  if (gritLatch)
+  bool positionChanged                  = (std::abs(p - position_) > paramChThreshold);
+  bool positionChangedWhileGritMenuOpen = (positionChanged && getGritMenuOpen());
+
+  if (gritLatch || positionChangedWhileGritMenuOpen)
   {
-    // Map the frequency to the input sculpt
+    // If grit latched, set input sculpt frequency instead of position
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
@@ -128,10 +139,12 @@ void Spotykach::setPosition (float p, bool gritLatch)
 
 void Spotykach::setSize (float s, bool gritLatch)
 {
-  // If grit latched, set input sculpt shape instead of shape
-  if (gritLatch)
+  bool sizeChanged                  = (std::abs(s - size_) > paramChThreshold);
+  bool sizeChangedWhileGritMenuOpen = (sizeChanged && getGritMenuOpen());
+
+  if (gritLatch || sizeChangedWhileGritMenuOpen)
   {
-    // Map the shape to the input sculpt
+    // If grit latched, set input sculpt width instead of size
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
@@ -150,10 +163,12 @@ void Spotykach::setSize (float s, bool gritLatch)
 
 void Spotykach::setShape (float s, bool gritLatch)
 {
-  // If grit latched, set input sculpt width instead of looper shape
-  if (gritLatch)
+  bool shapeChanged                  = (std::abs(s - shape_) > paramChThreshold);
+  bool shapeChangedWhileGritMenuOpen = (shapeChanged && getGritMenuOpen());
+
+  if (gritLatch || shapeChangedWhileGritMenuOpen)
   {
-    // Map the width to the input sculpt
+    // If grit latched, set input sculpt shape instead of shape
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
@@ -298,11 +313,11 @@ void Spotykach::updateAnalogControls (const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame
   // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
-  setMix(c.mix, c.mixAlt, c.mixGrit || getGritMenuOpen());
+  setMix(c.mix, c.mixAlt, c.mixGrit);
   setPitch(c.pitch);
-  setPosition(c.position, c.positionGrit || getGritMenuOpen());
-  setSize(c.size, c.sizeGrit || getGritMenuOpen());
-  setShape(c.shape, c.shapeGrit || getGritMenuOpen());
+  setPosition(c.position, c.positionGrit);
+  setSize(c.size, c.sizeGrit);
+  setShape(c.shape, c.shapeGrit);
 }
 
 void Spotykach::updateDigitalControls (const DigitalControlFrame &c)
