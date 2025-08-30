@@ -41,6 +41,7 @@ class ModulationEngine
     };
 
     ModulationEngine (float sampleRate);
+    ModulationEngine ()          = delete;
     virtual ~ModulationEngine () = default;
 
     virtual void setModType (ModType t) { currentModType = t; }

@@ -14,7 +14,7 @@ namespace spotykach_hwtest
   // Timers
   constexpr size_t kDebugLogPeriodMs      = 500;
   constexpr size_t kLedUpdatePeriodMs     = 2;
-  constexpr size_t kLedUpdateRate         = (1.0f / (kLedUpdatePeriodMs / 1000.0f));
+  constexpr size_t kLedUpdateRate         = (1000.0f / kLedUpdatePeriodMs);
 
   // Enum for Size/Pos switch position
   enum SizePosSwitchState

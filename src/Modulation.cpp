@@ -28,22 +28,22 @@ void ModulationEngine::setAmplitude (float amp)
 void ModulationEngine::setFrequency (float freq, bool useAltFactor)
 {
   // Map the frequency from (0,1) to (0.05, 15.0)
-  float freq_map = infrasonic::map(freq, 0.0f, 1.0f, 0.05f, 15.0f);
+  float freqMap = infrasonic::map(freq, 0.0f, 1.0f, kMinFreq, kMaxFreq);
 
   // If using the alt factor, multiply the frequency by 10
   if (useAltFactor)
   {
-    freq_map *= 10.0f;
+    freqMap *= 10.0f;
   }
 
   // Set the frequency for all oscillators
   for (size_t i = 0; i < kNumModWaves - 1; ++i)
   {
-    osc_[i].SetFreq(freq_map);
+    osc_[i].SetFreq(freqMap);
   }
 
   // Set the frequency for Sample and Hold oscillator
-  s_h_.setFrequency(freq);
+  s_h_.setFrequency(freqMap);
 }
 
 // Map the current modulation type to the corresponding oscillator output
