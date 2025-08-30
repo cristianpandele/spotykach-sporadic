@@ -258,8 +258,8 @@ namespace spotykach_hwtest
 
       // Mix controls for the two sides (updated at audio sample rate)
       using SmoothValue                         = Utils::SmoothValue;
-      SmoothValue mixControls[kNumberDeckSlots] = {SmoothValue(25.0f, kSamplePeriodMs),
-                                                   SmoothValue(25.0f, kSamplePeriodMs)};
+      SmoothValue mixControls[kNumberDeckSlots] = {SmoothValue(75.0f, kSamplePeriodMs),
+                                                   SmoothValue(75.0f, kSamplePeriodMs)};
 
       // Mix control alt latch for the two sides
       bool mixAltLatch[kNumberDeckSlots] = {false};
@@ -287,26 +287,26 @@ namespace spotykach_hwtest
                                                   SmoothValue(75.0f, kSamplePeriodMs)};
 
       // Position knob for each side (updated at audio sample rate)
-      SmoothValue positionControls[kNumberDeckSlots]{SmoothValue(150.0f, kSamplePeriodMs),
-                                                     SmoothValue(150.0f, kSamplePeriodMs)};
+      SmoothValue positionControls[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs),
+                                                     SmoothValue(75.0f, kSamplePeriodMs)};
       // Position/size switch state for each side
       SizePosSwitchState sizePosSwitch[kNumberDeckSlots]{SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
 
       // Size controls for each side (updated at audio sample rate)
-      SmoothValue sizeControls[kNumberDeckSlots]{SmoothValue(250.0f, kSamplePeriodMs),
-                                                 SmoothValue(250.0f, kSamplePeriodMs)};
+      SmoothValue sizeControls[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs),
+                                                 SmoothValue(75.0f, kSamplePeriodMs)};
 
       // Shape controls for each side (updated at audio sample rate)
-      SmoothValue shapeControls[kNumberDeckSlots]{SmoothValue(250.0f, kSamplePeriodMs),
-                                                  SmoothValue(250.0f, kSamplePeriodMs)};
+      SmoothValue shapeControls[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs),
+                                                  SmoothValue(75.0f, kSamplePeriodMs)};
 
       // Modulation amount controls for each side (updated at audio block rate)
-      SmoothValue modulationAmount[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs *kBlockSize),
-                                                     SmoothValue(75.0f, kSamplePeriodMs *kBlockSize)};
+      SmoothValue modulationAmount[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
+                                                     SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
 
       // Modulation frequency controls for each side (updated at audio block rate)
-      SmoothValue modulationFreq[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs *kBlockSize),
-                                                   SmoothValue(75.0f, kSamplePeriodMs *kBlockSize)};
+      SmoothValue modulationFreq[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
+                                                   SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
 
       // Modulation frequency alt latch for each side
       bool modFreqAltLatch[2] = {false};
