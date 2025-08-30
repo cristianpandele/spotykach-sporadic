@@ -1,6 +1,7 @@
 #pragma once
 
 #include "daisysp.h"
+#include "hardware.h"
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -34,7 +35,7 @@ class DiffusionControl
 
     // Process one audio block. outBand must point to an array
     // of numBands() float* buffers, each buffer having blockSize samples.
-    void processBlockMono (const float *in, float **outBand, size_t blockSize);
+    void processBlockMono (const float *in, const uint8_t ch, float **outBand, size_t blockSize);
 
   private:
     float sampleRate_ = 48000.0f;
@@ -43,7 +44,7 @@ class DiffusionControl
     float minFreq_    = kMinFreq;
     float maxFreq_    = kMaxFreq;
 
-    std::array<daisysp::Svf, kMaxBands> filters_{};
+    std::array<std::array<daisysp::Svf, kMaxBands>, spotykach::kNumberChannelsStereo> filters_{};
     std::array<float, kMaxBands>        centerFreqs_{};
 
     void updateBandLayout ();

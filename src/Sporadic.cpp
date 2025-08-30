@@ -217,7 +217,7 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
         // If the input sculpting is not active, copy the input to the scratch buffer
         std::copy(in[ch], in[ch] + blockSize, inputSculptBuf_[ch]);
       }
-      delayNetwork_.processBlockMono(inputSculptBuf_[ch], delayNetworkBuf_[ch], blockSize);
+      delayNetwork_.processBlockMono(inputSculptBuf_[ch], ch, delayNetworkBuf_[ch], blockSize);
 
       // Apply dry-wet mix
       Utils::audioBlockLerp(in[ch], delayNetworkBuf_[ch], out[ch], mix_, blockSize);

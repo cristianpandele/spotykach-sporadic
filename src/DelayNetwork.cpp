@@ -49,7 +49,7 @@ void DelayNetwork::allocateStorage ()
   }
 }
 
-void DelayNetwork::processBlockMono (const float *in, float *out, size_t blockSize)
+void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *out, size_t blockSize)
 {
   // Block size must match initialized block size (simplest design); assert in debug.
   assert(blockSize == blockSize_);
@@ -62,7 +62,7 @@ void DelayNetwork::processBlockMono (const float *in, float *out, size_t blockSi
     outBand[b] = bandInPtrs_[b];
   }
 
-  diffusion_.processBlockMono(in, outBand, blockSize);
+  diffusion_.processBlockMono(in, ch, outBand, blockSize);
 
   float *inDelay[numBands_];
   float *outDelay[numBands_];

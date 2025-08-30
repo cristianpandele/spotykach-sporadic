@@ -42,20 +42,23 @@ void DiffusionControl::updateBandLayout ()
     centerFreqs_[band] = minFreq_ * powf(maxFreq_ / minFreq_, t);
   }
 
-  for (int band = 0; band < numBands_; ++band)
+  for (int ch = 0; ch < spotykach::kNumberChannelsStereo; ++ch)
   {
-    filters_[band].Init(sampleRate_);
-    filters_[band].SetFreq(centerFreqs_[band]);
-    filters_[band].SetRes(0.707f);
+    for (int band = 0; band < numBands_; ++band)
+    {
+      filters_[ch][band].Init(sampleRate_);
+      filters_[ch][band].SetFreq(centerFreqs_[band]);
+      filters_[ch][band].SetRes(0.707f);
+    }
   }
 }
 
-void DiffusionControl::processBlockMono (const float *in, float **outBand, size_t blockSize)
+void DiffusionControl::processBlockMono (const float *in, const uint8_t ch, float **outBand, size_t blockSize)
 {
   for (int band = 0; band < numBands_; ++band)
   {
     float *o = outBand[band];
-    auto  &f = filters_[band];
+    auto  &f = filters_[ch][band];
     for (size_t i = 0; i < blockSize; ++i)
     {
       f.Process(in[i]);
