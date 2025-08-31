@@ -49,12 +49,19 @@ void Sporadic::setPosition (float p, bool gritLatch)
 
   if (gritLatch || positionChangedWhileGritMenuOpen)
   {
+    constexpr float fMin       = 50.0f;
+    constexpr float fMax       = 18000.0f;
+    float           centerFreq = daisysp::fmap(p, fMin, fMax, Mapping::LOG);
     // If grit latched, set input sculpt frequency instead of position
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
       {
-        inputSculpt_[ch].setFreq(p);
+        inputSculpt_[ch].setFreq(centerFreq);
+        delayNetwork_.setParameters({
+                                      .numBands = kNumBands,
+                                      .centerFreq = centerFreq
+                                    });
       }
     }
   }

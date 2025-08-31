@@ -9,10 +9,7 @@ void InputSculpt::init (float sampleRate)
 
 void InputSculpt::setFreq (float f)
 {
-  f                    = infrasonic::unitclamp(f);
-  constexpr float fMin = 50.0f;
-  constexpr float fMax = 18000.0f;
-  centerFreq_ = daisysp::fmap(f, fMin, fMax, Mapping::LOG);
+  centerFreq_ = f;
   updateFilter(centerFreq_, q_);
 }
 

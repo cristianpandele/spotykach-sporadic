@@ -16,14 +16,15 @@ void DelayNetwork::init (float sampleRate, size_t blockSize, int numBands)
 void DelayNetwork::setParameters (const Parameters &p)
 {
   int newBands = std::max(1, p.numBands);
-  if (newBands != numBands_)
+  float newCenterFreq = daisysp::fclamp(p.centerFreq, DiffusionControl::kMinFreq, DiffusionControl::kMaxFreq);
+  if ((newBands != numBands_) || (newCenterFreq != centerFreq_))
   {
     numBands_ = newBands;
+    centerFreq_ = newCenterFreq;
     diffusion_.setParameters(
       {
         .numActiveBands = numBands_,
-        .minFreq = DiffusionControl::kMinFreq,
-        .maxFreq = DiffusionControl::kMaxFreq
+        .centerFreq     = centerFreq_
       });
     delayNodes_.init(sampleRate_, numBands_);
     allocateStorage();
