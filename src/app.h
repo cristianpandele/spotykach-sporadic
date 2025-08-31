@@ -264,8 +264,8 @@ namespace spotykach_hwtest
       // Mix control alt latch for the two sides
       bool mixAltLatch[kNumberDeckSlots] = {false};
 
-      // Mix knob Grit latch
-      bool mixGritLatch[kNumberDeckSlots] = {false};
+      // Pitch knob Grit latch
+      bool pitchGritLatch[kNumberDeckSlots] = {false};
 
       // Position knob Grit latch
       bool positionGritLatch[kNumberDeckSlots] = {false};

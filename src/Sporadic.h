@@ -47,14 +47,14 @@ class Sporadic : public Deck
     float modulatedInputBuf_[kNumberChannelsStereo][kBlockSize]{};
 
     // Setters for mix, position and size (overloads point to Sporadic versions)
-    void setMix (float m, bool gritLatch = false);
-    void setMix (float m) override { setMix(m, false); }
     void setPosition (float p, bool gritLatch = false);
     void setPosition (float p) override { setPosition(p, false); }
     void setSize (float s, bool gritLatch = false);
     void setSize (float s) override { setSize(s, false); }
     void setShape (float s, bool gritLatch = false);
     void setShape (float s) override { setShape(s, false); }
+    void setPitch (float p, bool gritLatch = false);
+    void setPitch (float p) override { setPitch(p, false); }
 
     Sporadic (const Sporadic &)           = delete;
     Sporadic &operator=(const Sporadic &) = delete;

@@ -148,9 +148,9 @@ void AppImpl::updateAnalogControlFrame(Deck::AnalogControlFrame &frame, size_t s
   frame = {
     .mix          = mixControls[slot].isSmoothing() ? mixControls[slot].getSmoothVal() : mixControls[slot].getTargetVal(),
     .mixAlt       = mixAltLatch[slot],
-    .mixGrit      = mixGritLatch[slot],
     .pitch        = pitchControls[slot].isSmoothing() ? pitchControls[slot].getSmoothVal()
                                                       : pitchControls[slot].getTargetVal(),
+    .pitchGrit    = pitchGritLatch[slot],
     .position     = positionControls[slot].isSmoothing() ? positionControls[slot].getSmoothVal()
                                                          : positionControls[slot].getTargetVal(),
     .positionGrit = positionGritLatch[slot],
@@ -496,8 +496,12 @@ void AppImpl::processUIQueue ()
         {
           // Use Alt pad latch to modify Mix
           mixAltLatch[side]  = Utils::isAltPadPressed(padTouchStates);
-          // Use Grit pad latch to modify Mix
-          mixGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+        }
+
+        if (event.asPotMoved.id == Hardware::kCtrlPitchIds[side])
+        {
+          // Use Grit pad latch to modify Pitch (drives InputSculpt drive)
+          pitchGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
         }
 
         if (event.asPotMoved.id == Hardware::kCtrlPosIds[side])
@@ -598,14 +602,17 @@ void AppImpl::handleAnalogControls ()
   {
     // Read and smooth pitch controls for both sides
     pitchControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPitchIds[side]);
-    // Add the pitch CV values
-    pitchControls[side] += hw.GetControlVoltageValue(Hardware::kCvVOctIds[side]);
+    if (!pitchGritLatch[side])
+    {
+      // Add the pitch CV value when Grit is not latched
+      pitchControls[side] += hw.GetControlVoltageValue(Hardware::kCvVOctIds[side]);
+    }
 
     // Read the mix controls for both sides
     mixControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSosIds[side]);
-    if (!mixAltLatch[side] || !mixGritLatch[side])
+    if (!mixAltLatch[side])
     {
-      // Add the mix CV values when Alt or Grit are not latched
+      // Add the mix CV values when Alt is not latched
       mixControls[side] += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
     }
 

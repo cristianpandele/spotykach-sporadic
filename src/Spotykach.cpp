@@ -85,28 +85,14 @@ void Spotykach::configureEnvelopeLength (float windowLenSamples)
 
 static constexpr float paramChThreshold = 0.001f;
 
-void Spotykach::setMix (float m, bool altLatch, bool gritLatch)
+void Spotykach::setMix (float m, bool altLatch)
 {
-  bool mixChanged                  = (std::abs(m - mix_) > paramChThreshold);
-  bool mixChangedWhileGritMenuOpen = (mixChanged && getGritMenuOpen());
-
   if (altLatch)
   {
     // If alt latch is pressed, set feedback instead of mix
     setFeedback(m);
   }
-  else if (gritLatch || mixChangedWhileGritMenuOpen)
-  {
-    // If grit latched, set drive instead of mix
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setOverdrive(m);
-      }
-    }
-  }
-  else if (!getGritMenuOpen())
+  else
   {
     mix_ = m;
   }
@@ -153,7 +139,7 @@ void Spotykach::setSize (float s, bool gritLatch)
   else if (!getGritMenuOpen())
   {
     // Ensure size is just a hair above 0 at all times
-    size_ = infrasonic::map(s, 0.0f, 1.0f, 0.05f, 1.0f);
+    size_ = daisysp::fmap(s, 0.05f, 1.0f);
     size_ = std::clamp(size_, 0.05f, 1.0f);
   }
 }
@@ -180,19 +166,38 @@ void Spotykach::setShape (float s, bool gritLatch)
   }
 }
 
-void Spotykach::setPitch (float s)
+void Spotykach::setPitch (float p, bool gritLatch)
 {
-  // Map the pitch to 0..4
-  speed_ = infrasonic::map(s, 0.0f, 1.0f, 0.0f, 4.0f);
-  if (reverse_)
+  bool pitchChanged                  = (std::abs(p - pitch_) > paramChThreshold);
+  bool pitchChangedWhileGritMenuOpen = (pitchChanged && getGritMenuOpen());
+  pitch_ = p;
+
+  if (gritLatch || pitchChangedWhileGritMenuOpen)
   {
-    // Reverse playback, set speed to negative
-    speed_ = -std::abs(speed_);
+    // If grit latched, set drive instead of mix
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setOverdrive(pitch_);
+      }
+    }
   }
   else if (!getGritMenuOpen())
   {
-    // Normal playback, set speed to positive
-    speed_ = std::abs(speed_);
+    // Map the pitch to 0..4
+    speed_ = daisysp::fmap(pitch_, 0.0f, 4.0f);
+
+    if (reverse_)
+    {
+      // Reverse playback, set speed to negative
+      speed_ = -std::abs(speed_);
+    }
+    else
+    {
+      // Normal playback, set speed to positive
+      speed_ = std::abs(speed_);
+    }
   }
 }
 
@@ -317,8 +322,8 @@ void Spotykach::updateAnalogControls (const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame
   // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
-  setMix(c.mix, c.mixAlt, c.mixGrit);
-  setPitch(c.pitch);
+  setMix(c.mix, c.mixAlt);
+  setPitch(c.pitch, c.pitchGrit);
   setPosition(c.position, c.positionGrit);
   setSize(c.size, c.sizeGrit);
   setShape(c.shape, c.shapeGrit);

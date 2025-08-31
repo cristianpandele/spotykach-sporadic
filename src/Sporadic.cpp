@@ -20,27 +20,6 @@ void Sporadic::init ()
 // Handle parameter changes
 
 static constexpr float paramChThreshold = 0.001f;
-void Sporadic::setMix (float m, bool gritLatch)
-{
-  bool mixChanged                  = (std::abs(m - mix_) > paramChThreshold);
-  bool mixChangedWhileGritMenuOpen = (mixChanged && getGritMenuOpen());
-
-  if (gritLatch || mixChangedWhileGritMenuOpen)
-  {
-    // If grit latched, set drive instead of mix
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setOverdrive(m);
-      }
-    }
-  }
-  else if (!getGritMenuOpen())
-  {
-    mix_ = m;
-  }
-}
 
 void Sporadic::setPosition (float p, bool gritLatch)
 {
@@ -115,6 +94,28 @@ void Sporadic::setShape (float s, bool gritLatch)
   }
 }
 
+void Sporadic::setPitch (float p, bool gritLatch)
+{
+  bool pitchChanged                  = (std::abs(p - pitch_) > paramChThreshold);
+  bool pitchChangedWhileGritMenuOpen = (pitchChanged && getGritMenuOpen());
+
+  if (gritLatch || pitchChangedWhileGritMenuOpen)
+  {
+    // If grit latched, set drive instead of pitch
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setOverdrive(p);
+      }
+    }
+  }
+  // else... // TODO: map pitch to scarcity/abundance in Sporadic
+  //{
+  //   pitch_ = p;
+  //}
+}
+
 #if DEBUG
 void Sporadic::getBandFrequencies (std::vector<float> &frequencies) const
 {
@@ -126,8 +127,8 @@ void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame
   // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
-  setMix(c.mix, c.mixGrit);
-  setPitch(c.pitch);
+  setMix(c.mix);
+  setPitch(c.pitch, c.pitchGrit);
   setPosition(c.position, c.positionGrit);
   setSize(c.size, c.sizeGrit);
   setShape(c.shape, c.shapeGrit);

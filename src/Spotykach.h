@@ -121,8 +121,8 @@ class Spotykach : public Deck
     uint32_t envSampleCounter_ = 0;
 
     // Setters for mix, position and size (overloads point to Spotykach versions)
-    void setMix (float m, bool altLatch = false, bool gritLatch = false);
-    void setMix (float m) override { setMix(m, false, false); }
+    void setMix (float m, bool altLatch = false);
+    void setMix (float m) override { setMix(m, false); }
     void setFeedback (float fb) { feedback_ = std::clamp(fb, 0.0f, 0.99f); }
     void setPosition (float p, bool gritLatch = false);
     void setPosition (float p) override { setPosition(p, false); }
@@ -130,7 +130,8 @@ class Spotykach : public Deck
     void setSize (float s) override { setSize(s, false); }
     void setShape (float s, bool gritLatch = false);
     void setShape (float s) override { setShape(s, false); }
-    void setPitch (float s) override;
+    void setPitch (float p, bool gritLatch = false);
+    void setPitch (float p) override { setPitch(p, false); }
 
     void setPlay (bool p) override;
     void setReverse (bool r) override;

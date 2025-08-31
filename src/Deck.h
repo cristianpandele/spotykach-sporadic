@@ -35,14 +35,14 @@ class Deck
     {
       float mix;
       bool  mixAlt;       // latched Alt pad at move time for Mix knob
-      bool  mixGrit;      // latched Flux pad at move time for Mix knob
       float pitch;
+      bool  pitchGrit;    // latched Grit pad at move time for Pitch knob
       float position;
-      bool  positionGrit; // latched Flux pad at move time for Position knob
+      bool  positionGrit; // latched Grit pad at move time for Position knob
       float size;
-      bool  sizeGrit;     // latched Flux pad at move time for Size knob
+      bool  sizeGrit;     // latched Grit pad at move time for Size knob
       float shape;
-      bool  shapeGrit;    // latched Flux pad at move time for Shape knob
+      bool  shapeGrit;    // latched Grit pad at move time for Shape knob
     };
 
     // Digital control payload pushed  on change (at most once per loop iteration) from AppImpl
