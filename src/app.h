@@ -370,6 +370,9 @@ namespace spotykach_hwtest
 
       uint16_t last_pot_moved[kNumberDeckSlots]{0};
 
+      // Flag for feeding the envelope follower with input signal
+      bool    envelopeFeed = false;
+
       bool    test_note_on;
       bool    midi_in_note_on;
       uint8_t midi_in_nn;
