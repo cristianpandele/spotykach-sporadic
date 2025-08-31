@@ -15,8 +15,7 @@ class DiffusionControl
     struct Parameters
     {
         int   numActiveBands = 4;          // (1..maxBands)
-        float minFreq        = 250.0f;     // (Hz)
-        float maxFreq        = 8000.0f;    // (Hz)
+        float centerFreq     = 1000.0f;    // (Hz)
     };
 
     // Maximum number of supported bands (made public for other modules)

@@ -14,8 +14,8 @@ void DiffusionControl::init (float sampleRate, int numBands)
 void DiffusionControl::setParameters (const Parameters &p)
 {
   int   newBands = std::max(1, std::min(p.numActiveBands, kMaxBands));
-  float minFreq  = std::max(kMinFreq, p.minFreq);
-  float maxFreq  = std::min(kMaxFreq, p.maxFreq);
+  float minFreq  = std::max(kMinFreq, p.centerFreq / 4); // Two octaves below center frequency
+  float maxFreq  = std::min(kMaxFreq, p.centerFreq * 8); // Three octaves above center frequency
   if ((newBands != numBands_) || (minFreq != kMinFreq) || (maxFreq != kMaxFreq))
   {
     numBands_ = newBands;

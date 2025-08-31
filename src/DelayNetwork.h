@@ -10,7 +10,8 @@ class DelayNetwork
   public:
     struct Parameters
     {
-        int numBands = 4;    // (1..DiffusionControl::kMaxBands)
+        int   numBands   = 4;          // (1..DiffusionControl::kMaxBands)
+        float centerFreq = 1000.0f;    // Default center frequency
     };
 
     // Provide expected processing block size so internal buffers can be
@@ -28,6 +29,7 @@ class DelayNetwork
   private:
     float  sampleRate_ = 48000.0f;
     int    numBands_   = 4;
+    float  centerFreq_ = 1000.0f;
     size_t blockSize_  = 16;    // default, must match init provided size
 
     DiffusionControl diffusion_;
