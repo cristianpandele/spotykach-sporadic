@@ -6,6 +6,7 @@
 #include "Deck.h"
 #include "hardware.h"
 #include "DelayNetwork.h"
+#include "EdgeTree.h"
 
 using namespace daisy;
 using namespace spotykach_hwtest;
@@ -14,7 +15,8 @@ using namespace spotykach_hwtest;
 class Sporadic : public Deck
 {
   public:
-    Sporadic (size_t sampleRate, size_t blockSize) : Deck(sampleRate, blockSize) { init(); }
+    Sporadic (size_t sampleRate, size_t blockSize) : Deck(sampleRate, blockSize), edgeTree_(sampleRate) { init(); }
+    Sporadic ()  = delete;
     ~Sporadic () = default;
 
     void init () override;
@@ -23,20 +25,24 @@ class Sporadic : public Deck
     void getDigitalControls (DigitalControlFrame &c) override;
     void updateDisplayState () override;
     void processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
-
- #if DEBUG
+    // Getter for band frequencies
     void getBandFrequencies (std::vector<float> &frequencies) const;
-#endif
 
   private:
     // Delay network for feedback and modulation
     DelayNetwork delayNetwork_;
+
+    // EdgeTree for envelope following and volume modulation
+    EdgeTree edgeTree_;
 
     // Constants
     static constexpr uint8_t kNumBands     = 4;    // Number of bands for diffusion
 
     // Internal working buffers (single block) to avoid per-callback allocations.
     float delayNetworkBuf_[kNumberChannelsStereo][kBlockSize]{};
+
+    // Buffer for modulated input before input sculpt
+    float modulatedInputBuf_[kNumberChannelsStereo][kBlockSize]{};
 
     // Setters for mix, position and size (overloads point to Sporadic versions)
     void setMix (float m, bool gritLatch = false);
