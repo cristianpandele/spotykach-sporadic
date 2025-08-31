@@ -2,7 +2,8 @@
 
 void InputSculpt::init (float sampleRate)
 {
-  svf_.Init(sampleRate);
+  sampleRate_ = sampleRate;
+  svf_.Init(sampleRate_);
   overdrive_.SetDrive(kMinDriveAmt);
   updateFilter(centerFreq_, q_);
 }

@@ -9,13 +9,12 @@
 #include "EdgeTree.h"
 
 using namespace daisy;
-using namespace spotykach_hwtest;
 
 // Class for Sporadic deck implementation
 class Sporadic : public Deck
 {
   public:
-    Sporadic (size_t sampleRate, size_t blockSize) : Deck(sampleRate, blockSize), edgeTree_(sampleRate) { init(); }
+    Sporadic (size_t sampleRate, size_t blockSize) : Deck(sampleRate, blockSize), edgeTree_{sampleRate, sampleRate} {}
     Sporadic ()  = delete;
     ~Sporadic () = default;
 
@@ -33,10 +32,7 @@ class Sporadic : public Deck
     DelayNetwork delayNetwork_;
 
     // EdgeTree for envelope following and volume modulation
-    EdgeTree edgeTree_;
-
-    // Constants
-    static constexpr uint8_t kNumBands     = 4;    // Number of bands for diffusion
+    EdgeTree edgeTree_[kNumberChannelsStereo];
 
     // Internal working buffers (single block) to avoid per-callback allocations.
     float delayNetworkBuf_[kNumberChannelsStereo][kBlockSize]{};

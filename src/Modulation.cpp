@@ -174,8 +174,18 @@ float SampleAndHold::process ()
 EnvelopeFollower::EnvelopeFollower (float sampleRate)
 {
   sampleRate_ = sampleRate;
-  setAttackMs(20.0f);
-  setReleaseMs(120.0f);
+  init(sampleRate);
+}
+
+void EnvelopeFollower::init (float sampleRate)
+{
+  sampleRate_ = sampleRate;
+  attackMs_   = 20.0f;
+  releaseMs_  = 120.0f;
+  env_        = 0.0f;
+  amp_        = 1.0f;
+  setAttackMs(attackMs_);
+  setReleaseMs(releaseMs_);
 }
 
 void EnvelopeFollower::setAttackMs (float ms)
@@ -233,7 +243,6 @@ float EnvelopeFollower::process (float x)
   out = infrasonic::unitclamp(out * amp_);
   return out;
 }
-
 
 // Read current output without advancing
 float EnvelopeFollower::output (bool attenuate) const

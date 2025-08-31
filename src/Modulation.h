@@ -1,7 +1,9 @@
 #pragma once
 #include "common.h"
+#include "constants.h"
 #include <daisysp.h>
 
+using namespace ::spotykach;
 // Sample and Hold oscillator wrapper
 class SampleAndHold
 {

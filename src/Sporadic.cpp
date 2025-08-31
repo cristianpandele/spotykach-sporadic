@@ -8,12 +8,12 @@ void Sporadic::init ()
   {
     // Initialize the input sculpt effect
     inputSculpt_[ch].init(sampleRate_);
+
+    // Initialize the edge tree for envelope following
+    edgeTree_[ch].init(sampleRate_);
   }
   // Initialize the delay network
-  delayNetwork_.init(sampleRate_, blockSize_, kNumBands);
-
-  // Initialize the edge tree for envelope following
-  edgeTree_.init(sampleRate_);
+  delayNetwork_.init(sampleRate_, blockSize_, kMaxNutrientBands, kMaxNumDelayProcsPerBand);
 }
 
 //////////
@@ -31,6 +31,7 @@ void Sporadic::setPosition (float p, bool gritLatch)
     constexpr float fMin       = 50.0f;
     constexpr float fMax       = 18000.0f;
     float           centerFreq = daisysp::fmap(p, fMin, fMax, Mapping::LOG);
+
     // If grit latched, set input sculpt frequency instead of position
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
@@ -38,7 +39,8 @@ void Sporadic::setPosition (float p, bool gritLatch)
       {
         inputSculpt_[ch].setFreq(centerFreq);
         delayNetwork_.setParameters({
-                                      .numBands = kNumBands,
+                                      .numBands = kMaxNutrientBands,
+                                      .numProcs = kMaxNumDelayProcsPerBand,
                                       .centerFreq = centerFreq
                                     });
       }
@@ -180,6 +182,7 @@ void Sporadic::updateDisplayState ()
   // TODO: sporadic state display
 }
 
+using namespace spotykach_hwtest;
 void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize)
 {
   // Pass-through if channelConfig_ is not MONO_LEFT, MONO_RIGHT, or STEREO
@@ -204,7 +207,7 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
       }
 
       // First, modulate input volume using EdgeTree per-sample
-      edgeTree_.processBlockMono(inputSculptBuf_[ch], modulatedInputBuf_[ch], blockSize);
+      edgeTree_[ch].processBlockMono(inputSculptBuf_[ch], modulatedInputBuf_[ch], blockSize);
 
       delayNetwork_.processBlockMono(modulatedInputBuf_[ch], ch, delayNetworkBuf_[ch], blockSize);
 
@@ -224,7 +227,7 @@ void Sporadic::updateDiffusionRingState (DisplayState &view)
   std::fill(std::begin(ledColor), std::end(ledColor), LedRgbBrightness{0x000000, 0.0f});
 
   // Overlay dark red LEDs indicating the Diffusion filter cutoff frequencies
-  std::vector<float> cutoffFreqs(kNumBands);
+  std::vector<float> cutoffFreqs(kMaxNutrientBands);
   delayNetwork_.getBandFrequencies(cutoffFreqs);
 
   for (size_t i = 0; i < cutoffFreqs.size(); ++i)

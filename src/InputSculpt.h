@@ -45,6 +45,7 @@ class InputSculpt
     float getOverdrive () const { return overdriveAmt_; }
 
   private:
+    float sampleRate_ = 48000.0f;
     // Filter parameters
     float centerFreq_ = 1000.0f;
     float q_          = 0.0f;

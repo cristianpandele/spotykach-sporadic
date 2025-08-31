@@ -18,10 +18,6 @@ class DiffusionControl
         float centerFreq     = 1000.0f;    // (Hz)
     };
 
-    // Maximum number of supported bands (made public for other modules)
-    static constexpr int     kMaxBands = 8;     // Max number of bands
-    static constexpr uint8_t kMaxOrder = 16;    // Max filter order
-
     static constexpr float kMinFreq    = 125.0f;     // Minimum frequency (Hz)
     static constexpr float kMaxFreq    = 8000.0f;    // Maximum frequency (Hz)
 
@@ -43,8 +39,8 @@ class DiffusionControl
     float minFreq_    = kMinFreq;
     float maxFreq_    = kMaxFreq;
 
-    std::array<std::array<daisysp::Svf, kMaxBands>, spotykach::kNumberChannelsStereo> filters_{};
-    std::array<float, kMaxBands>        centerFreqs_{};
+    std::array<std::array<daisysp::Svf, kMaxNutrientBands>, kNumberChannelsStereo> filters_{};
+    std::array<float, kMaxNutrientBands>                                           centerFreqs_{};
 
     void updateBandLayout ();
 };

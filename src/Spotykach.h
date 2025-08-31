@@ -25,7 +25,7 @@ class Spotykach : public Deck
       LOOP_PLAYBACK
     };
 
-    Spotykach (size_t sampleRate, size_t blockSize) : Deck(sampleRate, blockSize) { init(); }
+    Spotykach (size_t sampleRate, size_t blockSize) : Deck(sampleRate, blockSize) { }
     ~Spotykach () = default;
 
     void init ();
