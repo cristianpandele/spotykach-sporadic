@@ -272,6 +272,9 @@ void AppImpl::loop ()
         routingModeChanged = false;
       }
 
+      // Set the flag to feed the envelope follower
+      envelopeFeed = true;
+
       for (size_t i = 0; i < kNumberDeckSlots; i++)
       {
         /////////
@@ -410,7 +413,16 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     /////////
     // Apply the analog controls to the modulators
     processModulatorControls(i);
+
+    // Feed envelope follower input from audio stream.
+    if (envelopeFeed == true)
+    {
+      modulator[i].setEnvelopeInput(in[0], 1);
+    }
   }
+
+  // Reset the envelope follower feed flag
+  envelopeFeed = false;
 
   // Process the audio through the Spotykach/Sporadic logic
   // Routing is dependent on currentRoutingMode as indicated by LED_ROUTING

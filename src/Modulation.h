@@ -23,12 +23,50 @@ class SampleAndHold
     float               cvOutput_;
 };
 
+// Envelope follower (attack/release one-pole)
+class EnvelopeFollower
+{
+  public:
+    EnvelopeFollower (float sampleRate);
+
+    void setAttackMs (float ms);
+
+    void setReleaseMs (float ms);
+
+    void setAmplitude(float a) { amp_ = a; }
+
+    void setFrequency (float f);
+
+    // Compensate the gain of the envelope follower
+    float gainCompensation () const;
+
+    // Process a single sample
+    float process (float x);
+
+    // Read current output without advancing
+    float output (bool attenuate = false) const;
+
+  private:
+    static constexpr float kMinAttackTime  = 0.01f;
+    static constexpr float kMaxAttackTime  = 20000.0f;
+    static constexpr float kMinReleaseTime = 10.0f;
+    static constexpr float kMaxReleaseTime = 1200.0f;
+
+    float sampleRate_ = 48000.0f;
+    float attackMs_   = 20.0f;
+    float releaseMs_  = 120.0f;
+    float atkCoef_    = 0.0f;
+    float relCoef_    = 0.0f;
+    float env_        = 0.0f;
+    float amp_        = 1.0f;
+};
+
 // Base class for modulation engines
 class ModulationEngine
 {
   public:
     static constexpr size_t kNumModsPerSide = 3;    // Number of modulation types per modulator
-    static constexpr size_t kNumModWaves    = 4;    // Number of modulation waveforms (square, sine, saw, sample and hold)
+    static constexpr size_t kNumModWaves    = 5;    // Number of modulation waveforms (square, sine, saw, sample and hold, envelope follower)
 
     enum ModType
     {
@@ -39,6 +77,9 @@ class ModulationEngine
       RAMP,
       MOD_TYPE_LAST
     };
+
+    static float constexpr kMinFreq = 0.05f; // Minimum modulation frequency
+    static float constexpr kMaxFreq = 15.0f; // Maximum modulation frequency
 
     ModulationEngine (float sampleRate);
     ModulationEngine ()          = delete;
@@ -52,12 +93,23 @@ class ModulationEngine
 
     size_t mapWaveformsToOscIndex (ModulationEngine::ModType waveform);
 
+    // Feed a block of input samples into the envelope follower
+    void setEnvelopeInput (const float *x, size_t blockSize);
+
   protected:
     float               sampleRate_;
     ModType             supportedModTypes[kNumModsPerSide] = {MOD_TYPE_LAST};
     ModType             currentModType                     = supportedModTypes[0];
-    daisysp::Oscillator osc_[kNumModWaves - 1];    // 0: Square, 1: Sine, 2: Ramp. Sample and Hold is separate class
+    daisysp::Oscillator osc_[kNumModWaves - 2];    // 0: Square, 1: Sine, 2: Ramp. Sample and Hold and Env Follower are separate classes
     SampleAndHold       s_h_;                      // Sample and Hold oscillator
+    EnvelopeFollower    env_;                      // Envelope follower
+
+  private:
+    size_t waveformList[kNumModWaves - 2] = {
+      daisysp::Oscillator::WAVE_SQUARE,
+      daisysp::Oscillator::WAVE_SIN,
+      daisysp::Oscillator::WAVE_RAMP
+    };
 };
 
 // Modulator for each side, interprets ModType differently
