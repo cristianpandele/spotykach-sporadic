@@ -11,6 +11,9 @@ void Sporadic::init ()
   }
   // Initialize the delay network
   delayNetwork_.init(sampleRate_, blockSize_, kNumBands);
+
+  // Initialize the edge tree for envelope following
+  edgeTree_.init(sampleRate_);
 }
 
 //////////
@@ -217,10 +220,14 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
         // If the input sculpting is not active, copy the input to the scratch buffer
         std::copy(in[ch], in[ch] + blockSize, inputSculptBuf_[ch]);
       }
-      delayNetwork_.processBlockMono(inputSculptBuf_[ch], ch, delayNetworkBuf_[ch], blockSize);
+
+      // First, modulate input volume using EdgeTree per-sample
+      edgeTree_.processBlockMono(inputSculptBuf_[ch], modulatedInputBuf_[ch], blockSize);
+
+      delayNetwork_.processBlockMono(modulatedInputBuf_[ch], ch, delayNetworkBuf_[ch], blockSize);
 
       // Apply dry-wet mix
-      Utils::audioBlockLerp(in[ch], delayNetworkBuf_[ch], out[ch], mix_, blockSize);
+      Utils::audioBlockLerp(modulatedInputBuf_[ch], delayNetworkBuf_[ch], out[ch], mix_, blockSize);
     }
   }
 }
