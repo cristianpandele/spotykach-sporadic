@@ -9,7 +9,7 @@ void InputSculpt::init (float sampleRate)
 
 void InputSculpt::setFreq (float f)
 {
-  f                    = daisysp::fclamp(f, 0.0f, 1.0f);
+  f                    = infrasonic::unitclamp(f);
   constexpr float fMin = 50.0f;
   constexpr float fMax = 18000.0f;
   centerFreq_ = daisysp::fmap(f, fMin, fMax, Mapping::LOG);
@@ -18,7 +18,7 @@ void InputSculpt::setFreq (float f)
 
 void InputSculpt::setWidth (float w)
 {
-  w = daisysp::fclamp(w, 0.0f, 1.0f);
+  w = infrasonic::unitclamp(w);
   // Map w=0 narrow (high Q), w=1 wide (low Q)
   q_ = daisysp::fmap(1.0f - w, 0.0f, 1.0f, Mapping::EXP);
 
@@ -27,7 +27,7 @@ void InputSculpt::setWidth (float w)
 
 void InputSculpt::setShape (float s)
 {
-  shape_ = daisysp::fclamp(s, 0.0f, 1.0f);
+  shape_ = infrasonic::unitclamp(s);
 }
 
 void InputSculpt::setOverdrive (float od)

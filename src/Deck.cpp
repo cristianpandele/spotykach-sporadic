@@ -261,7 +261,7 @@ uint8_t Deck::freqToLed (float f, uint8_t numLeds, float filterMinFreq, float fi
 {
   f       = daisysp::fclamp(f, filterMinFreq, filterMaxFreq);
   float t = logf(f / filterMinFreq) / logf(filterMaxFreq / filterMinFreq);    // 0..1
-  t       = daisysp::fclamp(t, 0.0f, 1.0f);
+  t       = infrasonic::unitclamp(t);
   return static_cast<uint8_t>(t * (numLeds - 1) + 1);
 };
 
@@ -298,7 +298,7 @@ void Deck::ledBrightnessFilterGradient (
         // Symmetric triangle around midpoint (spanSize-1)/2 in linear LED index space.
         float dist = fabsf((float)i - triCenter);
         t          = 1.0f - (dist / triHalf);    // 1 at center, 0 at edges
-        t          = daisysp::fclamp(t, 0.0f, 1.0f);
+        t          = infrasonic::unitclamp(t);
         break;
       }
     }
