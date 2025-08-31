@@ -108,6 +108,13 @@ void Sporadic::setShape (float s, bool gritLatch)
   }
 }
 
+#if DEBUG
+void Sporadic::getBandFrequencies (std::vector<float> &frequencies) const
+{
+  delayNetwork_.getBandFrequencies(frequencies);
+}
+#endif
+
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame

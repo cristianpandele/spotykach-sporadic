@@ -18,7 +18,9 @@ class DelayNetwork
     void init (float sampleRate, size_t blockSize, int numBands);
     void setParameters (const Parameters &p);
 
+#if DEBUG
     void getBandFrequencies (std::vector<float> &frequencies) const;
+#endif
 
     // Process a block: input stereo arrays (size N) -> output stereo (size N)
     void processBlockMono (const float *in, const uint8_t ch, float *out, size_t blockSize);
