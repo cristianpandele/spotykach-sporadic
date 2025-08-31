@@ -25,8 +25,10 @@ class Sporadic : public Deck
     void getDigitalControls (DigitalControlFrame &c) override;
     void updateDisplayState () override;
     void processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
+#if DEBUG
     // Getter for band frequencies
     void getBandFrequencies (std::vector<float> &frequencies) const;
+#endif
 
   private:
     // Delay network for feedback and modulation
