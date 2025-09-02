@@ -984,9 +984,13 @@ void AppImpl::handleDisplay ()
   }
 
   // Spotykach Slider
-  float skval = fmap(spotyControl.getSmoothVal(), -1.0f, 1.0f);
-  hw.leds.Set(Hardware::LED_SPOTY_SLIDER_B, 0xff0000, daisysp::fmax(skval, 0.0f));
-  hw.leds.Set(Hardware::LED_SPOTY_SLIDER_A, 0x0000ff, daisysp::fmax(-skval, 0.0f));
+  float skval = daisysp::fmap(spotyControl.getSmoothVal(), -1.0f, 1.0f);
+  hw.leds.Set(Hardware::LED_SPOTY_SLIDER_B,
+              0xff0000,
+              skval > 0.0f ? daisysp::fmap(skval, 0.1f, 1.0f, Mapping::LOG) : 0.0f);
+  hw.leds.Set(Hardware::LED_SPOTY_SLIDER_A,
+              0x0000ff,
+              skval < 0.0f ? daisysp::fmap(-skval, 0.1f, 1.0f, Mapping::LOG) : 0.0f);
 
   // --- CV INPUTS ---
 
