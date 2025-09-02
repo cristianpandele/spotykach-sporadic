@@ -116,12 +116,10 @@ void Sporadic::setPitch (float p, bool gritLatch)
   //}
 }
 
-#if DEBUG
 void Sporadic::getBandFrequencies (std::vector<float> &frequencies) const
 {
   delayNetwork_.getBandFrequencies(frequencies);
 }
-#endif
 
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
@@ -170,6 +168,12 @@ void Sporadic::updateDisplayState ()
   // Flux/Grit pad LEDs and ring display
   updateEffectDisplayStates(view);
 
+  if (isGritDisplayed())
+  {
+    // Overlay dark red LEDs indicating the Diffusion filter cutoff frequencies
+    updateDiffusionRingState(view);
+  }
+
   // Publish the state of the display
   publishDisplay(view);
 
@@ -206,6 +210,40 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
 
       // Apply dry-wet mix
       Utils::audioBlockLerp(inputSculptBuf_[ch], delayNetworkBuf_[ch], out[ch], mix_, blockSize);
+    }
+  }
+}
+
+void Sporadic::updateDiffusionRingState (DisplayState &view)
+{
+  constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
+  Deck::RingSpan    ringSpan;
+  LedRgbBrightness  ledColor[N];
+
+  // Clear the LED color array
+  std::fill(std::begin(ledColor), std::end(ledColor), LedRgbBrightness{0x000000, 0.0f});
+
+  // Overlay dark red LEDs indicating the Diffusion filter cutoff frequencies
+  std::vector<float> cutoffFreqs(kNumBands);
+  delayNetwork_.getBandFrequencies(cutoffFreqs);
+
+  for (size_t i = 0; i < cutoffFreqs.size(); ++i)
+  {
+    if (view.layerCount == kMaxRingLayers)
+    {
+      break;
+    }
+    float freq = cutoffFreqs[i];
+    if (freq > 0.0f)
+    {
+      uint8_t ledIdx   = freqToLed(freq, N, gritFilterMinFreq, gritFilterMaxFreq);
+      ledColor[ledIdx] = {0xff0000, 0.5f};
+      // Update the ring span information
+      ringSpan.start = ledIdx;
+      ringSpan.end   = ledIdx + 1;
+      std::copy(ledColor, ledColor + N, std::begin(ringSpan.led));
+      // Place the filter cutoff ring span into the view
+      view.rings[view.layerCount++] = ringSpan;
     }
   }
 }

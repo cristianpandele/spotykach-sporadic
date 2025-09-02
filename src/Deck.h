@@ -61,7 +61,7 @@ class Deck
     };
 
     // Render-ready view the UI can draw without peeking internals
-    static constexpr uint8_t kMaxRingLayers = 4;
+    static constexpr uint8_t kMaxRingLayers = 6;
     static constexpr uint8_t kMaxLedPhases  = 2;
 
     // Timeout for double-tap detection
@@ -239,6 +239,12 @@ class Deck
     void handleFluxTap (const bool flux, bool &doubleTap, bool &held);
     // Handle Grit tap/hold detection; returns states via references
     void handleGritTap (const bool grit, bool &doubleTap, bool &held);
+    // Map frequency to LED index
+    uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
+
+    // Frequency filter range for Grit
+    static constexpr float gritFilterMinFreq = 50.0f;
+    static constexpr float gritFilterMaxFreq = 18000.0f;
 
   private:
     // Double-buffer technique to handle display state updates and publish them externally
@@ -259,10 +265,6 @@ class Deck
     DisplayBuf       dispBuf_[2];
     mutable uint32_t cntRead_  = 0;
     volatile uint8_t dispWIdx_ = 0;
-
-    // Frequency filter range for Grit
-    static constexpr float gritFilterMinFreq = 50.0f;
-    static constexpr float gritFilterMaxFreq = 18000.0f;
 
     ///////////
     // Flux pad states
@@ -297,7 +299,6 @@ class Deck
 
     ///////////
     // Grit display handling functions
-    uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
     void    ledBrightnessFilterGradient (
          FilterType type, uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
     // Falling: full max until cutoff LED index, then linear descent over Q-based width to min

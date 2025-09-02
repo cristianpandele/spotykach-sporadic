@@ -31,12 +31,10 @@ void DelayNetwork::setParameters (const Parameters &p)
   }
 }
 
-#if DEBUG
 void DelayNetwork::getBandFrequencies (std::vector<float> &frequencies) const
 {
   diffusion_.getBandFrequencies(frequencies);
 }
-#endif
 
 void DelayNetwork::allocateStorage ()
 {
