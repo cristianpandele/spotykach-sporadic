@@ -7,15 +7,22 @@ constexpr float kPi = 3.14159265358979323846f;
 void DiffusionControl::init (float sampleRate, int numBands)
 {
   sampleRate_ = sampleRate;
-  numBands_   = std::max(1, std::min(numBands, kMaxBands));
+  numBands_   = std::max(1, std::min(numBands, kMaxNutrientBands));
+  for (int ch = 0; ch < spotykach::kNumberChannelsStereo; ++ch)
+  {
+    for (int band = 0; band < numBands_; ++band)
+    {
+      filters_[ch][band].Init(sampleRate_);
+    }
+  }
   updateBandLayout();
 }
 
 void DiffusionControl::setParameters (const Parameters &p)
 {
-  int   newBands = std::max(1, std::min(p.numActiveBands, kMaxBands));
-  float minFreq  = std::max(kMinFreq, p.centerFreq / 8); // Three octaves below center frequency
-  float maxFreq  = std::min(kMaxFreq, p.centerFreq * 8); // Three octaves above center frequency
+  int   newBands = std::max(1, std::min(p.numActiveBands, kMaxNutrientBands));
+  float minFreq  = std::max(kMinFreq, p.centerFreq / 8);    // Three octaves below center frequency
+  float maxFreq  = std::min(kMaxFreq, p.centerFreq * 8);    // Three octaves above center frequency
   if ((newBands != numBands_) || (minFreq != kMinFreq) || (maxFreq != kMaxFreq))
   {
     numBands_ = newBands;
@@ -46,7 +53,6 @@ void DiffusionControl::updateBandLayout ()
   {
     for (int band = 0; band < numBands_; ++band)
     {
-      filters_[ch][band].Init(sampleRate_);
       filters_[ch][band].SetFreq(centerFreqs_[band]);
       filters_[ch][band].SetRes(0.707f);
     }

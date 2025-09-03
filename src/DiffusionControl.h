@@ -2,11 +2,13 @@
 
 #include "daisysp.h"
 #include "hardware.h"
+#include "constants.h"
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <vector>
 
+using namespace spotykach;
 // Lightweight diffusion control that splits the incoming stereo signal into
 // multiple logarithmically spaced bands using low-pass, band-pass and high-pass filters.
 class DiffusionControl
