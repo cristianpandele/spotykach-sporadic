@@ -28,21 +28,16 @@ void Sporadic::setPosition (float p, bool gritLatch)
 
   if (gritLatch || positionChangedWhileGritMenuOpen)
   {
-    constexpr float fMin       = 50.0f;
-    constexpr float fMax       = 18000.0f;
-    float           centerFreq = daisysp::fmap(p, fMin, fMax, Mapping::LOG);
+    dispCenterFreq_ = daisysp::fmap(p, InputSculpt::kMinFreq, InputSculpt::kMaxFreq, Mapping::LOG);
+    // Update the delay network parameters with the new center frequency
+    setDelayNetworkParameters();
 
     // If grit latched, set input sculpt frequency instead of position
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
       {
-        inputSculpt_[ch].setFreq(centerFreq);
-        delayNetwork_.setParameters({
-                                      .numBands = kMaxNutrientBands,
-                                      .numProcs = kMaxNumDelayProcsPerBand,
-                                      .centerFreq = centerFreq
-                                    });
+        inputSculpt_[ch].setFreq(dispCenterFreq_);
       }
     }
   }
@@ -118,9 +113,23 @@ void Sporadic::setPitch (float p, bool gritLatch)
   //}
 }
 
+void Sporadic::setSpoty (float s)
+{
+  spoty_ = infrasonic::unitclamp(s);
+  setDelayNetworkParameters();
+}
+
 void Sporadic::getBandFrequencies (std::vector<float> &frequencies) const
 {
   delayNetwork_.getBandFrequencies(frequencies);
+}
+
+void Sporadic::setDelayNetworkParameters()
+{
+  delayNetwork_.setParameters({.numBands   = kMaxNutrientBands,
+                               .numProcs   = kMaxNumDelayProcsPerBand,
+                               .centerFreq = dispCenterFreq_,
+                               .stretch    = spoty_});
 }
 
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
@@ -132,6 +141,7 @@ void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
   setPosition(c.position, c.positionGrit);
   setSize(c.size, c.sizeGrit);
   setShape(c.shape, c.shapeGrit);
+  setSpoty(c.spoty);
 }
 
 void Sporadic::updateDigitalControls (const DigitalControlFrame &c)

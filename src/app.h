@@ -83,11 +83,13 @@ namespace spotykach_hwtest
       class SmoothValue
       {
         public:
-          SmoothValue (float smoothTimeMs, float updatePeriodMs)
+          SmoothValue (float smoothTimeMs, float updatePeriodMs) : SmoothValue(0.0f, smoothTimeMs, updatePeriodMs) {}
+
+          SmoothValue (float currentValue, float smoothTimeMs, float updatePeriodMs)
           {
             smoothing_    = false;
-            currentValue_ = 0.0f;
-            targetValue_  = 0.0f;
+            currentValue_ = currentValue;
+            targetValue_  = currentValue;
 
             // coeff = 100.0 / (time * sample_rate), where time is in seconds
             float updateRate = 1000.0f / updatePeriodMs;
@@ -360,7 +362,7 @@ namespace spotykach_hwtest
       float modCv[kNumberDeckSlots]{0.0f};
 
       // Crossfade mix between deck slot outputs (0.0 = slot 0 only, 1.0 = slot 1 only)
-      float deckMix_ = 0.5f;
+      SmoothValue deckMix_ = SmoothValue(0.5f, 150.0f, kLedUpdatePeriodMs);
 
       // Per-deck temporary output buffers for crossfading (stereo, blocksize frames)
       float deckOutputs_[kNumberDeckSlots][kNumberChannelsStereo][kBlockSize] = {{{0.0f}}};

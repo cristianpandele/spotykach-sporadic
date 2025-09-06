@@ -14,8 +14,12 @@ class InputSculpt
     ~InputSculpt () = default;
 
     // Drive amount range
-    float kMinDriveAmt = 0.1f;
-    float kMaxDriveAmt = 0.5f;
+    static constexpr float kMinDriveAmt = 0.1f;
+    static constexpr float kMaxDriveAmt = 0.5f;
+
+    // Frequency filter range for Grit
+    static constexpr float kMinFreq = 50.0f;
+    static constexpr float kMaxFreq = 18000.0f;
 
     void init (float sampleRate);
 

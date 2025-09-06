@@ -27,9 +27,15 @@ void DelayNetwork::setParameters (const Parameters &p)
   {
     delayNodes_.init(sampleRate_, blockSize_, newBands, newProcs);
   }
+  float newStretch = daisysp::fmap(p.stretch, kMinStretch, kMaxStretch, Mapping::LOG);
+  if (newStretch != stretch_)
+  {
+    delayNodes_.setStretch(newStretch);
+  }
   centerFreq_ = newCenterFreq;
-  numBands_ = newBands;
-  numProcs_ = newProcs;
+  numBands_   = newBands;
+  numProcs_   = newProcs;
+  stretch_    = newStretch;
 }
 
 void DelayNetwork::getBandFrequencies (std::vector<float> &frequencies) const

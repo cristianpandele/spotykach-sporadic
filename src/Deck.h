@@ -43,6 +43,7 @@ class Deck
       bool  sizeGrit;     // latched Grit pad at move time for Size knob
       float shape;
       bool  shapeGrit;    // latched Grit pad at move time for Shape knob
+      float spoty;
     };
 
     // Digital control payload pushed  on change (at most once per loop iteration) from AppImpl
@@ -149,6 +150,9 @@ class Deck
     // Shape control
     float shape_ = 0.0f;
 
+    // Spotykach slider control
+    float spoty_ = 0.0f;
+
     // Reverse playback flag
     bool reverse_ = false;
 
@@ -191,6 +195,7 @@ class Deck
     virtual void setPosition (float p) { position_ = infrasonic::unitclamp(p); }
     virtual void setSize (float s) { size_ = infrasonic::unitclamp(s); }
     virtual void setShape (float s) { shape_ = infrasonic::unitclamp(s); }
+    virtual void setSpoty (float s) { spoty_ = infrasonic::unitclamp(s); }
     virtual void setReverse (bool r) { reverse_ = r; }
     virtual void setPlay (bool p) { play_ = p; }
     virtual void setFlux (bool f) { flux_ = f; }
@@ -243,8 +248,8 @@ class Deck
     uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
 
     // Frequency filter range for Grit
-    static constexpr float gritFilterMinFreq = 50.0f;
-    static constexpr float gritFilterMaxFreq = 18000.0f;
+    static constexpr float gritFilterMinFreq = InputSculpt::kMinFreq;
+    static constexpr float gritFilterMaxFreq = InputSculpt::kMaxFreq;
 
   private:
     // Double-buffer technique to handle display state updates and publish them externally

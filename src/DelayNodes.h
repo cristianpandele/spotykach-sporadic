@@ -17,6 +17,8 @@ class DelayNodes
 
     int getNumBands () const { return numBands_; }
 
+    void setStretch (float stretch);
+
   private:
     float  sampleRate_ = 48000.0f;
     size_t blockSize_  = 16;
@@ -26,4 +28,5 @@ class DelayNodes
 
     void allocateResources ();
     void setInitialConnections ();
+    void setDelayProcsParameters ();
 };

@@ -15,6 +15,7 @@ class DelayNetwork
         int   numBands;
         int   numProcs;
         float centerFreq;
+        float stretch;
     };
 
     // Provide expected processing block size so internal buffers can be
@@ -33,6 +34,7 @@ class DelayNetwork
     int    numBands_   = kMaxNutrientBands;
     int    numProcs_   = kMaxNumDelayProcsPerBand;
     float  centerFreq_ = 1000.0f;
+    float  stretch_    = 1.0f;
 
     DiffusionControl diffusion_;
     DelayNodes       delayNodes_;

@@ -159,7 +159,9 @@ void AppImpl::updateAnalogControlFrame(Deck::AnalogControlFrame &frame, size_t s
     .sizeGrit     = sizeGritLatch[slot],
     .shape        = shapeControls[slot].isSmoothing() ? shapeControls[slot].getSmoothVal()
                                                       : shapeControls[slot].getTargetVal(),
-    .shapeGrit    = shapeGritLatch[slot]
+    .shapeGrit    = shapeGritLatch[slot],
+    .spoty        = spotyControl.isSmoothing() ? spotyControl.getSmoothVal()
+                                               : spotyControl.getTargetVal()
   };
 }
 
@@ -386,7 +388,7 @@ void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::Outpu
   {
     const float *a = deckOutputs_[0][ch];
     const float *b = deckOutputs_[1][ch];
-    Utils::audioBlockLerp(a, b, out[ch], deckMix_, blockSize);
+    Utils::audioBlockLerp(a, b, out[ch], deckMix_.getSmoothVal(), blockSize);
   }
 }
 
@@ -402,9 +404,8 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     /////////
     // Apply the analog controls to the decks
 
-    if (mixControls[i].isSmoothing() || pitchControls[i].isSmoothing() ||
-        positionControls[i].isSmoothing() || sizeControls[i].isSmoothing() ||
-        shapeControls[i].isSmoothing())
+    if (mixControls[i].isSmoothing() || pitchControls[i].isSmoothing() || positionControls[i].isSmoothing() ||
+        sizeControls[i].isSmoothing() || shapeControls[i].isSmoothing() || spotyControl.isSmoothing())
     {
       updateAnalogControlFrame(analogControlFrames[i], i);
       pushAnalogDeckControls(analogControlFrames[i], i);
@@ -584,18 +585,18 @@ void AppImpl::drawRainbowRoad ()
 
 void AppImpl::handleAnalogControls ()
 {
-  // Spotykach slider (mapped to -1.. +1)
-  spotyControl = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
   // If the Spotykach pad is pressed, set the deck mix
   if (!spotySpotyLatch)
   {
+    // Spotykach slider (mapped to -1.. +1)
+    spotyControl = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
     // Add the Spotykach CV value when the Spotykach pad is not latched
     spotyControl += hw.GetControlVoltageValue(Hardware::CV_SPOTYKACH);
   }
   else
   {
     // Set the deck mix level
-    deckMix_ = spotyControl.getSmoothVal();
+    deckMix_ = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
   }
 
   for (size_t side = 0; side < kNumberDeckSlots; side++)
