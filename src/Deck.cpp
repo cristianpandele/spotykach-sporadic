@@ -24,6 +24,93 @@ void Deck::setMode (DeckMode m)
   mode_ = m;
 }
 
+void Deck::setPosition (float position, bool gritLatch, bool &changed, bool &changedGrit)
+{
+  position = infrasonic::unitclamp(position);
+  MAKE_GRIT_CHANGE_STATUS(position, positionControl_, gritLatch);
+  changed          = positionChanged;
+  changedGrit      = positionChangedWhileGritLatched || positionChangedWhileGritMenuOpen;
+  positionControl_ = positionChanged ? position : positionControl_;
+
+  if (changedGrit)
+  {
+    inputSculptCenterFreq_ =
+      daisysp::fmap(positionControl_, InputSculpt::kMinFreq, InputSculpt::kMaxFreq, Mapping::LOG);
+
+    // If grit latched, set input sculpt frequency instead of position
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setFreq(inputSculptCenterFreq_);
+      }
+    }
+  }
+}
+
+void Deck::setSize (float size, bool gritLatch, bool &changed, bool &changedGrit)
+{
+  size = infrasonic::unitclamp(size);
+  MAKE_GRIT_CHANGE_STATUS(size, sizeControl_, gritLatch);
+  changed      = sizeChanged;
+  changedGrit  = sizeChangedWhileGritLatched || sizeChangedWhileGritMenuOpen;
+  sizeControl_ = sizeChanged ? size : sizeControl_;
+
+  if (changedGrit)
+  {
+    // If grit latched, set input sculpt width instead of size
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setWidth(sizeControl_);
+      }
+    }
+  }
+}
+
+void Deck::setShape (float shape, bool gritLatch, bool &changed, bool &changedGrit)
+{
+  shape = infrasonic::unitclamp(shape);
+  MAKE_GRIT_CHANGE_STATUS(shape, shapeControl_, gritLatch);
+  changed       = shapeChanged;
+  changedGrit   = shapeChangedWhileGritLatched || shapeChangedWhileGritMenuOpen;
+  shapeControl_ = shapeChanged ? shape : shapeControl_;
+
+  if (changedGrit)
+  {
+    // If grit latched, set input sculpt shape instead of shape
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setShape(shapeControl_);
+      }
+    }
+  }
+}
+
+void Deck::setPitch (float pitch, bool gritLatch, bool &changed, bool &changedGrit)
+{
+  pitch                   = infrasonic::unitclamp(pitch);
+  MAKE_GRIT_CHANGE_STATUS(pitch, pitchControl_, gritLatch);
+  changed       = pitchChanged;
+  changedGrit   = pitchChangedWhileGritLatched || pitchChangedWhileGritMenuOpen;
+  pitchControl_ = pitchChanged ? pitch : pitchControl_;
+
+  if (changedGrit)
+  {
+    // If grit latched, set drive instead of pitch
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setOverdrive(pitchControl_);
+      }
+    }
+  }
+}
+
 ////////////////////////
 // Display state and publish functions
 bool Deck::getDisplayState (DisplayState &out) const

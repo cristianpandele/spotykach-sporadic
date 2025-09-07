@@ -83,110 +83,87 @@ void Spotykach::configureEnvelopeLength (float windowLenSamples)
 //////////
 // Handle parameter changes
 
-static constexpr float paramChThreshold = 0.001f;
-
 void Spotykach::setMix (float m, bool altLatch)
 {
-  if (altLatch)
+  m                              = infrasonic::unitclamp(m);
+  bool mixChanged                = (std::abs(m - mixControl_) > kParamChThreshold);
+  bool mixChangedWhileAltLatched = (mixChanged && altLatch);
+  mixControl_                    = mixChanged ? m : mixControl_;
+
+  if (mixChangedWhileAltLatched)
   {
     // If alt latch is pressed, set feedback instead of mix
-    setFeedback(m);
+    setFeedback(mixControl_);
   }
-  else
+  else if (mixChanged)
   {
-    mix_ = m;
+    mix_ = mixControl_;
   }
 }
 
 void Spotykach::setPosition (float p, bool gritLatch)
 {
-  bool positionChanged                  = (std::abs(p - position_) > paramChThreshold);
-  bool positionChangedWhileGritMenuOpen = (positionChanged && getGritMenuOpen());
+  bool positionChanged;
+  bool positionChangedGrit;
+  Deck::setPosition(p, gritLatch, positionChanged, positionChangedGrit);
 
-  if (gritLatch || positionChangedWhileGritMenuOpen)
+  if (positionChangedGrit)
   {
-    // If grit latched, set input sculpt frequency instead of position
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setFreq(p);
-      }
-    }
+    return;
   }
-  else if (!getGritMenuOpen())
+  else if (positionChanged && !getGritMenuOpen())
   {
-    position_ = p;
+    position_ = positionControl_;
   }
 }
 
 void Spotykach::setSize (float s, bool gritLatch)
 {
-  bool sizeChanged                  = (std::abs(s - size_) > paramChThreshold);
-  bool sizeChangedWhileGritMenuOpen = (sizeChanged && getGritMenuOpen());
+  bool sizeChanged;
+  bool sizeChangedGrit;
+  Deck::setSize(s, gritLatch, sizeChanged, sizeChangedGrit);
 
-  if (gritLatch || sizeChangedWhileGritMenuOpen)
+  if (sizeChangedGrit)
   {
-    // If grit latched, set input sculpt width instead of size
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setWidth(s);
-      }
-    }
+    return;
   }
-  else if (!getGritMenuOpen())
+  else if (sizeChanged  && !getGritMenuOpen())
   {
     // Ensure size is just a hair above 0 at all times
-    size_ = daisysp::fmap(s, 0.05f, 1.0f);
-    size_ = std::clamp(size_, 0.05f, 1.0f);
+    size_ = daisysp::fmap(sizeControl_, 0.05f, 1.0f);
   }
 }
 
 void Spotykach::setShape (float s, bool gritLatch)
 {
-  bool shapeChanged                  = (std::abs(s - shape_) > paramChThreshold);
-  bool shapeChangedWhileGritMenuOpen = (shapeChanged && getGritMenuOpen());
+  bool shapeChanged;
+  bool shapeChangedGrit;
+  Deck::setShape(s, gritLatch, shapeChanged, shapeChangedGrit);
 
-  if (gritLatch || shapeChangedWhileGritMenuOpen)
+  if (shapeChangedGrit)
   {
-    // If grit latched, set input sculpt shape instead of shape
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setShape(s);
-      }
-    }
+    return;
   }
-  else if (!getGritMenuOpen())
+  else if (shapeChanged && !getGritMenuOpen())
   {
-    shape_ = s;
+    shape_ = shapeControl_;
   }
 }
 
 void Spotykach::setPitch (float p, bool gritLatch)
 {
-  bool pitchChanged                  = (std::abs(p - pitch_) > paramChThreshold);
-  bool pitchChangedWhileGritMenuOpen = (pitchChanged && getGritMenuOpen());
-  pitch_ = p;
+  bool pitchChanged;
+  bool pitchChangedGrit;
+  Deck::setPitch(p, gritLatch, pitchChanged, pitchChangedGrit);
 
-  if (gritLatch || pitchChangedWhileGritMenuOpen)
+  if (pitchChangedGrit)
   {
-    // If grit latched, set drive instead of mix
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setOverdrive(pitch_);
-      }
-    }
+    return;
   }
-  else if (!getGritMenuOpen())
+  else if (pitchChanged && !getGritMenuOpen())
   {
     // Map the pitch to 0..4
-    speed_ = daisysp::fmap(pitch_, 0.0f, 4.0f);
+    speed_ = daisysp::fmap(pitchControl_, 0.0f, 4.0f);
 
     if (reverse_)
     {

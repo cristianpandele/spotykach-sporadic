@@ -134,24 +134,32 @@ class Deck
 
     // Internal working buffers (single block) to avoid per-callback allocations.
     float inputSculptBuf_[kNumberChannelsStereo][kBlockSize]{};
+    // Center frequency for input sculpting
+    float inputSculptCenterFreq_ = 0.0f;
 
     // Mix control
-    float mix_ = 0.5f;
+    float mixControl_ = 0.5f;
+    float mix_        = 0.5f;
 
     // V.Oct pitch control
-    float pitch_ = 0.0f;
+    float pitchControl_ = 0.0f;
+    float pitch_        = 0.0f;
 
     // Position control
-    float position_ = 0.0f;
+    float positionControl_ = 0.0f;
+    float position_        = 0.0f;
 
     // Size control
-    float size_ = 0.0f;
+    float sizeControl_ = 0.0f;
+    float size_        = 0.0f;
 
     // Shape control
-    float shape_ = 0.0f;
+    float shapeControl_ = 0.0f;
+    float shape_        = 0.0f;
 
     // Spotykach slider control
-    float spoty_ = 0.0f;
+    float spotyControl_ = 0.0f;
+    float spoty_        = 0.0f;
 
     // Reverse playback flag
     bool reverse_ = false;
@@ -189,12 +197,21 @@ class Deck
     // Check if there is an update to the held state of the effect pads
     void detectEffectPadsHeld ();
 
+    #define MAKE_GRIT_CHANGE_STATUS(x, xControl, gritLatch)                                                                \
+      bool x##Changed                  = std::abs(x - xControl) > kParamChThreshold;                                       \
+      bool x##ChangedWhileGritLatched  = x##Changed && gritLatch;                                                          \
+      bool x##ChangedWhileGritMenuOpen = x##Changed && getGritMenuOpen();
+
     // Setters for deck parameters
     virtual void setMix (float m) { mix_ = infrasonic::unitclamp(m); }
     virtual void setPitch (float p) { pitch_ = infrasonic::unitclamp(p); }
+    void         setPitch (float p, bool gritLatch, bool &pitchChanged, bool &pitchChangedGrit);
     virtual void setPosition (float p) { position_ = infrasonic::unitclamp(p); }
+    void         setPosition (float p, bool gritLatch, bool &positionChanged, bool &positionChangedGrit);
     virtual void setSize (float s) { size_ = infrasonic::unitclamp(s); }
+    void         setSize (float s, bool gritLatch, bool &sizeChanged, bool &sizeChangedGrit);
     virtual void setShape (float s) { shape_ = infrasonic::unitclamp(s); }
+    void         setShape (float s, bool gritLatch, bool &shapeChanged, bool &shapeChangedGrit);
     virtual void setSpoty (float s) { spoty_ = infrasonic::unitclamp(s); }
     virtual void setReverse (bool r) { reverse_ = r; }
     virtual void setPlay (bool p) { play_ = p; }
@@ -250,6 +267,9 @@ class Deck
     // Frequency filter range for Grit
     static constexpr float gritFilterMinFreq = InputSculpt::kMinFreq;
     static constexpr float gritFilterMaxFreq = InputSculpt::kMaxFreq;
+
+    // Threshold for parameter change detection
+    static constexpr float kParamChThreshold = 0.025f;
 
   private:
     // Double-buffer technique to handle display state updates and publish them externally

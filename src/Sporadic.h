@@ -30,7 +30,6 @@ class Sporadic : public Deck
   private:
     // Delay network for feedback and modulation
     DelayNetwork delayNetwork_;
-    float dispCenterFreq_;
 
     // EdgeTree for envelope following and volume modulation
     EdgeTree edgeTree_[kNumberChannelsStereo];
@@ -53,7 +52,7 @@ class Sporadic : public Deck
     void setSpoty (float s) override;
 
     // Prepare and set delay network parameters
-    void setDelayNetworkParameters ();
+    void setDelayNetworkParameters (float centerFreq, float stretch);
 
     void updateDiffusionRingState(DisplayState &view);
 

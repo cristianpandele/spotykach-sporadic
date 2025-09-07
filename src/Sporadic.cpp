@@ -18,94 +18,63 @@ void Sporadic::init ()
 
 //////////
 // Handle parameter changes
-
-static constexpr float paramChThreshold = 0.001f;
-
 void Sporadic::setPosition (float p, bool gritLatch)
 {
-  bool positionChanged                  = (std::abs(p - position_) > paramChThreshold);
-  bool positionChangedWhileGritMenuOpen = (positionChanged && getGritMenuOpen());
+  bool positionChanged;
+  bool positionChangedGrit;
+  Deck::setPosition(p, gritLatch, positionChanged, positionChangedGrit);
 
-  if (gritLatch || positionChangedWhileGritMenuOpen)
+  if (positionChangedGrit)
   {
-    dispCenterFreq_ = daisysp::fmap(p, InputSculpt::kMinFreq, InputSculpt::kMaxFreq, Mapping::LOG);
-    // Update the delay network parameters with the new center frequency
-    setDelayNetworkParameters();
-
-    // If grit latched, set input sculpt frequency instead of position
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setFreq(dispCenterFreq_);
-      }
-    }
+    setDelayNetworkParameters(inputSculptCenterFreq_, spoty_);
   }
-  else if (!getGritMenuOpen())
+  else if (positionChanged && !getGritMenuOpen())
   {
-    position_ = p;
+    position_ = positionControl_;
   }
 }
 
 void Sporadic::setSize (float s, bool gritLatch)
 {
-  bool sizeChanged                  = (std::abs(s - size_) > paramChThreshold);
-  bool sizeChangedWhileGritMenuOpen = (sizeChanged && getGritMenuOpen());
+  bool sizeChanged;
+  bool sizeChangedGrit;
+  Deck::setSize(s, gritLatch, sizeChanged, sizeChangedGrit);
 
-  if (gritLatch || sizeChangedWhileGritMenuOpen)
+  if (sizeChangedGrit)
   {
-    // If grit latched, set input sculpt width instead of size
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setWidth(s);
-      }
-    }
+    return;
   }
-  else if (!getGritMenuOpen())
+  else if (sizeChanged && !getGritMenuOpen())
   {
-    size_ = s;
+    size_ = sizeControl_;
   }
 }
 
 void Sporadic::setShape (float s, bool gritLatch)
 {
-  bool shapeChanged                  = (std::abs(s - shape_) > paramChThreshold);
-  bool shapeChangedWhileGritMenuOpen = (shapeChanged && getGritMenuOpen());
+  bool shapeChanged;
+  bool shapeChangedGrit;
+  Deck::setShape(s, gritLatch, shapeChanged, shapeChangedGrit);
 
-  if (gritLatch || shapeChangedWhileGritMenuOpen)
+  if (shapeChangedGrit)
   {
-    // If grit latched, set input sculpt shape instead of shape
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setShape(s);
-      }
-    }
+    return;
   }
-  else if (!getGritMenuOpen())
+  else if (shapeChanged && !getGritMenuOpen())
   {
-    shape_ = s;
+    shape_ = shapeControl_;
   }
 }
 
 void Sporadic::setPitch (float p, bool gritLatch)
 {
-  bool pitchChanged                  = (std::abs(p - pitch_) > paramChThreshold);
-  bool pitchChangedWhileGritMenuOpen = (pitchChanged && getGritMenuOpen());
+  bool pitchChanged;
+  bool pitchChangedGrit;
+  Deck::setPitch(p, gritLatch, pitchChanged, pitchChangedGrit);
 
-  if (gritLatch || pitchChangedWhileGritMenuOpen)
+  if (pitchChangedGrit)
   {
-    // If grit latched, set drive instead of pitch
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setOverdrive(p);
-      }
-    }
+    return;
   }
   // else... // TODO: map pitch to scarcity/abundance in Sporadic
   //{
@@ -115,8 +84,15 @@ void Sporadic::setPitch (float p, bool gritLatch)
 
 void Sporadic::setSpoty (float s)
 {
-  spoty_ = infrasonic::unitclamp(s);
-  setDelayNetworkParameters();
+  s = infrasonic::unitclamp(s);
+  bool spotyChanged = (std::abs(s - spotyControl_) > kParamChThreshold);
+  spotyControl_ = spotyChanged ? s : spotyControl_;
+
+  if (spotyChanged)
+  {
+    spoty_ = spotyControl_;
+    setDelayNetworkParameters(inputSculptCenterFreq_, spoty_);
+  }
 }
 
 void Sporadic::getBandFrequencies (std::vector<float> &frequencies) const
@@ -124,12 +100,12 @@ void Sporadic::getBandFrequencies (std::vector<float> &frequencies) const
   delayNetwork_.getBandFrequencies(frequencies);
 }
 
-void Sporadic::setDelayNetworkParameters()
+void Sporadic::setDelayNetworkParameters(float centerFreq, float stretch)
 {
   delayNetwork_.setParameters({.numBands   = kMaxNutrientBands,
                                .numProcs   = kMaxNumDelayProcsPerBand,
-                               .centerFreq = dispCenterFreq_,
-                               .stretch    = spoty_});
+                               .centerFreq = centerFreq,
+                               .stretch    = stretch});
 }
 
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
