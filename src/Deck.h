@@ -343,8 +343,7 @@ class Deck
     void  calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, uint8_t &start, uint8_t &end);
 
     // Helpers to derive LED indices from filter params
-    uint8_t computeCutoffIdx (uint8_t ringSize);
-    uint8_t computeWidthFromQ (uint8_t ringSize);
+    uint8_t computeCutoffIdx (uint8_t ch, uint8_t ringSize);
 
     ///////////
     NOCOPY (Deck);

@@ -394,9 +394,9 @@ void Deck::ledBrightnessFilterGradient (
   }
 }
 
-uint8_t Deck::computeCutoffIdx (uint8_t ringSize)
+uint8_t Deck::computeCutoffIdx (uint8_t ch, uint8_t ringSize)
 {
-  float cf = inputSculpt_[0].getCenterFreq();
+  float cf = inputSculpt_[ch].getCenterFreq();
   return freqToLed(cf, ringSize, gritFilterMinFreq, gritFilterMaxFreq);
 }
 
@@ -422,7 +422,8 @@ void Deck::populateGritLedRing (Deck::RingSpan  &ringSpan,
     const float minBrightness           = colorBright.brightness / 4.0f;
     const float maxBrightness           = colorBright.brightness;
 
-    uint8_t cutoffIdx                   = computeCutoffIdx(ringSize);
+    uint8_t channel                     = channelConfig_ == isChannelActive(1) ? 1 : 0;
+    uint8_t cutoffIdx                   = computeCutoffIdx(channel, ringSize);
 
     // Square gradient: full max to all LEDs
     std::fill(ledSquareGradient, ledSquareGradient + ringSize, 1.0f);
@@ -464,7 +465,7 @@ void Deck::populateGritLedRing (Deck::RingSpan  &ringSpan,
     for (uint8_t i = 0; i < ringSize; ++i)
     {
       // Interpolate between the LED gradient shapes
-      float t = inputSculpt_[0].getShape();    // 0..1
+      float t = inputSculpt_[channel].getShape();    // 0..1
       float v;
       if (t < 0.33333334f)
       {
@@ -509,8 +510,9 @@ float Deck::calculateFilterHalfBandwidth (float centerFreq, float Q)
 
 void Deck::calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, uint8_t &start, uint8_t &end)
 {
-  float centerFreq = inputSculpt_[0].getCenterFreq();
-  float Q          = inputSculpt_[0].getQ();
+  uint8_t channel  = channelConfig_ == isChannelActive(1) ? 1 : 0;
+  float centerFreq = inputSculpt_[channel].getCenterFreq();
+  float Q          = inputSculpt_[channel].getQ();
   float halfBW     = calculateFilterHalfBandwidth(centerFreq, Q);
 
   // Convert additive bandwidth into a multiplicative ratio for log symmetry.
@@ -567,9 +569,7 @@ void Deck::calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, 
   else
   {
     fLo = daisysp::fclamp(fLoLin, gritFilterMinFreq, gritFilterMaxFreq);
-    ;
     fHi = daisysp::fclamp(fHiLin, gritFilterMinFreq, gritFilterMaxFreq);
-    ;
   }
 
   start = freqToLed(fLo, numLeds, gritFilterMinFreq, gritFilterMaxFreq);
@@ -604,11 +604,12 @@ void Deck::updateGritPadLedState (DisplayState &view)
 
 void Deck::updateGritRingState (DisplayState &view)
 {
+  uint8_t channel = channelConfig_ == isChannelActive(1) ? 1 : 0;
   // Purple color indicating the bandpass area (fade to red with overdrive)
   LedRgbBrightness ledColor = {0xff00ff, 1.0f};
-  float            od       = inputSculpt_[0].getOverdrive();    // 0..0.2
+  float            od       = inputSculpt_[channel].getOverdrive();    // 0..0.2
   uint8_t          blueLevel =
-    static_cast<uint8_t>(map(od, inputSculpt_[0].kMinDriveAmt, inputSculpt_[0].kMaxDriveAmt, 255.0f, 0.0f));
+    static_cast<uint8_t>(map(od, inputSculpt_[channel].kMinDriveAmt, inputSculpt_[channel].kMaxDriveAmt, 255.0f, 0.0f));
   ledColor.rgb = (ledColor.rgb & 0xffffff00) | blueLevel;
 
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
@@ -636,7 +637,7 @@ void Deck::updateGritRingState (DisplayState &view)
   uint8_t rampSpanEnd;
   calculateFilterRingSpanSize(kHighPass, N, rampSpanStart, rampSpanEnd);
 
-  float   t = inputSculpt_[0].getShape();    // 0..1
+  float   t = inputSculpt_[channel].getShape();    // 0..1
   uint8_t spanStart;
   uint8_t spanEnd;
   if (t < 0.33333334f)
