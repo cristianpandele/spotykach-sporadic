@@ -40,6 +40,12 @@
   #define INFS_LOG_THROTTLE_INTERVAL 250
 #endif
 
+#define NOCOPY(T)                                                                                                      \
+  T(const T &other)            = delete;                                                                               \
+  T(T &&other)                 = delete;                                                                               \
+  T &operator=(const T &other) = delete;                                                                               \
+  T &operator=(T &&other)      = delete;
+
 struct LedRgbBrightness
 {
   uint32_t rgb;

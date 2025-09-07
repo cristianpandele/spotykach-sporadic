@@ -347,6 +347,5 @@ class Deck
     uint8_t computeWidthFromQ (uint8_t ringSize);
 
     ///////////
-    Deck (const Deck &)           = delete;
-    Deck &operator=(const Deck &) = delete;
+    NOCOPY (Deck);
 };

@@ -26,4 +26,7 @@ class EdgeTree
 
   private:
     EnvelopeFollower envFollower_;
+
+    ///////////
+    NOCOPY (EdgeTree);
 };

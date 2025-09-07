@@ -119,6 +119,9 @@ class ModulationEngine
       daisysp::Oscillator::WAVE_SIN,
       daisysp::Oscillator::WAVE_RAMP
     };
+
+    ///////////
+    NOCOPY (ModulationEngine);
 };
 
 // Modulator for each side, interprets ModType differently
@@ -138,4 +141,7 @@ class Modulator : public ModulationEngine
 
   private:
     float sampleRate_;
+
+    ///////////
+    NOCOPY (Modulator);
 };

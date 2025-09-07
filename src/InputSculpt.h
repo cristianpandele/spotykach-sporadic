@@ -63,4 +63,7 @@ class InputSculpt
     daisysp::Overdrive overdrive_;
 
     void updateFilter (float freq, float q);
+
+    ///////////
+    NOCOPY (InputSculpt);
 };

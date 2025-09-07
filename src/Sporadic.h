@@ -56,6 +56,6 @@ class Sporadic : public Deck
 
     void updateDiffusionRingState(DisplayState &view);
 
-    Sporadic (const Sporadic &)           = delete;
-    Sporadic &operator=(const Sporadic &) = delete;
+    ///////////
+    NOCOPY (Sporadic);
 };

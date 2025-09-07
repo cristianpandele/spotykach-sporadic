@@ -168,7 +168,5 @@ class Spotykach : public Deck
     void  setState (State s) { state_ = s; }
     State getState () const { return state_; }
 
-
-    Spotykach (const Spotykach &)           = delete;
-    Spotykach &operator=(const Spotykach &) = delete;
+    NOCOPY (Spotykach);
 };

@@ -151,6 +151,10 @@ namespace spotykach_hwtest
                 smoothing_ = false;
               }
             }
+          }
+
+          ///////////
+          NOCOPY (SmoothValue);
       };
   };
 
@@ -403,7 +407,7 @@ namespace spotykach_hwtest
 
       void testSDCard ();
 
-      AppImpl (const AppImpl &a)           = delete;
-      AppImpl &operator=(const AppImpl &a) = delete;
+      ///////////
+      NOCOPY (AppImpl);
   };
 }    // namespace spotykach_hwtest
