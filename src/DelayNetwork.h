@@ -32,7 +32,7 @@ class DelayNetwork
     float  sampleRate_ = 48000.0f;
     size_t blockSize_  = 16;
     int    numBands_   = kMaxNutrientBands;
-    int    numProcs_   = kMaxNumDelayProcsPerBand;
+    int    numProcs_   = kMaxNumDelayProcs;
     float  centerFreq_ = 1000.0f;
     float  stretch_    = 1.0f;
 

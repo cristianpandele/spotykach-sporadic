@@ -1,43 +1,17 @@
 #include "DelayNodes.h"
-#include "Sporadic.h"
 #include "DelayProc.h"
-#include "app.h"
 #include <algorithm>
 
-  // Matrix of delay processors: ch x bands x procs
-  static DSY_SDRAM_BSS std::array<std::array<std::array<DelayProc, kMaxNumDelayProcsPerBand>, kMaxNutrientBands>, kNumberChannelsStereo> delayProcs_;
-
-  // Processor buffers: ch x band x proc x samples
-  static DSY_SDRAM_BSS std::array<std::array<std::array<std::array<float, kBlockSize>, kMaxNumDelayProcsPerBand>, kMaxNutrientBands>, kNumberChannelsStereo>
-                        processorBuffers_;
-
-  // Tree output buffers: ch x band x tree x samples
-  static DSY_SDRAM_BSS std::array<
-    std::array<std::array<std::array<float, kBlockSize>, kMaxNumDelayProcsPerBand>, kMaxNutrientBands>,
-    kNumberChannelsStereo> treeOutputBuffers_;
-
-// Tree connections: band x tree (true if connected)
-static DSY_SDRAM_BSS std::array<std::array<bool, kMaxNumDelayProcsPerBand>, kMaxNutrientBands> treeConnections_;
-
-// Inter-node connections: band x proc x targetBand x targetProc
-static DSY_SDRAM_BSS std::array<
-                      std::array<
-                        std::array<
-                          std::array<float,
-                      kMaxNumDelayProcsPerBand>,
-                        kMaxNutrientBands>,
-                          kMaxNumDelayProcsPerBand>,
-                            kMaxNutrientBands>
-                      interNodeConnections_;
+// Delay processors laid out as: channel x proc
+static DSY_SDRAM_BSS std::array<std::array<DelayProc, kMaxNumDelayProcs>, kNumberChannelsStereo> delayProcs_;
 
 void DelayNodes::init (float sampleRate, size_t blockSize, int numBands, int numProcs)
 {
   sampleRate_ = sampleRate;
-  numBands_   = std::max(1, numBands);
-  numProcs_   = std::max(1, numProcs);
+  numBands_   = std::clamp(numBands, 1, kMaxNutrientBands);
+  numProcs_   = std::clamp(numProcs, 1, kMaxNumDelayProcs);
   blockSize_  = blockSize;
   allocateResources();
-  setInitialConnections();
 }
 
 void DelayNodes::setStretch (float stretch)
@@ -48,138 +22,95 @@ void DelayNodes::setStretch (float stretch)
 
 void DelayNodes::allocateResources ()
 {
-  // Allocate delay processors matrix
   for (int ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
-    for (int b = 0; b < numBands_; ++b)
+    for (int p = 0; p < numProcs_; ++p)
     {
-      for (int p = 0; p < numProcs_; ++p)
-      {
-        delayProcs_[ch][b][p].init(sampleRate_, DelayProc::MAX_DELAY);
-      }
-      // Set default parameters
-      setDelayProcsParameters();
+      delayProcs_[ch][p].init(sampleRate_, DelayProc::kMaxDelaySamples);
     }
   }
+  // Set default parameters
+  setDelayProcsParameters();
+  setInitialConnections();
 }
 
 void DelayNodes::setDelayProcsParameters ()
 {
-  float perProcStretch = stretch_ / static_cast<float>(numProcs_);
+  float perProcStretch = stretch_ / static_cast<float>(std::max(1, numProcs_));
   for (int ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
-    for (int b = 0; b < numBands_; ++b)
+    for (int p = 0; p < numProcs_; ++p)
     {
-      for (int p = 0; p < numProcs_; ++p)
-      {
-        delayProcs_[ch][b][p].setParameters(perProcStretch, 0.0f);
-      }
+      delayProcs_[ch][p].setParameters(perProcStretch, 0.0f);
     }
   }
 }
 
 void DelayNodes::setInitialConnections ()
 {
-  // Set tree connections to all true
-  for (int b = 0; b < numBands_; ++b)
+  // Initialize all to 0.
+  for (int r = 0; r < kMaxNumDelayProcs; ++r)
   {
-    for (int t = 0; t < numProcs_; ++t)
-    {
-      treeConnections_[b][t] = true;
-    }
+    std::fill(std::begin(interNodeConnections_[r]), std::end(interNodeConnections_[r]), 0.0f);
   }
-
-  // Set inter-node connections: same row, sequential
-  for (int b = 0; b < numBands_; ++b)
+  // Simple forward chain: p -> p+1 gets weight 1.0f
+  for (int p = 0; p < kMaxNumDelayProcs - 1; ++p)
   {
-    for (int p = 0; p < numProcs_; ++p)
-    {
-      for (int tb = 0; tb < numBands_; ++tb)
-      {
-        for (int tp = 0; tp < numProcs_; ++tp)
-        {
-          if (b == tb && tp == p + 1)
-          {
-            interNodeConnections_[b][p][tb][tp] = 1.0f;
-          }
-          else
-          {
-            interNodeConnections_[b][p][tb][tp] = 0.0f;
-          }
-        }
-      }
-    }
+    interNodeConnections_[p][p + 1] = 1.0f;
   }
 }
 
 void DelayNodes::processBlockMono (float **inBand, float **outBand, size_t ch, size_t blockSize)
 {
-  // Clear tree outputs
-  std::fill(treeOutputBuffers_.begin(),
-            treeOutputBuffers_.end(),
-            std::array<std::array<std::array<float, kBlockSize>, kMaxNumDelayProcsPerBand>, kMaxNutrientBands>{0.0f});
+  // Routing-based processing:
+  // For each sample:
+  // 1. Sum all band inputs -> externalInput.
+  // 2. For each processor p from 0..numProcs_-1 compute its input as:
+  //      (p==0 ? externalInput : 0) + sum_{src < numProcs_} processorBuffers_[src] * interNodeConnections_[src][p]
+  // 3. Process to produce processorBuffers_[p].
+  // 4. After all processors run, sum their outputs (or choose a mix strategy) and broadcast to all bands.
 
-  // Process each band
-  for (int b = 0; b < numBands_; ++b)
+  for (size_t s = 0; s < blockSize; ++s)
   {
-    // For each processor in the band
-    for (int p = 0; p < numProcs_; ++p)
+    // External mixed input across bands
+    float externalInput = 0.0f;
+    for (int b = 0; b < numBands_; ++b)
     {
-      // Assume blockSize matches blockSize_
-      for (size_t s = 0; s < blockSize; ++s)
-      {
-        // // Update the target delay
-        // delayProcs_[ch][b][p].updateCurrentDelay();
-
-        // Prepare the inputs to the delay processor
-        float input = 0.0f;
-        if (p == 0)
-        {
-          // First processor gets input from inBand
-          input = inBand[b][s];
-        }
-        else
-        {
-          // Subsequent get from previous processor
-          input += processorBuffers_[ch][b][p - 1][s];
-        }
-
-        // Add inter-node inputs
-        for (int sb = 0; sb < numBands_; ++sb)
-        {
-          for (int sp = 0; sp < numProcs_; ++sp)
-          {
-            if (interNodeConnections_[sb][sp][b][p] > 0.0f)
-            {
-              input += processorBuffers_[ch][sb][sp][s] * interNodeConnections_[sb][sp][b][p];
-            }
-          }
-        }
-
-        // Process through delay proc
-        processorBuffers_[ch][b][p][s] = delayProcs_[ch][b][p].process(input);
-
-        // Add to tree outputs if connected
-        for (int t = 0; t < numProcs_; ++t)
-        {
-          if (treeConnections_[b][t])
-          {
-            treeOutputBuffers_[ch][b][t][s] += processorBuffers_[ch][b][p][s];
-          }
-        }
-      }
+      externalInput += inBand[b][s];
     }
 
-    // Sum tree outputs to outBand
-    for (size_t s = 0; s < blockSize; ++s)
+    // Compute each processor output
+    for (int p = 0; p < numProcs_; ++p)
     {
-      outBand[b][s] = 0.0f;
-      for (int t = 0; t < numProcs_; ++t)
+      float inVal = (p == 0 ? externalInput : 0.0f);
+      // Sum contributions from previous processors per routing matrix
+      for (int src = 0; src < numProcs_; ++src)
       {
-        outBand[b][s] += treeOutputBuffers_[ch][b][t][s];
+        float w = interNodeConnections_[src][p];
+        if (w != 0.0f)
+        {
+          inVal += processorBuffers_[src] * w;
+        }
       }
-      // Normalize
-      outBand[b][s] /= numProcs_;
+      processorBuffers_[p] = delayProcs_[ch][p].process(inVal);
+    }
+
+    // Mix strategy: sum of all processor outputs
+    float mixedOut = 0.0f;
+    for (int p = 0; p < numProcs_; ++p)
+    {
+      mixedOut += processorBuffers_[p];
+    }
+
+    for (int b = 0; b < numBands_; ++b)
+    {
+      outBand[b][s] = mixedOut;
+    }
+
+    // Normalize
+    for (int b = 0; b < numBands_; ++b)
+    {
+      outBand[b][s] /= static_cast<float>(numProcs_);
     }
   }
 }

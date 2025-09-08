@@ -13,7 +13,7 @@ void Sporadic::init ()
     edgeTree_[ch].init(sampleRate_);
   }
   // Initialize the delay network
-  delayNetwork_.init(sampleRate_, blockSize_, kMaxNutrientBands, kMaxNumDelayProcsPerBand);
+  delayNetwork_.init(sampleRate_, blockSize_, kMaxNutrientBands, kMaxNumDelayProcs);
 }
 
 //////////
@@ -103,7 +103,7 @@ void Sporadic::getBandFrequencies (std::vector<float> &frequencies) const
 void Sporadic::setDelayNetworkParameters(float centerFreq, float stretch)
 {
   delayNetwork_.setParameters({.numBands   = kMaxNutrientBands,
-                               .numProcs   = kMaxNumDelayProcsPerBand,
+                               .numProcs   = kMaxNumDelayProcs,
                                .centerFreq = centerFreq,
                                .stretch    = stretch});
 }

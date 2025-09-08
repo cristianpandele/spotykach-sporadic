@@ -1,4 +1,5 @@
 #include "DelayNetwork.h"
+#include "app.h"
 #include <algorithm>
 #include <cassert>
 
@@ -8,7 +9,7 @@ void DelayNetwork::init (float sampleRate, size_t blockSize, int numBands, int n
   numBands_   = std::max(1, numBands);
   numBands_   = std::min(numBands_, kMaxNutrientBands);
   numProcs_   = std::max(1, numProcs);
-  numProcs_   = std::min(numProcs_, kMaxNumDelayProcsPerBand);
+  numProcs_   = std::min(numProcs_, kMaxNumDelayProcs);
   blockSize_  = blockSize;
   diffusion_.init(sampleRate_, numBands_);
   delayNodes_.init(sampleRate_, blockSize_, numBands_, numProcs_);

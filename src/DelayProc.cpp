@@ -36,7 +36,7 @@ void DelayProc::updateCurrentDelay()
     delta = std::copysign(maxStep, delta);
   }
   currentDelay_ += delta;
-  currentDelay_ = daisysp::fclamp(currentDelay_, 2.0f, MAX_DELAY - 3.0f);
+  currentDelay_ = daisysp::fclamp(currentDelay_, 2.0f, kMaxDelaySamples - 3.0f);
 }
 
 void DelayProc::setParameters (float stretch, float fb)
@@ -59,7 +59,6 @@ float DelayProc::process (float in)
   updateCurrentDelay();
 
   // Process delay
-  // float read = delay.Read();
   // float read = delay.Read(currentDelay_);
   float read = delay.ReadHermite(currentDelay_);
   outputLevel = inputEnvFollower.process(read);
