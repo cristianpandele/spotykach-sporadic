@@ -18,7 +18,10 @@ class DelayNodes
 {
   public:
     void init (float sampleRate, size_t blockSize, int numBands, int numProcs);
-    void processBlockMono (float **inBand, float **outBand, size_t ch, size_t blockSize);
+  // Process a block. Inputs are per-band buffers (numBands_ x blockSize).
+  // Outputs are per-processor buffers (kMaxNumDelayProcs x blockSize).
+  // Only the first numProcs_ rows are written; the rest should be treated as zero.
+  void processBlockMono (float **inBand, float **treeOutputs, size_t ch, size_t blockSize);
 
     int getNumBands () const { return numBands_; }
 

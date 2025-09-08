@@ -51,38 +51,43 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
 
   float *outBand[numBands_];
   // Stage 1: Diffusion writes into the "input" staging buffers for the delay network.
-  // This keeps a clear pipeline: diffusion -> storageIn_ -> DelayNodes -> storageOut_.
+  // This keeps a clear pipeline: diffusion -> storageBandsIn_ -> DelayNodes -> storageProcOut_.
   for (int b = 0; b < numBands_; ++b)
   {
-    outBand[b] = &storageIn_[ch][b][0];
+    outBand[b] = &storageBandsIn_[ch][b][0];
   }
 
   diffusion_.processBlockMono(in, ch, outBand, blockSize);
 
   float *inDelay[numBands_];
-  float *outDelay[numBands_];
   for (int b = 0; b < numBands_; ++b)
   {
-    inDelay[b]  = &storageIn_[ch][b][0];
-    outDelay[b] = &storageOut_[ch][b][0];
+    inDelay[b] = &storageBandsIn_[ch][b][0];
   }
 
-  delayNodes_.processBlockMono(inDelay, outDelay, ch, blockSize);
-
-  // For now, sum all bands to the channel output
-  std::fill(out, out + blockSize, 0.0f);
-  for (int band = 0; band < numBands_; ++band)
+  // Prepare per-processor output pointer table
+  float *treeOutputs[kMaxNumDelayProcs];
+  for (int p = 0; p < kMaxNumDelayProcs; ++p)
   {
-    const float *b = outDelay[band];
+    treeOutputs[p] = &storageProcOut_[ch][p][0];
+  }
+
+  delayNodes_.processBlockMono(inDelay, treeOutputs, ch, blockSize);
+
+  // Mix only the active processors' outputs into the channel buffer
+  std::fill(out, out + blockSize, 0.0f);
+  for (int p = 0; p < numProcs_; ++p)
+  {
+    const float *procBuf = treeOutputs[p];
     for (size_t i = 0; i < blockSize; ++i)
     {
-      out[i] += b[i];
+      out[i] += procBuf[i];
     }
   }
-  // Normalize the output to avoid excessive gain
-  // float norm = 1.0f / std::max(1, numBands_);
-  // for (size_t i = 0; i < blockSize; ++i)
-  // {
-  //   out[i] *= norm;
-  // }
+  // Optional normalization by number of active processors
+  float norm = 1.0f / static_cast<float>(std::max(1, numProcs_));
+  for (size_t i = 0; i < blockSize; ++i)
+  {
+    out[i] *= norm;
+  }
 }

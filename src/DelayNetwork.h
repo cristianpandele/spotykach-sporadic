@@ -39,13 +39,11 @@ class DelayNetwork
     DiffusionControl diffusion_;
     DelayNodes       delayNodes_;
 
-    // Pointers to storage: channel * bands * blockSize samples per channel stage
-    std::array<std::array<float *, kMaxNutrientBands>, kNumberChannelsStereo> bandInPtrs_{};
-    std::array<std::array<float *, kMaxNutrientBands>, kNumberChannelsStereo> bandOutPtrs_{};
+    // Backing storage for per-band diffusion outputs: channel x band x block
+    std::array<std::array<std::array<float, kBlockSize>, kMaxNutrientBands>, kNumberChannelsStereo> storageBandsIn_;
 
-    // Owning buffer backing the above pointers
-    std::array<std::array<std::array<float, kBlockSize>, kMaxNutrientBands>, kNumberChannelsStereo> storageIn_;
-    std::array<std::array<std::array<float, kBlockSize>, kMaxNutrientBands>, kNumberChannelsStereo> storageOut_;
+    // Backing storage for per-processor outputs (tree outputs): channel x proc x block
+    std::array<std::array<std::array<float, kBlockSize>, kMaxNumDelayProcs>, kNumberChannelsStereo> storageProcOut_{};
 
     void allocateStorage ();
 };

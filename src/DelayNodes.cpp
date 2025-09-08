@@ -60,7 +60,7 @@ void DelayNodes::setInitialConnections ()
   }
 }
 
-void DelayNodes::processBlockMono (float **inBand, float **outBand, size_t ch, size_t blockSize)
+void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t ch, size_t blockSize)
 {
   // Routing-based processing:
   // For each sample:
@@ -68,7 +68,7 @@ void DelayNodes::processBlockMono (float **inBand, float **outBand, size_t ch, s
   // 2. For each processor p from 0..numProcs_-1 compute its input as:
   //      (p==0 ? externalInput : 0) + sum_{src < numProcs_} processorBuffers_[src] * interNodeConnections_[src][p]
   // 3. Process to produce processorBuffers_[p].
-  // 4. After all processors run, sum their outputs (or choose a mix strategy) and broadcast to all bands.
+  // 4. After each processor runs for sample s, write processorBuffers_[p] to treeOutputs[p][s].
 
   for (size_t s = 0; s < blockSize; ++s)
   {
@@ -95,22 +95,10 @@ void DelayNodes::processBlockMono (float **inBand, float **outBand, size_t ch, s
       processorBuffers_[p] = delayProcs_[ch][p].process(inVal);
     }
 
-    // Mix strategy: sum of all processor outputs
-    float mixedOut = 0.0f;
+    // Write per-processor outputs for this sample
     for (int p = 0; p < numProcs_; ++p)
     {
-      mixedOut += processorBuffers_[p];
-    }
-
-    for (int b = 0; b < numBands_; ++b)
-    {
-      outBand[b][s] = mixedOut;
-    }
-
-    // Normalize
-    for (int b = 0; b < numBands_; ++b)
-    {
-      outBand[b][s] /= static_cast<float>(numProcs_);
+      treeOutputs[p][s] = processorBuffers_[p];
     }
   }
 }
