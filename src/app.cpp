@@ -47,14 +47,14 @@ CpuLoadMeter loadMeter;
 #endif
 
 #define REBOOT_TO_BOOTLOADER_CMD "reboot"
-#define USB_BUFFER_SIZE          256
+constexpr uint32_t kUsbBufferSize = 256;
 
-char    usbBuff[USB_BUFFER_SIZE];
+char    usbBuff[kUsbBufferSize];
 uint8_t usbBuffIx = 0;
 
 static void UsbCallback (uint8_t *buf, uint32_t *len)
 {
-  if (*len > USB_BUFFER_SIZE - usbBuffIx)
+  if (*len > kUsbBufferSize - usbBuffIx)
   {
     Log::PrintLine("USB Callback: Buffer overflow, dropping %d bytes and resetting buffer", *len);
     usbBuffIx = 0;
