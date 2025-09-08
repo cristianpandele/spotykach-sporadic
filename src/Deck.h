@@ -268,9 +268,6 @@ class Deck
     static constexpr float gritFilterMinFreq = InputSculpt::kMinFreq;
     static constexpr float gritFilterMaxFreq = InputSculpt::kMaxFreq;
 
-    // Threshold for parameter change detection
-    static constexpr float kParamChThreshold = 0.025f;
-
   private:
     // Double-buffer technique to handle display state updates and publish them externally
     struct DisplayBuf
