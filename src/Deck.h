@@ -179,6 +179,9 @@ class Deck
     // Update the display state with the current values
     void publishDisplay (const DisplayState &state);
 
+    // LED brightness gradient depending on shape_ and span size
+    void ledBrightnessGradientLinear (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+
     // Update the Grit pad LED state
     void updateGritPadLedState (DisplayState &view);
 
@@ -263,6 +266,17 @@ class Deck
     void handleGritTap (const bool grit, bool &doubleTap, bool &held);
     // Map frequency to LED index
     uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
+    // Interpolate between 4 values based on shape_
+    inline void ledsFourShapeInterpolator (
+      float minBrightness, float maxBrightness, float blend, float *shapes, float *gradValues);
+    // Populate the LED ring with the specified parameters
+    void populateLedRing (Deck::RingSpan  &ringSpan,
+                          uint8_t          ringSize,
+                          LedRgbBrightness colorBright,
+                          uint8_t          start,
+                          uint8_t          spanSize,
+                          bool             gradient = false,
+                          bool             invert = false);
 
     // Frequency filter range for Grit
     static constexpr float gritFilterMinFreq = InputSculpt::kMinFreq;
@@ -321,7 +335,7 @@ class Deck
 
     ///////////
     // Grit display handling functions
-    void    ledBrightnessFilterGradient (
+    void    ledBrightnessGradientFilter (
          FilterType type, uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
     // Falling: full max until cutoff LED index, then linear descent over Q-based width to min
     void ledBrightnessFallingGradient (
@@ -330,11 +344,10 @@ class Deck
     void ledBrightnessRampGradient (
       uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
     void populateGritLedRing (Deck::RingSpan  &ringSpan,
-                          uint8_t          ringSize,
-                          LedRgbBrightness colorBright,
-                          uint8_t          spanStart,
-                          uint8_t          spanSize,
-                          bool             gradient = false);
+                              uint8_t          ringSize,
+                              LedRgbBrightness colorBright,
+                              uint8_t          spanStart,
+                              uint8_t          spanSize);
 
     float calculateFilterHalfBandwidth (float centerFreq, float Q);
     void  calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, uint8_t &start, uint8_t &end);

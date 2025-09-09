@@ -156,15 +156,6 @@ class Spotykach : public Deck
     // Compute blended envelope value from shape_ in [0,1]
     float processEnvelope (bool gate);
 
-    void ledBrightnessGradient (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
-
-    void populateLedRing (Deck::RingSpan  &ringSpan,
-                          uint8_t          ringSize,
-                          LedRgbBrightness colorBright,
-                          uint8_t          start,
-                          uint8_t          spanSize,
-                          bool             gradient = false);
-
     void  setState (State s) { state_ = s; }
     State getState () const { return state_; }
 
