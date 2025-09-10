@@ -132,24 +132,23 @@ namespace spotykach_hwtest
           // Check if the value has smoothing
           bool isSmoothing () const { return smoothing_; }
 
-          private:
-            bool  smoothing_;
-            float currentValue_;
-            float targetValue_;
-            float filterCoeff_;
+        private:
+          bool  smoothing_;
+          float currentValue_;
+          float targetValue_;
+          float filterCoeff_;
 
-            // Determine if the value has smoothing
-            void setSmoothing (float oldValue, float currentValue)
+          // Determine if the value has smoothing
+          void setSmoothing (float oldValue, float currentValue)
+          {
+            // If the current value is more that 1% away from the old value, mark as smoothing
+            if (std::abs((currentValue - oldValue) / oldValue) > 0.01f)
             {
-              // If the current value is more that 1% away from the old value, mark as smoothing
-              if (std::abs((currentValue - oldValue) / oldValue) > 0.01f)
-              {
-                smoothing_ = true;
-              }
-              else
-              {
-                smoothing_ = false;
-              }
+              smoothing_ = true;
+            }
+            else
+            {
+              smoothing_ = false;
             }
           }
 
