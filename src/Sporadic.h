@@ -40,6 +40,10 @@ class Sporadic : public Deck
     // Buffer for modulated input before input sculpt
     float modulatedInputBuf_[kNumberChannelsStereo][kBlockSize]{};
 
+    // Envelope ring (visual + mixing gains source). 32 slots per ring.
+    static constexpr uint8_t kNumLeds = spotykach::Hardware::kNumLedsPerRing;
+    float envelopeRing_[kNumLeds]{};
+
     // Setters for mix, position and size (overloads point to Sporadic versions)
     void setPosition (float p, bool gritLatch = false);
     void setPosition (float p) override { setPosition(p, false); }
@@ -55,6 +59,9 @@ class Sporadic : public Deck
     void setDelayNetworkParameters (float centerFreq, float stretch);
 
     void updateDiffusionRingState(DisplayState &view);
+
+    // Draw the envelope ring to the current DisplayState using position_/size_/shape_.
+    void updateFoldWindowState(DisplayState &view);
 
     ///////////
     NOCOPY (Sporadic);

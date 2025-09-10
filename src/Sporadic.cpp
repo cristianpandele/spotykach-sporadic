@@ -170,8 +170,6 @@ void Sporadic::updateDisplayState ()
 
   // Publish the state of the display
   publishDisplay(view);
-
-  // TODO: sporadic state display
 }
 
 using namespace spotykach_hwtest;
@@ -240,5 +238,36 @@ void Sporadic::updateDiffusionRingState (DisplayState &view)
       // Place the filter cutoff ring span into the view
       view.rings[view.layerCount++] = ringSpan;
     }
+  }
+}
+
+void Sporadic::updateFoldWindowState(DisplayState &view)
+{
+  constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
+  Deck::RingSpan    ringSpan;
+
+  // Yellow area for the canvas
+  uint8_t          start    = 0;
+  LedRgbBrightness ledColor = {0xffff00, kMaxLedBrightness};
+  populateLedRing(ringSpan, N, ledColor, start, N);
+  view.rings[view.layerCount++] = ringSpan;
+
+  // Window length in LED slots (at least 1)
+  constexpr uint8_t kMinWinLen = 4;
+  const uint8_t     winLen     = std::max<uint8_t>(kMinWinLen, static_cast<uint8_t>(std::round(size_ * N)));
+  start                        = static_cast<uint8_t>(std::round(position_ * N));
+  start                        = std::min<uint8_t>(start, N - winLen);
+  ledColor                     = {0x00FF00, kMaxLedBrightness};    // Green
+  uint8_t spanSize             = static_cast<uint8_t>((1.0f - position_) * size_ * N);
+  spanSize                     = std::min(spanSize, (uint8_t)(N - start + 1));
+
+  // Populate the LED Ring
+  populateLedRing(ringSpan, N, ledColor, start, winLen, true);
+  view.rings[view.layerCount++] = ringSpan;
+
+  // Copy the brightness levels to the envelopeRing array for use in mixing
+  for (size_t i = 0; i < N; ++i)
+  {
+    envelopeRing_[i] = ringSpan.led[i].brightness;
   }
 }

@@ -79,9 +79,10 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
   for (int p = 0; p < numProcs_; ++p)
   {
     const float *procBuf = treeOutputs[p];
+    const float  gain    = /* perProcGains ? perProcGains[p] :*/ 1.0f;
     for (size_t i = 0; i < blockSize; ++i)
     {
-      out[i] += procBuf[i];
+      out[i] += procBuf[i] * gain;
     }
   }
   // Optional normalization by number of active processors

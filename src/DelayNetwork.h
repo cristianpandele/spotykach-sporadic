@@ -25,7 +25,8 @@ class DelayNetwork
 
     void getBandFrequencies (std::vector<float> &frequencies) const;
 
-    // Process a block: input stereo arrays (size N) -> output stereo (size N)
+    // Process a block: input mono arrays (size N) -> output mono (size N)
+    // Per-processor gains applied during mixing of per-processor outputs.
     void processBlockMono (const float *in, const uint8_t ch, float *out, size_t blockSize);
 
   private:
