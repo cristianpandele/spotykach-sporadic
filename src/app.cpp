@@ -588,7 +588,7 @@ void AppImpl::handleAnalogControls ()
   // If the Spotykach pad is pressed, set the deck mix
   if (!spotySpotyLatch)
   {
-    // Spotykach slider (mapped to -1.. +1)
+    // Spotykach slider
     spotyControl = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
     // Add the Spotykach CV value when the Spotykach pad is not latched
     spotyControl += hw.GetControlVoltageValue(Hardware::CV_SPOTYKACH);
@@ -869,14 +869,14 @@ void AppImpl::handleDisplay ()
   // --- Gate I/O ---
   if (hw.GetClockInputState())
   {
-    hw.leds.Set(Hardware::LED_CLOCK_IN, 0xff0000, 1.0f);
+    hw.leds.Set(Hardware::LED_CLOCK_IN, 0xff0000, kMaxLedBrightness);
   }
 
   for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
     if (hw.GetGateInputState(i))
     {
-      hw.leds.Set(Hardware::kLedGateIds[i], 0xff0000, 1.0f);
+      hw.leds.Set(Hardware::kLedGateIds[i], 0xff0000, kMaxLedBrightness);
     }
   }
 
@@ -886,28 +886,28 @@ void AppImpl::handleDisplay ()
   // Mode A/B/C switch
   if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
   {
-    hw.leds.Set(Hardware::LED_ROUTING_RIGHT, 0xff0000, 1.0f);
+    hw.leds.Set(Hardware::LED_ROUTING_RIGHT, 0xff0000, kMaxLedBrightness);
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_MONO)
   {
-    hw.leds.Set(Hardware::LED_ROUTING_LEFT, 0xff0000, 1.0f);
+    hw.leds.Set(Hardware::LED_ROUTING_LEFT, 0xff0000, kMaxLedBrightness);
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_STEREO)
   {
-    hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0xff0000, 1.0f);
+    hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0xff0000, kMaxLedBrightness);
   }
   else
   {
-    hw.leds.Set(Hardware::LED_ROUTING_LEFT, 0x000000, 1.0f);
-    hw.leds.Set(Hardware::LED_ROUTING_RIGHT, 0x000000, 1.0f);
-    hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0x000000, 1.0f);
+    hw.leds.Set(Hardware::LED_ROUTING_LEFT, 0x000000, kMaxLedBrightness);
+    hw.leds.Set(Hardware::LED_ROUTING_RIGHT, 0x000000, kMaxLedBrightness);
+    hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0x000000, kMaxLedBrightness);
   }
 
   // Modulator A & B Type switch LED
   using ModType = ModulationEngine::ModType;
   for (size_t side = 0; side < kNumberDeckSlots; side++)
   {
-    float modLedBrightness = modCv[side]; //modulationAmount[side].getSmoothVal();
+    float modLedBrightness = daisysp::fmap(modCv[side], kMinLedBrightness, kMaxLedBrightness, Mapping::LOG);
     switch (currentModType[side])
     {
       case ModType::ENV_FOLLOWER:
@@ -934,22 +934,22 @@ void AppImpl::handleDisplay ()
   {
     if (currentDeckMode[side] == DeckMode::MODE_3)
     {
-      hw.leds.Set(Hardware::kLedGritIds[side], 0x00ff00, 1.0f);
+      hw.leds.Set(Hardware::kLedGritIds[side], 0x00ff00, kMaxLedBrightness);
     }
     else if (currentDeckMode[side] == DeckMode::MODE_1)
     {
-      hw.leds.Set(Hardware::kLedGritIds[side], 0x0000ff, 1.0f);
+      hw.leds.Set(Hardware::kLedGritIds[side], 0x0000ff, kMaxLedBrightness);
     }
     else
     {
-      hw.leds.Set(Hardware::kLedGritIds[side], 0xff0000, 1.0f);
+      hw.leds.Set(Hardware::kLedGritIds[side], 0xff0000, kMaxLedBrightness);
     }
   }
 
   // Manual tempo tap switch
   if (sr2.test(6))
   {
-    hw.leds.Set(Hardware::LED_CLOCK_IN, 0xffffff, 1.0f);
+    hw.leds.Set(Hardware::LED_CLOCK_IN, 0xffffff, kMaxLedBrightness);
   }
 
   for (size_t side = 0; side < kNumberDeckSlots; side++)
@@ -988,10 +988,10 @@ void AppImpl::handleDisplay ()
   float skval = daisysp::fmap(deckMix_.getSmoothVal(), -1.0f, 1.0f);
   hw.leds.Set(Hardware::LED_SPOTY_SLIDER_B,
               0xff0000,
-              skval > 0.0f ? daisysp::fmap(skval, 0.1f, 1.0f, Mapping::LOG) : 0.0f);
+              skval > 0.0f ? daisysp::fmap(skval, kMinLedBrightness, kMaxLedBrightness, Mapping::LOG) : kOffLedBrightness);
   hw.leds.Set(Hardware::LED_SPOTY_SLIDER_A,
               0x0000ff,
-              skval < 0.0f ? daisysp::fmap(-skval, 0.1f, 1.0f, Mapping::LOG) : 0.0f);
+              skval < 0.0f ? daisysp::fmap(-skval, kMinLedBrightness, kMaxLedBrightness, Mapping::LOG) : kOffLedBrightness);
 
   // --- CV INPUTS ---
 

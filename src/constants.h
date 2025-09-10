@@ -20,6 +20,11 @@ namespace spotykach
   constexpr float kMinStretch = 1.0f / 16.0f;    // Minimum stretch factor for delay nodes
   constexpr float kMaxStretch = 16.0f;           // Maximum stretch factor for delay nodes
 
+  // Constants for the LEDs
+  constexpr float kOffLedBrightness = 0.0f;
+  constexpr float kMinLedBrightness = 0.1f;
+  constexpr float kMaxLedBrightness = 0.8f;
+
   // Threshold for parameter change detection
   static constexpr float kParamChThreshold = 0.015f;
 };    // namespace spotykach

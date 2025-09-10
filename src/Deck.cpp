@@ -409,7 +409,7 @@ void Deck::populateLedRing (Deck::RingSpan  &ringSpan,
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
   LedRgbBrightness  ledColor[N];
   // Clear ledColor
-  std::fill(std::begin(ledColor), std::end(ledColor), LedRgbBrightness{0x000000, 0.0f});
+  std::fill(std::begin(ledColor), std::end(ledColor), LedRgbBrightness{0x000000, kOffLedBrightness});
   // Populate the current span with the specified color (at indicated brightness)
   std::fill(ledColor + start, std::min(ledColor + start + spanSize, std::end(ledColor)), colorBright);
 
@@ -581,18 +581,20 @@ void Deck::updateFluxPadLedState (DisplayState &view)
 {
   // Set flux pad LED state and color
   view.fluxActive       = true;
-  view.fluxLedColors[0] = LedRgbBrightness{0x00ffff, 1.0f};
+  view.fluxLedColors[0] = LedRgbBrightness{0x00ffff, kMaxLedBrightness};
   // If flux is not latched active, set the second phase to black
-  view.fluxLedColors[1] = getFluxActive() ? LedRgbBrightness{0x00ffff, 1.0f} : LedRgbBrightness{0x000000, 1.0f};
+  view.fluxLedColors[1] =
+    getFluxActive() ? LedRgbBrightness{0x00ffff, kMaxLedBrightness} : LedRgbBrightness{0x000000, kOffLedBrightness};
 }
 
 void Deck::updateGritPadLedState (DisplayState &view)
 {
   // Set grit pad LED state and color
   view.gritActive       = true;
-  view.gritLedColors[0] = LedRgbBrightness{0xff00ff, 1.0f};
+  view.gritLedColors[0] = LedRgbBrightness{0xff00ff, kMaxLedBrightness};
   // If grit is not latched active, set the second phase to black
-  view.gritLedColors[1] = getGritActive() ? LedRgbBrightness{0xff00ff, 1.0f} : LedRgbBrightness{0x000000, 1.0f};
+  view.gritLedColors[1] =
+    getGritActive() ? LedRgbBrightness{0xff00ff, kMaxLedBrightness} : LedRgbBrightness{0x000000, kOffLedBrightness};
 }
 
 // Grit LED Ring has special gradient handling mechanism, thus separate from populateLedRing
@@ -606,7 +608,7 @@ void Deck::populateGritLedRing (
 
   LedRgbBrightness ledColor[ringSize];
   // Clear ledColor brightness, set rgb
-  std::fill(ledColor, ledColor + ringSize, LedRgbBrightness{colorBright.rgb, 0.0f});
+  std::fill(ledColor, ledColor + ringSize, LedRgbBrightness{colorBright.rgb, kOffLedBrightness});
 
   // Compute per-LED gradient values, using the brightness indicated in colorBright as maximum value
   float ledSquareGradient[ringSize]   = {0.0f};
@@ -621,7 +623,7 @@ void Deck::populateGritLedRing (
   uint8_t cutoffIdx                   = computeCutoffIdx(channel, ringSize);
 
   // Square gradient: full max to all LEDs
-  std::fill(ledSquareGradient, ledSquareGradient + ringSize, 1.0f);
+  std::fill(ledSquareGradient, ledSquareGradient + ringSize, kMaxLedBrightness);
 
   // Falling gradient: full max to cutoff LED, then descend over Q-derived width
   std::fill(ledFallingGradient + spanStart, ledFallingGradient + cutoffIdx, maxBrightness);
@@ -678,7 +680,7 @@ void Deck::updateGritRingState (DisplayState &view)
 {
   uint8_t channel = channelConfig_ == isChannelActive(1) ? 1 : 0;
   // Purple color indicating the bandpass area (fade to red with overdrive)
-  LedRgbBrightness ledColor = {0xff00ff, 1.0f};
+  LedRgbBrightness ledColor = {0xff00ff, kMaxLedBrightness};
   float            od       = inputSculpt_[channel].getOverdrive();    // 0..0.2
   uint8_t          blueLevel =
     static_cast<uint8_t>(map(od, inputSculpt_[channel].kMinDriveAmt, inputSculpt_[channel].kMaxDriveAmt, 255.0f, 0.0f));
@@ -688,7 +690,7 @@ void Deck::updateGritRingState (DisplayState &view)
   Deck::RingSpan    ringSpan;
 
   // Yellow area indicating the frequency range
-  populateLedRing(ringSpan, N, {0xffff00, 1.0f}, 0, N);
+  populateLedRing(ringSpan, N, {0xffff00, kMaxLedBrightness}, 0, N);
   view.rings[view.layerCount++] = ringSpan;
 
   uint8_t squareSpanStart       = 0;

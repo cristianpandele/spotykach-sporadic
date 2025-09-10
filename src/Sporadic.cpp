@@ -216,7 +216,7 @@ void Sporadic::updateDiffusionRingState (DisplayState &view)
   LedRgbBrightness  ledColor[N];
 
   // Clear the LED color array
-  std::fill(std::begin(ledColor), std::end(ledColor), LedRgbBrightness{0x000000, 0.0f});
+  std::fill(std::begin(ledColor), std::end(ledColor), LedRgbBrightness{0x000000, kOffLedBrightness});
 
   // Overlay dark red LEDs indicating the Diffusion filter cutoff frequencies
   std::vector<float> cutoffFreqs(kMaxNutrientBands);
