@@ -138,6 +138,8 @@ class Spotykach : public Deck
     void setAltPlay (bool r);
     void setSpotyPlay (bool s);
 
+    void updateLooperDisplayState (DisplayState &view);
+
     void updateIndex (float &index, float increment, Span<float> window);
     // Retrigger envelopes when the read index wraps around
     void retriggerEnvelopesOnSpanWrap (float prevReadIx, Span<float> readSpan);

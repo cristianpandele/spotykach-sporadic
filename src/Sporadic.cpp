@@ -153,13 +153,19 @@ void Sporadic::updateDisplayState ()
   // Check if there is an update to the held state of the effect pads
   detectEffectPadsHeld();
 
-  // Flux/Grit pad LEDs and ring display
-  updateEffectDisplayStates(view);
-
-  if (isGritDisplayed())
+  if (isEffectPlaying())
   {
+    // Flux/Grit pad LEDs and ring display
+    updateEffectDisplayStates(view);
+
     // Overlay dark red LEDs indicating the Diffusion filter cutoff frequencies
     updateDiffusionRingState(view);
+  }
+
+  if (!isEffectDisplayed())
+  {
+    // Sporadic fold window visualization
+    updateFoldWindowState(view);
   }
 
   // Publish the state of the display
