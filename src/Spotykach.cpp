@@ -358,17 +358,13 @@ void Spotykach::updateLooperDisplayState(DisplayState &view)
       float positionFactor = 2.0f * position_ * (float)kEchoAudioDataSamples / (float)kLooperAudioDataSamples;
 
       // Compute spans in LED index space
-      start = static_cast<uint8_t>((1.0f - positionFactor) * (N - 1));
-
-      // Yellow area indicating the position
-      LedRgbBrightness ledColor = {0xffff00, kMaxLedBrightness};
-      populateLedRing(ringSpan, N, ledColor, start, N - start + 1);
-      view.rings[view.layerCount++] = ringSpan;
+      start = std::round(daisysp::fmap((1.0f - positionFactor), 0, N));
+      start = daisysp::fclamp(start, 0, N - 1);
 
       // Orange span indicating the size
       ledColor         = {0xff8000, kMaxLedBrightness};
-      uint8_t spanSize = static_cast<uint8_t>(size_ * positionFactor * N);
-      spanSize         = std::min(spanSize, (uint8_t)(N - start + 1));
+      uint8_t spanSize = std::round(daisysp::fmap(size_ * positionFactor, 0, N));
+      spanSize         = daisysp::fclamp(spanSize, 0, (N - start));
       populateLedRing(ringSpan, N, ledColor, start, spanSize, true, reverse_);
       view.rings[view.layerCount++] = ringSpan;
 
@@ -403,10 +399,12 @@ void Spotykach::updateLooperDisplayState(DisplayState &view)
     {
       // Compute spans in LED index space
       // Read head position
-      uint8_t readIxLed = static_cast<uint8_t>(readIx_ * (N - 1) / kLooperAudioDataSamples);
+      uint8_t readIxLed = static_cast<uint8_t>(
+        infrasonic::map(readIx_, 0.0f, static_cast<float>(kLooperAudioDataSamples), 0.0f, static_cast<float>(N)));
 
       // Write head position
-      uint8_t writeIxLed = static_cast<uint8_t>(writeIx_ * (N - 1) / kLooperAudioDataSamples);
+      uint8_t writeIxLed = static_cast<uint8_t>(
+        infrasonic::map(writeIx_, 0.0f, static_cast<float>(kLooperAudioDataSamples), 0.0f, static_cast<float>(N)));
 
       // Orange area indicating the actively written area
       ledColor = {0xff8000, kMaxLedBrightness};
@@ -448,15 +446,17 @@ void Spotykach::updateLooperDisplayState(DisplayState &view)
     case LOOP_PLAYBACK:
     {
       // Compute spans in LED index space
-      start = static_cast<uint8_t>(position_ * (N - 1));
+      start = std::round(daisysp::fmap(position_, 0, N));
+      start = daisysp::fclamp(start, 0, N);
 
       // Read head position
-      uint8_t readIxLed = static_cast<uint8_t>(readIx_ * (N - 1) / kLooperAudioDataSamples);
+      uint8_t readIxLed = static_cast<uint8_t>(
+        infrasonic::map(readIx_, 0.0f, static_cast<float>(kLooperAudioDataSamples), 0.0f, static_cast<float>(N)));
 
       // Orange span indicating the position and size
       ledColor         = {0xff8000, kMaxLedBrightness};
-      uint8_t spanSize = static_cast<uint8_t>((1.0f - position_) * size_ * N);
-      spanSize         = std::min(spanSize, (uint8_t)(N - start + 1));
+      uint8_t spanSize = std::round(daisysp::fmap((1.0f - position_) * size_, 0, N + 1));
+      spanSize         = daisysp::fclamp(spanSize, 0, (N - start));
       populateLedRing(ringSpan, N, ledColor, start, spanSize, true, reverse_);
       view.rings[view.layerCount++] = ringSpan;
 
