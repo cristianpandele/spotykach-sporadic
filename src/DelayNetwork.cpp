@@ -92,3 +92,72 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
     out[i] *= norm;
   }
 }
+
+void DelayNetwork::setTreeDensity (float density)
+{
+  treeDensity_ = std::max(0.0f, std::min(1.0f, density));
+  delayNodes_.setTreeDensity(treeDensity_);
+  // Cache active tree count for external queries
+  numActiveTrees_ = delayNodes_.getNumActiveTrees();
+  updatePerProcGains();    // Tree topology changed -> resample gains
+}
+
+void DelayNetwork::getTreePositions (std::vector<float> &positions) const
+{
+  // Gather from nodes; DelayNodes holds the authoritative positions
+  // Note: const_cast used to call non-const getter if needed; prefer const in DelayNodes if making changes later
+  const_cast<DelayNodes &>(delayNodes_).getTreePositions(positions);
+}
+
+void DelayNetwork::setFoldWindow (const float *ring, uint8_t len)
+{
+  // Store a bounded copy and mark gains dirty
+  foldWindowLen_ = len;
+  if (ring && foldWindowLen_ > 0)
+  {
+    std::copy(ring, ring + foldWindowLen_, foldWindow_.begin());
+  }
+  else
+  {
+    foldWindowLen_ = 0;
+  }
+  updatePerProcGains();    // Fold window changed -> resample gains
+}
+
+void DelayNetwork::updatePerProcGains ()
+{
+  // Default: unity gains
+  for (size_t p = 0; p < kMaxNumDelayProcs; ++p)
+  {
+    perProcGains_[p] = 1.0f;
+  }
+  // If we have a fold window and active trees, sample gains at tree positions
+  if (foldWindowLen_ && numActiveTrees_)
+  {
+    // Get tree positions
+    std::vector<float> positions;
+    getTreePositions(positions);
+
+    if (numActiveTrees_ > positions.size())
+    {
+      // If fewer positions than active trees, return (should not happen)
+      return;
+    }
+
+    for (size_t p = 0; p < numActiveTrees_; ++p)
+    {
+      size_t idx = static_cast<size_t>(p) % positions.size();
+      float  t   = positions[idx];
+
+      // Map t in [0,1] to ring index
+      float ri         = daisysp::fmap(t, 0.0f, static_cast<float>(foldWindowLen_ - 1));
+      perProcGains_[p] = foldWindow_[std::round(ri)];
+    }
+
+    // Clear remaining gains to 0
+    for (size_t p = numActiveTrees_; p < kMaxNumDelayProcs; ++p)
+    {
+      perProcGains_[p] = 0.0f;
+    }
+  }
+}

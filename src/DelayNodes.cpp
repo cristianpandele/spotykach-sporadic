@@ -60,6 +60,50 @@ void DelayNodes::setInitialConnections ()
   }
 }
 
+void DelayNodes::setTreeDensity(float density)
+{
+  // Clamp to [0,1]
+  float d = std::max(0.0f, std::min(1.0f, density));
+  if (d == treeDensity_ && numActiveTrees_)
+  {
+    return;
+  }
+  treeDensity_ = d;
+  // Map to [1, numProcs_]
+  size_t newActiveTrees = std::round(daisysp::fmap(d, 0.0f, numProcs_));
+  numActiveTrees_ = std::max(static_cast<size_t>(1), newActiveTrees);
+  updateTreePositions();
+}
+
+void DelayNodes::getTreePositions(std::vector<float>& positions) const
+{
+  positions.clear();
+  positions.reserve(static_cast<size_t>(numActiveTrees_));
+  for (size_t i = 0; i < numActiveTrees_; ++i)
+  {
+    positions.push_back(treePositions_[i]);
+  }
+}
+
+void DelayNodes::updateTreePositions()
+{
+  // Ensure last tree is at 1.0
+  treePositions_[numActiveTrees_ - 1] = 1.0f;    // single tree at end of chain
+
+  // Zero out the rest for cleanliness
+  for (size_t i = numActiveTrees_; i < kMaxNumDelayProcs; ++i)
+  {
+    treePositions_[i] = 0.0f;
+  }
+
+  // Uniform distribution of any remaining trees in [0,1]
+  const float step = 1.0f / static_cast<float>(numActiveTrees_);
+  for (size_t i = 0; i < numActiveTrees_ - 1; ++i)
+  {
+    treePositions_[i] = step * (static_cast<float>(i) + 0.5f);
+  }
+}
+
 void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t ch, size_t blockSize)
 {
   // Routing-based processing:

@@ -76,10 +76,11 @@ void Sporadic::setPitch (float p, bool gritLatch)
   {
     return;
   }
-  // else... // TODO: map pitch to scarcity/abundance in Sporadic
-  //{
-  //   pitch_ = p;
-  //}
+  if (pitchChanged && !getGritMenuOpen())
+  {
+    // Set the tree density in the delay network
+    delayNetwork_.setTreeDensity(pitchControl_);
+  }
 }
 
 void Sporadic::setSpoty (float s)
@@ -220,6 +221,11 @@ void Sporadic::updateDiffusionRingState (DisplayState &view)
   std::vector<float> cutoffFreqs(kMaxNutrientBands);
   delayNetwork_.getBandFrequencies(cutoffFreqs);
 
+  if (cutoffFreqs.empty())
+  {
+    return;
+  }
+
   for (size_t i = 0; i < cutoffFreqs.size(); ++i)
   {
     if (view.layerCount == kMaxRingLayers)
@@ -230,7 +236,7 @@ void Sporadic::updateDiffusionRingState (DisplayState &view)
     if (freq > 0.0f)
     {
       uint8_t ledIdx   = freqToLed(freq, N, gritFilterMinFreq, gritFilterMaxFreq);
-      ledColor[ledIdx] = {0xff0000, 0.5f};
+      ledColor[ledIdx] = {0xff0000, kLowLedBrightness};    // Dark Red
       // Update the ring span information
       ringSpan.start = ledIdx;
       ringSpan.end   = ledIdx + 1;
@@ -238,6 +244,45 @@ void Sporadic::updateDiffusionRingState (DisplayState &view)
       // Place the filter cutoff ring span into the view
       view.rings[view.layerCount++] = ringSpan;
     }
+  }
+}
+
+void Sporadic::updateTreeRingState (DisplayState &view)
+{
+  constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
+  Deck::RingSpan    ringSpan;
+  LedRgbBrightness  ledColor[N];
+
+  // Clear the LED color array
+  std::fill(std::begin(ledColor), std::end(ledColor), LedRgbBrightness{0x000000, kOffLedBrightness});
+
+  std::vector<float> treePos;
+  delayNetwork_.getTreePositions(treePos);
+
+  if (treePos.empty())
+  {
+    return;
+  }
+
+  // Overlay dark red LEDs indicating the tree positions
+  for (size_t i = 0; i < treePos.size(); ++i)
+  {
+    if (view.layerCount == kMaxRingLayers)
+    {
+      break;
+    }
+
+    // Linear mapping: 0..1 -> 0.07..0.89*N
+    float t          = treePos[i];
+    t                = daisysp::fmap(t, 0.07f * static_cast<float>(N), 0.89f * static_cast<float>(N));
+    uint8_t ledIdx   = std::round(t);
+    ledColor[ledIdx] = {0xff0000, kLowLedBrightness};    // Dark Red
+    // Update the ring span information
+    ringSpan.start = ledIdx;
+    ringSpan.end   = ledIdx + 1;
+    std::copy(std::begin(ledColor), std::end(ledColor), std::begin(ringSpan.led));
+    // Place the tree position ring span into the view
+    view.rings[view.layerCount++] = ringSpan;
   }
 }
 
@@ -252,14 +297,13 @@ void Sporadic::updateFoldWindowState(DisplayState &view)
   populateLedRing(ringSpan, N, ledColor, start, N);
   view.rings[view.layerCount++] = ringSpan;
 
-  // Window length in LED slots (at least 1)
   constexpr uint8_t kMinWinLen = 4;
-  const uint8_t     winLen     = std::max<uint8_t>(kMinWinLen, static_cast<uint8_t>(std::round(size_ * N)));
-  start                        = static_cast<uint8_t>(std::round(position_ * N));
-  start                        = std::min<uint8_t>(start, N - winLen);
-  ledColor                     = {0x00FF00, kMaxLedBrightness};    // Green
-  uint8_t spanSize             = static_cast<uint8_t>((1.0f - position_) * size_ * N);
-  spanSize                     = std::min(spanSize, (uint8_t)(N - start + 1));
+  // Fold window start in LED slots (at at latest N - kMinWinLen)
+  start            = std::round(daisysp::fmap(position_, 0.0f, N - kMinWinLen));
+  // Fold window length in LED slots (at least kMinWinLen)
+  uint8_t winLen   = std::round(daisysp::fmap(size_, kMinWinLen, N + 1));
+  winLen           = daisysp::fclamp(winLen, 0, N - start);
+  ledColor         = {0x00ff00, kMaxLedBrightness};    // Green
 
   // Populate the LED Ring
   populateLedRing(ringSpan, N, ledColor, start, winLen, true);
@@ -270,4 +314,8 @@ void Sporadic::updateFoldWindowState(DisplayState &view)
   {
     envelopeRing_[i] = ringSpan.led[i].brightness;
   }
+  // Provide the fold window to DelayNetwork for internal gain staging
+  delayNetwork_.setFoldWindow(envelopeRing_, N);
+
+  updateTreeRingState(view);
 }

@@ -58,7 +58,11 @@ class Sporadic : public Deck
     // Prepare and set delay network parameters
     void setDelayNetworkParameters (float centerFreq, float stretch);
 
+    // Update the diffusion ring state in the DisplayState
     void updateDiffusionRingState(DisplayState &view);
+
+    // Update the tree ring state in the DisplayState
+    void updateTreeRingState (DisplayState &view);
 
     // Draw the envelope ring to the current DisplayState using position_/size_/shape_.
     void updateFoldWindowState(DisplayState &view);

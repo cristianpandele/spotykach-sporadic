@@ -27,6 +27,16 @@ class DelayNodes
 
     void setStretch (float stretch);
 
+    // Density controls how many trees (processors) are considered active.
+    // 0 -> 1 active tree, 1 -> numProcs_ active trees (linear mapping).
+    void setTreeDensity(float density);
+
+    // Number of active trees computed from density (in [1, numProcs_]).
+    int getNumActiveTrees() const { return numActiveTrees_; }
+
+    // Get normalized tree positions in [0,1], size == numActiveTrees_.
+    void getTreePositions(std::vector<float>& positions) const;
+
   private:
     float  sampleRate_ = 48000.0f;
     size_t blockSize_  = 16;
@@ -34,9 +44,17 @@ class DelayNodes
     int    numProcs_   = kMaxNumDelayProcs;
     float  stretch_    = 1.0f;
 
+    // Tree density (0..1) maps linearly to number of active trees [1..numProcs_].
+    float treeDensity_ = 1.0f;    // [0,1]
+    // The current number of active trees
+    size_t numActiveTrees_ = 1;    // [1,numProcs_]
+    // Normalized positions within [0,1]; last entry is 1.0 to indicate end of chain.
+    std::array<float, kMaxNumDelayProcs> treePositions_{};
+
     void allocateResources ();
     void setInitialConnections ();
     void setDelayProcsParameters ();
+    void updateTreePositions ();
 
     // Routing matrix: weight from src (row) to dst (col).
     float interNodeConnections_[kMaxNumDelayProcs][kMaxNumDelayProcs] = {};

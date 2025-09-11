@@ -62,7 +62,7 @@ class Deck
     };
 
     // Render-ready view the UI can draw without peeking internals
-    static constexpr uint8_t kMaxRingLayers = 6;
+    static constexpr uint8_t kMaxRingLayers = std::max(kMaxNumDelayProcs, kMaxNutrientBands) + 2; // +2 for canvas and any additional span
     static constexpr uint8_t kMaxLedPhases  = 2;
 
     // Timeout for double-tap detection

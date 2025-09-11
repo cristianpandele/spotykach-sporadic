@@ -23,6 +23,7 @@ namespace spotykach
   // Constants for the LEDs
   constexpr float kOffLedBrightness = 0.0f;
   constexpr float kMinLedBrightness = 0.1f;
+  constexpr float kLowLedBrightness = 0.35f;
   constexpr float kMaxLedBrightness = 0.8f;
 
   // Threshold for parameter change detection
