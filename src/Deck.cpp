@@ -365,7 +365,7 @@ void Deck::ledsFourShapeInterpolator (float minValue, float maxValue, float blen
 }
 
 // LED brightness gradient depending on shape_ and span size
-void Deck::ledBrightnessGradientLinear (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues)
+void Deck::ledBrightnessGradientLog (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues)
 {
   // Per-LED gradient using analytic envelope within [0, spanSize)
   const uint8_t gradLen = std::min<uint8_t>(spanSize, Hardware::kNumLedsPerRing);
@@ -386,6 +386,8 @@ void Deck::ledBrightnessGradientLinear (uint8_t spanSize, float minBrightness, f
     float ledRampGradient     = minBrightness + x;
     float values[4]           = {ledSquareGradient, ledFallingGradient, ledTriangleGradient, ledRampGradient};
     ledsFourShapeInterpolator(minBrightness, maxBrightness, shape_, values, &gradValues[i]);
+    // Logarithmic mapping of the gradient values
+    *(&gradValues[i]) = daisysp::fmap(gradValues[i], minBrightness, maxBrightness, Mapping::LOG);
   }
 }
 
@@ -417,7 +419,9 @@ void Deck::populateLedRing (Deck::RingSpan  &ringSpan,
   if (gradient)
   {
     float ledGradient[N] = {0.0f};
-    ledBrightnessGradientLinear(spanSize, (colorBright.brightness / 3.0f), colorBright.brightness, ledGradient);
+    const float minBrightness  = colorBright.brightness / 4.0f;
+    const float maxBrightness  = colorBright.brightness;
+    ledBrightnessGradientLog(spanSize, minBrightness, maxBrightness, ledGradient);
 
     for (uint8_t i = 0; i < spanSize; ++i)
     {
@@ -482,8 +486,8 @@ void Deck::ledBrightnessGradientFilter (
         break;
       }
     }
-    float val     = minBrightness + (maxBrightness - minBrightness) * t;
-    gradValues[i] = daisysp::fclamp(val, minBrightness, maxBrightness);
+    // Map brightness values to log scale
+    gradValues[i] = daisysp::fmap(t, minBrightness, maxBrightness, Mapping::LOG);
   }
 }
 

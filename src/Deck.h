@@ -180,7 +180,7 @@ class Deck
     void publishDisplay (const DisplayState &state);
 
     // LED brightness gradient depending on shape_ and span size
-    void ledBrightnessGradientLinear (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+    void ledBrightnessGradientLog (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
 
     // Update the Grit pad LED state
     void updateGritPadLedState (DisplayState &view);
