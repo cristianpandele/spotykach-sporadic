@@ -16,14 +16,14 @@ class DiffusionControl
   public:
     struct Parameters
     {
-        int   numActiveBands = 4;          // (1..maxBands)
-        float centerFreq     = 1000.0f;    // (Hz)
+        size_t numActiveBands = 4;          // (1..maxBands)
+        float  centerFreq     = 1000.0f;    // (Hz)
     };
 
     static constexpr float kMinFreq    = 125.0f;     // Minimum frequency (Hz)
     static constexpr float kMaxFreq    = 8000.0f;    // Maximum frequency (Hz)
 
-    void init (float sampleRate, int numBands = 4);
+    void init (float sampleRate, size_t numBands = 4);
     void setParameters (const Parameters &p);
 
     int getNumBands () const { return numBands_; }
@@ -35,11 +35,11 @@ class DiffusionControl
     void processBlockMono (const float *in, const uint8_t ch, float **outBand, size_t blockSize);
 
   private:
-    float sampleRate_ = 48000.0f;
-    int   numBands_   = 4;
+    float  sampleRate_ = 48000.0f;
+    size_t numBands_   = 4;
 
-    float minFreq_    = kMinFreq;
-    float maxFreq_    = kMaxFreq;
+    float minFreq_     = kMinFreq;
+    float maxFreq_     = kMaxFreq;
 
     std::array<std::array<daisysp::Svf, kMaxNutrientBands>, kNumberChannelsStereo> filters_{};
     std::array<float, kMaxNutrientBands>                                           centerFreqs_{};

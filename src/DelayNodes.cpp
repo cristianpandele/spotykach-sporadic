@@ -5,11 +5,11 @@
 // Delay processors laid out as: channel x proc
 static DSY_SDRAM_BSS std::array<std::array<DelayProc, kMaxNumDelayProcs>, kNumberChannelsStereo> delayProcs_;
 
-void DelayNodes::init (float sampleRate, size_t blockSize, int numBands, int numProcs)
+void DelayNodes::init (float sampleRate, size_t blockSize, size_t numBands, size_t numProcs)
 {
   sampleRate_ = sampleRate;
-  numBands_   = std::clamp(numBands, 1, kMaxNutrientBands);
-  numProcs_   = std::clamp(numProcs, 1, kMaxNumDelayProcs);
+  numBands_   = std::clamp(numBands, static_cast<size_t>(1), kMaxNutrientBands);
+  numProcs_   = std::clamp(numProcs, static_cast<size_t>(1), kMaxNumDelayProcs);
   blockSize_  = blockSize;
   allocateResources();
 }
@@ -22,9 +22,9 @@ void DelayNodes::setStretch (float stretch)
 
 void DelayNodes::allocateResources ()
 {
-  for (int ch = 0; ch < kNumberChannelsStereo; ++ch)
+  for (uint8_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
-    for (int p = 0; p < numProcs_; ++p)
+    for (size_t p = 0; p < numProcs_; ++p)
     {
       delayProcs_[ch][p].init(sampleRate_, DelayProc::kMaxDelaySamples);
     }
@@ -32,14 +32,17 @@ void DelayNodes::allocateResources ()
   // Set default parameters
   setDelayProcsParameters();
   setInitialConnections();
+  // Initialize tree positions to full density by default
+  numActiveTrees_ = std::max(static_cast<size_t>(1), numProcs_);
+  updateTreePositions();
 }
 
 void DelayNodes::setDelayProcsParameters ()
 {
-  float perProcStretch = stretch_ / static_cast<float>(std::max(1, numProcs_));
-  for (int ch = 0; ch < kNumberChannelsStereo; ++ch)
+  float perProcStretch = stretch_ / static_cast<float>(std::max(static_cast<size_t>(1), numProcs_));
+  for (uint8_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
-    for (int p = 0; p < numProcs_; ++p)
+    for (size_t p = 0; p < numProcs_; ++p)
     {
       delayProcs_[ch][p].setParameters(perProcStretch, 0.0f);
     }
@@ -49,12 +52,12 @@ void DelayNodes::setDelayProcsParameters ()
 void DelayNodes::setInitialConnections ()
 {
   // Initialize all to 0.
-  for (int r = 0; r < kMaxNumDelayProcs; ++r)
+  for (size_t r = 0; r < kMaxNumDelayProcs; ++r)
   {
     std::fill(std::begin(interNodeConnections_[r]), std::end(interNodeConnections_[r]), 0.0f);
   }
   // Simple forward chain: p -> p+1 gets weight 1.0f
-  for (int p = 0; p < kMaxNumDelayProcs - 1; ++p)
+  for (size_t p = 0; p < kMaxNumDelayProcs - 1; ++p)
   {
     interNodeConnections_[p][p + 1] = 1.0f;
   }
@@ -118,17 +121,17 @@ void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t c
   {
     // External mixed input across bands
     float externalInput = 0.0f;
-    for (int b = 0; b < numBands_; ++b)
+    for (size_t b = 0; b < numBands_; ++b)
     {
       externalInput += inBand[b][s];
     }
 
     // Compute each processor output
-    for (int p = 0; p < numProcs_; ++p)
+    for (size_t p = 0; p < numProcs_; ++p)
     {
       float inVal = (p == 0 ? externalInput : 0.0f);
       // Sum contributions from previous processors per routing matrix
-      for (int src = 0; src < numProcs_; ++src)
+      for (size_t src = 0; src < numProcs_; ++src)
       {
         float w = interNodeConnections_[src][p];
         if (w != 0.0f)
@@ -140,7 +143,7 @@ void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t c
     }
 
     // Write per-processor outputs for this sample
-    for (int p = 0; p < numProcs_; ++p)
+    for (size_t p = 0; p < numProcs_; ++p)
     {
       treeOutputs[p][s] = processorBuffers_[p];
     }

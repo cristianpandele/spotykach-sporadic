@@ -41,12 +41,12 @@ class DelayNetwork
     int  getNumActiveTrees() const { return numActiveTrees_; }
 
   private:
-    float  sampleRate_ = 48000.0f;
-    size_t blockSize_  = 16;
-    int    numBands_   = kMaxNutrientBands;
-    int    numProcs_   = kMaxNumDelayProcs;
-    float  centerFreq_ = 1000.0f;
-    float  stretch_    = 1.0f;
+    float  sampleRate_     = 48000.0f;
+    size_t blockSize_      = 16;
+    size_t numBands_       = kMaxNutrientBands;
+    size_t numProcs_       = kMaxNumDelayProcs;
+    float  centerFreq_     = 1000.0f;
+    float  stretch_        = 1.0f;
     float  treeDensity_    = 1.0f;    // [0,1]
     size_t numActiveTrees_ = kMaxNumDelayProcs;
 

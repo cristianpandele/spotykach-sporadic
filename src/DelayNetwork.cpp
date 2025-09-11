@@ -17,8 +17,8 @@ void DelayNetwork::init (float sampleRate, size_t blockSize, int numBands, int n
 
 void DelayNetwork::setParameters (const Parameters &p)
 {
-  int newBands = std::max(1, p.numBands);
-  int newProcs = std::max(1, p.numProcs);
+  size_t newBands = std::max(1, p.numBands);
+  size_t newProcs = std::max(1, p.numProcs);
   float newCenterFreq = daisysp::fclamp(p.centerFreq, DiffusionControl::kMinFreq, DiffusionControl::kMaxFreq);
   if ((newBands != numBands_) || (newCenterFreq != centerFreq_))
   {
@@ -52,7 +52,7 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
   float *outBand[numBands_];
   // Stage 1: Diffusion writes into the "input" staging buffers for the delay network.
   // This keeps a clear pipeline: diffusion -> storageBandsIn_ -> DelayNodes -> storageProcOut_.
-  for (int b = 0; b < numBands_; ++b)
+  for (size_t b = 0; b < numBands_; ++b)
   {
     outBand[b] = &storageBandsIn_[ch][b][0];
   }
@@ -60,14 +60,14 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
   diffusion_.processBlockMono(in, ch, outBand, blockSize);
 
   float *inDelay[numBands_];
-  for (int b = 0; b < numBands_; ++b)
+  for (size_t b = 0; b < numBands_; ++b)
   {
     inDelay[b] = &storageBandsIn_[ch][b][0];
   }
 
   // Prepare per-processor output pointer table
   float *treeOutputs[kMaxNumDelayProcs];
-  for (int p = 0; p < kMaxNumDelayProcs; ++p)
+  for (size_t p = 0; p < kMaxNumDelayProcs; ++p)
   {
     treeOutputs[p] = &storageProcOut_[ch][p][0];
   }
@@ -76,17 +76,17 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
 
   // Mix only the active processors' outputs into the channel buffer
   std::fill(out, out + blockSize, 0.0f);
-  for (int p = 0; p < numProcs_; ++p)
+  for (size_t p = 0; p < numProcs_; ++p)
   {
     const float *procBuf = treeOutputs[p];
-    const float  gain    = /* perProcGains ? perProcGains[p] :*/ 1.0f;
+    const float  gain    = perProcGains_[p];
     for (size_t i = 0; i < blockSize; ++i)
     {
       out[i] += procBuf[i] * gain;
     }
   }
   // Optional normalization by number of active processors
-  float norm = 1.0f / static_cast<float>(std::max(1, numProcs_));
+  float norm = 1.0f / static_cast<float>(std::max(static_cast<size_t>(1), numProcs_));
   for (size_t i = 0; i < blockSize; ++i)
   {
     out[i] *= norm;

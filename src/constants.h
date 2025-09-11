@@ -13,8 +13,8 @@ namespace spotykach
   constexpr size_t kBlockSize      = 48;
 
   // Constants for Sporadic
-  constexpr int kMaxNumDelayProcs = 6;    // Maximum number of trees (output taps)
-  constexpr int kMaxNutrientBands = 4;    // Maximum number of nutrient bands
+  constexpr size_t kMaxNumDelayProcs = 6;    // Maximum number of trees (output taps)
+  constexpr size_t kMaxNutrientBands = 4;    // Maximum number of nutrient bands
 
   // Constants for the delay nodes
   constexpr float kMinStretch = 1.0f / 16.0f;    // Minimum stretch factor for delay nodes
