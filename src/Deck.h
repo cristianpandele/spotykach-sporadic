@@ -182,6 +182,9 @@ class Deck
     // LED brightness gradient depending on shape_ and span size
     void ledBrightnessGradientLog (uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
 
+    // Get the Grit LED color based on the drive factor
+    LedRgbBrightness getGritLedColour ();
+
     // Update the Grit pad LED state
     void updateGritPadLedState (DisplayState &view);
 
@@ -335,19 +338,15 @@ class Deck
 
     ///////////
     // Grit display handling functions
-    void    ledBrightnessGradientFilter (
-         FilterType type, uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+    void ledBrightnessGradientFilter (
+      FilterType type, uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
     // Falling: full max until cutoff LED index, then linear descent over Q-based width to min
     void ledBrightnessFallingGradient (
       uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
     // Ramp: linear ascent over Q-based width up to cutoff LED index, then full max
     void ledBrightnessRampGradient (
       uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
-    void populateGritLedRing (Deck::RingSpan  &ringSpan,
-                              uint8_t          ringSize,
-                              LedRgbBrightness colorBright,
-                              uint8_t          spanStart,
-                              uint8_t          spanSize);
+    void populateGritLedRing (Deck::RingSpan &ringSpan, uint8_t ringSize, uint8_t spanStart, uint8_t spanSize);
 
     float calculateFilterHalfBandwidth (float centerFreq, float Q);
     void  calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, uint8_t &start, uint8_t &end);

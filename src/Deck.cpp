@@ -591,19 +591,30 @@ void Deck::updateFluxPadLedState (DisplayState &view)
     getFluxActive() ? LedRgbBrightness{0x00ffff, kMaxLedBrightness} : LedRgbBrightness{0x000000, kOffLedBrightness};
 }
 
+LedRgbBrightness Deck::getGritLedColour ()
+{
+  uint8_t      channel = channelConfig_ == isChannelActive(1) ? 1 : 0;
+  InputSculpt &sculpt  = inputSculpt_[channel];
+  // Purple color indicating the bandpass area (fade to red with overdrive)
+  LedRgbBrightness ledColor  = {0xff00ff, kMaxLedBrightness};
+  float            od        = sculpt.getOverdrive();    // 0..0.2
+  uint8_t          blueLevel = static_cast<uint8_t>(map(od, sculpt.kMinDriveAmt, sculpt.kMaxDriveAmt, 255.0f, 0.0f));
+  ledColor.rgb               = (ledColor.rgb & 0xffffff00) | blueLevel;
+  return ledColor;
+}
+
 void Deck::updateGritPadLedState (DisplayState &view)
 {
   // Set grit pad LED state and color
   view.gritActive       = true;
-  view.gritLedColors[0] = LedRgbBrightness{0xff00ff, kMaxLedBrightness};
+  LedRgbBrightness gritColor = getGritLedColour();
+  view.gritLedColors[0] = gritColor;
   // If grit is not latched active, set the second phase to black
-  view.gritLedColors[1] =
-    getGritActive() ? LedRgbBrightness{0xff00ff, kMaxLedBrightness} : LedRgbBrightness{0x000000, kOffLedBrightness};
+  view.gritLedColors[1] = getGritActive() ? gritColor : LedRgbBrightness{0x000000, kOffLedBrightness};
 }
 
 // Grit LED Ring has special gradient handling mechanism, thus separate from populateLedRing
-void Deck::populateGritLedRing (
-  Deck::RingSpan &ringSpan, uint8_t ringSize, LedRgbBrightness colorBright, uint8_t spanStart, uint8_t spanSize)
+void Deck::populateGritLedRing (Deck::RingSpan &ringSpan, uint8_t ringSize, uint8_t spanStart, uint8_t spanSize)
 {
   if (ringSize == 0)
   {
@@ -611,17 +622,18 @@ void Deck::populateGritLedRing (
   }
 
   LedRgbBrightness ledColor[ringSize];
+  LedRgbBrightness gritColor = getGritLedColour();
   // Clear ledColor brightness, set rgb
-  std::fill(ledColor, ledColor + ringSize, LedRgbBrightness{colorBright.rgb, kOffLedBrightness});
+  std::fill(ledColor, ledColor + ringSize, LedRgbBrightness{gritColor.rgb, kOffLedBrightness});
 
-  // Compute per-LED gradient values, using the brightness indicated in colorBright as maximum value
+  // Compute per-LED gradient values, using the brightness indicated in gritColor as maximum value
   float ledSquareGradient[ringSize]   = {0.0f};
   float ledFallingGradient[ringSize]  = {0.0f};
   float ledTriangleGradient[ringSize] = {0.0f};
   float ledRampGradient[ringSize]     = {0.0f};
 
-  const float minBrightness           = colorBright.brightness / 4.0f;
-  const float maxBrightness           = colorBright.brightness;
+  const float minBrightness           = gritColor.brightness / 4.0f;
+  const float maxBrightness           = gritColor.brightness;
 
   uint8_t channel                     = channelConfig_ == isChannelActive(1) ? 1 : 0;
   uint8_t cutoffIdx                   = computeCutoffIdx(channel, ringSize);
@@ -682,14 +694,6 @@ void Deck::populateGritLedRing (
 
 void Deck::updateGritRingState (DisplayState &view)
 {
-  uint8_t channel = channelConfig_ == isChannelActive(1) ? 1 : 0;
-  // Purple color indicating the bandpass area (fade to red with overdrive)
-  LedRgbBrightness ledColor = {0xff00ff, kMaxLedBrightness};
-  float            od       = inputSculpt_[channel].getOverdrive();    // 0..0.2
-  uint8_t          blueLevel =
-    static_cast<uint8_t>(map(od, inputSculpt_[channel].kMinDriveAmt, inputSculpt_[channel].kMaxDriveAmt, 255.0f, 0.0f));
-  ledColor.rgb = (ledColor.rgb & 0xffffff00) | blueLevel;
-
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
   Deck::RingSpan    ringSpan;
 
@@ -726,7 +730,7 @@ void Deck::updateGritRingState (DisplayState &view)
   ledsFourShapeInterpolator(0, N, inputSculpt_[channel].getShape(), shapeSpanEnd, &spanEnd);
 
   // Purple span indicating the filter area
-  uint8_t filterSpanSize = static_cast<uint8_t>(daisysp::fclamp(spanEnd - spanStart, 0, N - spanStart));
-  populateGritLedRing(ringSpan, N, ledColor, spanStart, filterSpanSize);
+  uint8_t          filterSpanSize = static_cast<uint8_t>(daisysp::fclamp(spanEnd - spanStart, 0, N - spanStart));
+  populateGritLedRing(ringSpan, N, spanStart, filterSpanSize);
   view.rings[view.layerCount++] = ringSpan;
 }
