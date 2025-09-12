@@ -203,6 +203,9 @@ class Deck
     // Check if there is an update to the held state of the effect pads
     void detectEffectPadsHeld ();
 
+    // Update the digital controls for effects based on the control frame
+    void updateDigitalControlsEffects (const DigitalControlFrame &c);
+
     #define MAKE_GRIT_CHANGE_STATUS(x, xControl, gritLatch)                                                                \
       bool x##Changed                  = std::abs(x - xControl) > kParamChThreshold;                                       \
       bool x##ChangedWhileGritLatched  = x##Changed && gritLatch;                                                          \
@@ -346,6 +349,7 @@ class Deck
     // Ramp: linear ascent over Q-based width up to cutoff LED index, then full max
     void ledBrightnessRampGradient (
       uint8_t ringSize, uint8_t spanSize, float minBrightness, float maxBrightness, float *gradValues);
+    // Populate the Grit LED ring with the specified parameters
     void populateGritLedRing (Deck::RingSpan &ringSpan, uint8_t ringSize, uint8_t spanStart, uint8_t spanSize);
 
     float calculateFilterHalfBandwidth (float centerFreq, float Q);

@@ -11,6 +11,7 @@ void DelayNodes::init (float sampleRate, size_t blockSize, size_t numBands, size
   numBands_   = std::clamp(numBands, static_cast<size_t>(1), kMaxNutrientBands);
   numProcs_   = std::clamp(numProcs, static_cast<size_t>(1), kMaxNumDelayProcs);
   blockSize_  = blockSize;
+  interconnectionUpdateTimer.Init();
   allocateResources();
 }
 
@@ -107,15 +108,145 @@ void DelayNodes::updateTreePositions()
   }
 }
 
+void DelayNodes::updateNodeInterconnections ()
+{
+  // Update existing connections by adding a small random delta scaled by
+  // entanglement and the minimum age of the pair; occasionally create new
+  // connections with probability proportional to entanglement and distance.
+
+  // For now, use channel 0 for age queries
+  for (size_t src = 0; src < kMaxNumDelayProcs; ++src)
+  {
+    for (size_t dst = 0; dst < kMaxNumDelayProcs; ++dst)
+    {
+      float &connectionStrength = interNodeConnections_[src][dst];
+      float  ageSrc             = delayProcs_[0][src].getAge();
+      float  ageDst             = delayProcs_[0][dst].getAge();
+      float  pairMinAge         = std::min(ageSrc, ageDst);
+
+      if (src == dst)
+      {
+        connectionStrength = 0.0f;
+        continue;
+      }
+
+      // normalized entanglement in [0,1]
+      float normEntanglement = entanglement_;
+
+      if (connectionStrength > 0.0f)
+      {
+        // Existing connection: add a small delta that decays (and finally recedes) with age
+        float pairEntanglementDelta =
+          daisy::Random::GetFloat(0.0f, 0.1f) * normEntanglement * (0.5f - pairMinAge);
+        pairEntanglementDelta *= connectionStrength;
+        connectionStrength += pairEntanglementDelta;
+      }
+      else
+      {
+        if (interNodeConnections_[dst][src] > 0.0f)
+        {
+          // Avoid mutual connections
+          connectionStrength = 0.0f;
+          continue;
+        }
+        // Potential creation of new connection
+        // Probability diminishes with distance between nodes
+        size_t distance   = std::abs(static_cast<int>(dst) - static_cast<int>(src));
+        float maxDist    = static_cast<float>(std::max<size_t>(1, numProcs_ - 1));
+        float proximity  = 1.0f - (static_cast<float>(distance) / maxDist);    // 1 near neighbors, 0 far
+
+        // Random chance to create a new connection
+        float rnd        = daisy::Random::GetFloat(0.0f, 1.0f);
+        float createProb = normEntanglement * (1.0f - pairMinAge);
+        if (rnd < createProb)
+        {
+          // Create a new connection with strength scaled by entanglement, proximity, and age
+          connectionStrength = daisy::Random::GetFloat(0.0f, 0.5f) / (1.0f + pairMinAge);
+          connectionStrength *= normEntanglement;
+          connectionStrength *= proximity;
+        }
+      }
+    }
+  }
+
+  // Normalize per destination so that sum of incoming weights is just a bit under 1.0f
+  // - this prevents runaway feedback in the common case of a loop
+  // Note: this does not prevent feedback loops if the matrix contains cycles; that is left to the user to explore.
+  for (size_t dst = 0; dst < kMaxNumDelayProcs; ++dst)
+  {
+    float sum = 0.0f;
+    for (size_t src = 0; src < kMaxNumDelayProcs; ++src)
+    {
+      sum += interNodeConnections_[src][dst];
+    }
+    if (sum > 1.0f)
+    {
+      float inv = 1.0f / (sum + 0.05f); // +0.05f to avoid being at the edge of feedback instability
+      for (size_t src = 0; src < kMaxNumDelayProcs; ++src)
+      {
+        interNodeConnections_[src][dst] *= inv;
+      }
+    }
+  }
+}
+
+void DelayNodes::updateSidechainLevels (size_t ch)
+{
+  // For node p, compute sidechain as:
+  //   sc[p] = sum_{src != p} interNodeConnections_[src][p+1] * outputLevel(src) - outputLevel(p)
+  // For p == last, there is no p+1; set sc to 0.
+  for (size_t p = 0; p < numProcs_; ++p)
+  {
+    float sc = 0.0f;
+    if (p + 1 < numProcs_)
+    {
+      const size_t dst    = p + 1;
+      float        inflow = 0.0f;
+      for (size_t src = 0; src < numProcs_; ++src)
+      {
+        if (src == p)
+          continue;
+        float w = interNodeConnections_[src][dst];
+        if (w > 0.0f)
+        {
+          inflow += w * delayProcs_[ch][src].outputLevel;
+        }
+      }
+      sc = inflow - delayProcs_[ch][p].outputLevel;
+    }
+    sidechainLevels_[p] = daisysp::fclamp(sc, 0.0f, 1.0f);
+  }
+
+  // Push to processors
+  for (size_t p = 0; p < numProcs_; ++p)
+  {
+    delayProcs_[ch][p].setSidechainLevel(sidechainLevels_[p]);
+  }
+}
+
 void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t ch, size_t blockSize)
 {
   // Routing-based processing:
+  // For each block:
+  // 1. Update the routing matrix.
+  // 2. Update sidechain levels for each processor based on routing + activity.
+
   // For each sample:
   // 1. Sum all band inputs -> externalInput.
   // 2. For each processor p from 0..numProcs_-1 compute its input as:
   //      (p==0 ? externalInput : 0) + sum_{src < numProcs_} processorBuffers_[src] * interNodeConnections_[src][p]
   // 3. Process to produce processorBuffers_[p].
   // 4. After each processor runs for sample s, write processorBuffers_[p] to treeOutputs[p][s].
+
+  // Update dynamic routing once per timer expiry interval
+  if (interconnectionUpdateTimer.HasPassedMs(kNodeInterconnectionUpdateIntervalMs))
+  {
+    updateNodeInterconnections();
+    interconnectionUpdateTimer.Restart();
+  }
+
+  // Update sidechain levels once per block
+  updateSidechainLevels(ch);
 
   for (size_t s = 0; s < blockSize; ++s)
   {

@@ -6,11 +6,13 @@
 void DelayNetwork::init (float sampleRate, size_t blockSize, int numBands, int numProcs)
 {
   sampleRate_ = sampleRate;
+  blockSize_  = blockSize;
   numBands_   = std::max(1, numBands);
   numBands_   = std::min(numBands_, kMaxNutrientBands);
   numProcs_   = std::max(1, numProcs);
   numProcs_   = std::min(numProcs_, kMaxNumDelayProcs);
-  blockSize_  = blockSize;
+  stretch_    = 1.0f;
+  perProcGains_.fill(Utils::SmoothValue(1.0f, 150.0f, kSamplePeriodMs * kBlockSize));
   diffusion_.init(sampleRate_, numBands_);
   delayNodes_.init(sampleRate_, blockSize_, numBands_, numProcs_);
 }
@@ -86,11 +88,11 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
     }
   }
   // Optional normalization by number of active processors
-  float norm = 1.0f / static_cast<float>(std::max(static_cast<size_t>(1), numProcs_));
-  for (size_t i = 0; i < blockSize; ++i)
-  {
-    out[i] *= norm;
-  }
+  // float norm = 1.0f / static_cast<float>(std::max(static_cast<size_t>(1), numProcs_));
+  // for (size_t i = 0; i < blockSize; ++i)
+  // {
+  //   out[i] *= norm;
+  // }
 }
 
 void DelayNetwork::setTreeDensity (float density)

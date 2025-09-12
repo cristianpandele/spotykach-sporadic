@@ -2,10 +2,12 @@
 
 #include "DelayNodes.h"
 #include "DiffusionControl.h"
+#include "app.h"
 #include "constants.h"
 #include <array>
 
 using namespace spotykach;
+using namespace spotykach_hwtest;
 // DelayNetwork wiring DiffusionControl -> DelayNodes -> sum of bands.
 class DelayNetwork
 {

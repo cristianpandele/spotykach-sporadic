@@ -27,6 +27,12 @@ class DelayNodes
 
     void setStretch (float stretch);
 
+    // Entanglement controls how strongly the inter-node connections evolve over time.
+    void setEntanglement (float e) {entanglement_ = daisysp::fclamp(e, 0.0f, 1.0f); }
+
+    // Update the inter-node routing matrix (2D: numProcs_ x numProcs_)
+    void updateNodeInterconnections ();
+
     // Density controls how many trees (processors) are considered active.
     // 0 -> 1 active tree, 1 -> numProcs_ active trees (linear mapping).
     void setTreeDensity(float density);
@@ -38,11 +44,14 @@ class DelayNodes
     void getTreePositions(std::vector<float>& positions) const;
 
   private:
-    float  sampleRate_ = 48000.0f;
-    size_t blockSize_  = 16;
-    size_t numBands_   = kMaxNutrientBands;
-    size_t numProcs_   = kMaxNumDelayProcs;
-    float  stretch_    = 1.0f;
+    float  sampleRate_   = 48000.0f;
+    size_t blockSize_    = 16;
+    size_t numBands_     = kMaxNutrientBands;
+    size_t numProcs_     = kMaxNumDelayProcs;
+    float  stretch_      = 1.0f;
+    float  entanglement_ = 0.35f;    // [0,1] strength of interconnection dynamics
+
+    static constexpr float kNodeInterconnectionUpdateIntervalMs = 2000.0f; // Update routing every 2 seconds
 
     // Tree density (0..1) maps linearly to number of active trees [1..numProcs_].
     float treeDensity_ = 1.0f;    // [0,1]
@@ -55,9 +64,14 @@ class DelayNodes
     void setInitialConnections ();
     void setDelayProcsParameters ();
     void updateTreePositions ();
+    void updateSidechainLevels (size_t ch);
 
     // Routing matrix: weight from src (row) to dst (col).
     float interNodeConnections_[kMaxNumDelayProcs][kMaxNumDelayProcs] = {};
     // Per-processor scratch buffer for current sample processing.
     float processorBuffers_[kMaxNumDelayProcs] = {};
+    // Per-processor sidechain level (computed from routing + env levels)
+    float sidechainLevels_[kMaxNumDelayProcs] = {};
+
+    daisy::StopwatchTimer interconnectionUpdateTimer;
 };

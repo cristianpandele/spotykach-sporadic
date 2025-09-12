@@ -3,40 +3,29 @@
 void DelayProc::init (float sr, size_t maxDelaySamples)
 {
   // Set defaults previously done via in-class initializers
-  sampleRate_       = sr;
-  feedback_         = 0.0f;
-  envAttackMs_      = 150.0f;
-  envReleaseMs_     = 25.0f;
-  baseDelayMs_      = 500.0f;
-  stretch_          = 1.0f;
-  currentDelay_     = baseDelayMs_ * stretch_ * sampleRate_ / 1000.0f;
-  targetDelay_      = baseDelayMs_ * stretch_ * sampleRate_ / 1000.0f;
+  sampleRate_     = sr;
+  feedback_       = 0.0f;
+  envAttackMs_    = 150.0f;
+  envReleaseMs_   = 25.0f;
+  baseDelayMs_    = 500.0f;
+  stretch_        = 1.0f;
+  currentDelay_   = baseDelayMs_ * stretch_ * sampleRate_ / 1000.0f;
+  targetDelay_    = baseDelayMs_ * stretch_ * sampleRate_ / 1000.0f;
+  currentAge_     = 0;
+  sidechainLevel_ = 0.0f;
 
   // Initialize sub-components
   delay.Init();
-  // Set target delay
-  setDelay(targetDelay_);
   // Initialize envelope followers
   inputEnvFollower.init(sampleRate_);
   outputEnvFollower.init(sampleRate_);
-}
-
-void DelayProc::setDelay (float dSamples)
-{
-  delay.SetDelay(dSamples);
-}
-
-void DelayProc::updateCurrentDelay()
-{
-  float maxStep = 2.5f;
-  float delta = targetDelay_ - currentDelay_;
-
-  if (std::abs(delta) > maxStep)
-  {
-    delta = std::copysign(maxStep, delta);
-  }
-  currentDelay_ += delta;
-  currentDelay_ = daisysp::fclamp(currentDelay_, 2.0f, kMaxDelaySamples - 3.0f);
+  // Initialize compressor
+  compressor.Init(sampleRate_);
+  compressor.SetAttack(0.1f);
+  compressor.SetRelease(0.05f);
+  compressor.SetThreshold(-6.0f);
+  compressor.SetRatio(4.0f);
+  compressor.AutoMakeup(false);
 }
 
 void DelayProc::setParameters (float stretch, float fb)
@@ -45,8 +34,31 @@ void DelayProc::setParameters (float stretch, float fb)
   {
     stretch_     = stretch;
     targetDelay_ = baseDelayMs_ * stretch_ * sampleRate_ / 1000.0f;
-    feedback_ = fb;
+    feedback_    = fb;
   }
+}
+
+void DelayProc::updateCurrentDelay ()
+{
+  float maxStep = 2.5f;
+  float delta   = targetDelay_ - currentDelay_;
+
+  if (std::abs(delta) > maxStep)
+  {
+    delta = std::copysign(maxStep, delta);
+  }
+  currentDelay_ += delta;
+  // Clamp to valid range for Hermite interpolation
+  currentDelay_ = daisysp::fclamp(currentDelay_, 2.0f, kMaxDelaySamples - 3.0f);
+}
+
+void DelayProc::setSidechainLevel (float sc)
+{
+  sidechainLevel_ = sc;
+  // For stability, clamp sidechain level and convert to a key signal.
+  float key = daisysp::fclamp(sidechainLevel_, 0.0f, 1.0f);
+  // Apply to compressor
+  compressor.Process(key);
 }
 
 float DelayProc::process (float in)
@@ -59,11 +71,20 @@ float DelayProc::process (float in)
   updateCurrentDelay();
 
   // Process delay
-  // float read = delay.Read(currentDelay_);
   float read = delay.ReadHermite(currentDelay_);
-  outputLevel = inputEnvFollower.process(read);
-  // Write back with feedback
-  delay.Write(read * feedback_ + in);
+  // Update output envelope follower
+  outputLevel = outputEnvFollower.process(read);
 
-  return read;
+  // Apply sidechain compression to the feedback path.
+  float y = compressor.Apply(read);
+
+  // Write back with feedback
+  delay.Write((y - read) * feedback_ + in);
+
+  // Age update based on growth rate (and input level)
+  if (inputLevel > kMetabolicThreshold)
+  {
+    currentAge_ = infrasonic::unitclamp(currentAge_ + kGrowthRate);
+  }
+  return y;
 }
