@@ -190,6 +190,25 @@ void DelayNodes::updateNodeInterconnections ()
   }
 }
 
+#ifdef DEBUG
+// Getter for current inter-node connection matrix (numProcs x numProcs)
+void DelayNodes::getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const
+{
+  matrix.resize(numProcs_);
+  for (auto &row : matrix)
+  {
+    row.resize(numProcs_);
+  }
+  for (size_t r = 0; r < numProcs_; ++r)
+  {
+    for (size_t c = 0; c < numProcs_; ++c)
+    {
+      matrix[r][c] = interNodeConnections_[r][c];
+    }
+  }
+}
+#endif
+
 void DelayNodes::updateSidechainLevels (size_t ch)
 {
   // For node p, compute sidechain as:

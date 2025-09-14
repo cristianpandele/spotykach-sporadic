@@ -26,6 +26,9 @@ class Sporadic : public Deck
     void processAudio(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) override;
     // Getter for band frequencies
     void getBandFrequencies (std::vector<float> &frequencies) const;
+#ifdef DEBUG
+    void getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const;
+#endif
 
   private:
     // Delay network for feedback and modulation

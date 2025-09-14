@@ -35,6 +35,11 @@ class DelayNodes
     // Update the inter-node routing matrix (2D: numProcs_ x numProcs_)
     void updateNodeInterconnections ();
 
+#ifdef DEBUG
+    // Getter for current inter-node connection matrix (numProcs x numProcs)
+    void getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const;
+#endif
+
     // Density controls how many trees (processors) are considered active.
     // 0 -> 1 active tree, 1 -> numProcs_ active trees (linear mapping).
     void setTreeDensity(float density);

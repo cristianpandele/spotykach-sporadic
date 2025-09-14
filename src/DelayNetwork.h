@@ -28,6 +28,11 @@ class DelayNetwork
     // Getter for current band cutoff frequencies
     void getBandFrequencies (std::vector<float> &frequencies) const;
 
+#ifdef DEBUG
+    // Getter for current inter-node connection matrix (numProcs x numProcs)
+    void getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const;
+#endif
+
     // Process a block: input mono arrays (size N) -> output mono (size N)
     // Per-processor gains applied during mixing of per-processor outputs.
     void processBlockMono (const float *in, const uint8_t ch, float *out, size_t blockSize);

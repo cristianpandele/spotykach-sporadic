@@ -47,6 +47,14 @@ void DelayNetwork::getBandFrequencies (std::vector<float> &frequencies) const
   diffusion_.getBandFrequencies(frequencies);
 }
 
+#ifdef DEBUG
+// Getter for current inter-node connection matrix (numProcs x numProcs)
+void DelayNetwork::getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const
+{
+  delayNodes_.getNodeInterconnectionMatrix(matrix);
+}
+#endif
+
 void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *out, size_t blockSize)
 {
   // Block size must match initialized block size (simplest design); assert in debug.

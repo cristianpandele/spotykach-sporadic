@@ -433,9 +433,51 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
 #if DEBUG
 void AppImpl::logDebugInfo ()
 {
-  // float val = hw.GetAnalogControlValue(Hardware::CTRL_PITCH_A);
-  // float val = hw.GetControlVoltageValue(Hardware::CV_V_OCT_A);
-  // Log::PrintLine(FLT_FMT(5), FLT_VAR(5, val));
+  // // float val = hw.GetAnalogControlValue(Hardware::CTRL_PITCH_A);
+  // // float val = hw.GetControlVoltageValue(Hardware::CV_V_OCT_A);
+  // // Log::PrintLine(FLT_FMT(5), FLT_VAR(5, val));
+  // // Log::PrintLine(FLT_FMT(5), FLT_VAR(5, positionControls[0].getSmoothVal()));
+  // // Log::PrintLine(FLT_FMT(5), FLT_VAR(5, positionControls[0].getTargetVal()));
+  Log::PrintLine("Spotykach Slider            : " FLT_FMT(5), FLT_VAR(5, spotyControl.getSmoothVal()));
+  Log::PrintLine("Position A                  : " FLT_FMT(5), FLT_VAR(5, positionControls[0].getSmoothVal()));
+  Log::PrintLine("Size A                      : " FLT_FMT(5), FLT_VAR(5, sizeControls[0].getSmoothVal()));
+  // // Log::PrintLine("Read Index A   : " FLT_FMT(5), FLT_VAR(5, ((Spotykach *) decks[0])->getReadIx()));
+  // // Log::PrintLine("Write Index A  : " FLT_FMT(5), FLT_VAR(5, ((Spotykach *) decks[0])->getWriteIx()));
+  // // // Log::PrintLine("Read Window Start : " FLT_FMT(5), FLT_VAR(5, decks[0]->getReadWindowStart()));
+  // // // Log::PrintLine("Read Window End   : " FLT_FMT(5), FLT_VAR(5, decks[0]->getReadWindowEnd()));
+  // // Log::PrintLine("Ring Start A   : " FLT_FMT(5), FLT_VAR(5, displayStates[0].rings[0].start));
+  // // Log::PrintLine("Ring End A     : " FLT_FMT(5), FLT_VAR(5, displayStates[0].rings[0].end));
+  // Log::PrintLine("Env A Attack        : " FLT_FMT(5), FLT_VAR(5, modulator[0].getAttackMs()));
+  // Log::PrintLine("Env A Release       : " FLT_FMT(5), FLT_VAR(5, modulator[0].getReleaseMs()));
+  // Log::PrintLine("Env A Attack Coeff  : " FLT_FMT(5), FLT_VAR(5, modulator[0].getAttackCoefficient()));
+  // Log::PrintLine("Env A Release Coeff : " FLT_FMT(5), FLT_VAR(5, modulator[0].getReleaseCoefficient()));
+  Log::PrintLine("Env A Value                 : " FLT_FMT(5), FLT_VAR(5, modulator[0].process()));
+
+  // std::vector<float> bandFreqs;
+  // sporadic.getBandFrequencies(bandFreqs);
+  // for (size_t i = 0; i < bandFreqs.size(); ++i)
+  // {
+  //   Log::PrintLine("Band %d Frequency: " FLT_FMT(5), i, FLT_VAR(5, bandFreqs[i]));
+  // }
+
+  // Print the nodeInterconnection matrix
+  std::vector<std::vector<float>> matrix;
+  sporadic.getNodeInterconnectionMatrix(matrix);
+  Log::PrintLine("Interconnection Matrix:");
+  for (size_t i = 0; i < matrix.size(); ++i)
+  {
+    for (size_t j = 0; j < matrix[i].size(); ++j)
+    {
+      Log::Print("  " FLT_FMT(5), FLT_VAR(5, matrix[i][j]));
+    }
+    Log::PrintLine("");
+    // Log::PrintLine("Node %d: %s", i, row.c_str());
+  }
+
+  if (spotyControl.isSmoothing())
+    Log::PrintLine("Spotykach Slider Smoothing  : true");
+  else
+    Log::PrintLine("Spotykach Slider Smoothing  : false");
   // uint16_t touch = hw.GetMpr121TouchStates();
   // Log::PrintLine("0x%x", touch);
   if (usbBuffIx > 0)

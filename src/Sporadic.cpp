@@ -109,6 +109,13 @@ void Sporadic::getBandFrequencies (std::vector<float> &frequencies) const
   delayNetwork_.getBandFrequencies(frequencies);
 }
 
+#ifdef DEBUG
+void Sporadic::getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const
+{
+  delayNetwork_.getNodeInterconnectionMatrix(matrix);
+}
+#endif
+
 void Sporadic::setDelayNetworkParameters(float centerFreq, float stretch)
 {
   delayNetwork_.setParameters({.numBands   = kMaxNutrientBands,
