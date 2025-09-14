@@ -44,6 +44,12 @@ class Sporadic : public Deck
     static constexpr uint8_t kNumLeds = spotykach::Hardware::kNumLedsPerRing;
     float envelopeRing_[kNumLeds]{};
 
+    // Deck and effect menu view
+    DisplayState foldView_{};
+
+    // Flag to indicate if the fold window has changed and gains need updating
+    bool foldWindowDirty_ = false;
+
     // Setters for mix, position and size (overloads point to Sporadic versions)
     void setPosition (float p, bool gritLatch = false);
     void setPosition (float p) override { setPosition(p, false); }

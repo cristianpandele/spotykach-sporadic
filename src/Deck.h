@@ -176,6 +176,9 @@ class Deck
     // Current deck mode
     DeckMode mode_ = MODE_1;
 
+    // Reset the display state
+    void resetDisplayRingLayers (DisplayState &state) { state.layerCount = 0; };
+
     // Update the display state with the current values
     void publishDisplay (const DisplayState &state);
 

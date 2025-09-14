@@ -275,10 +275,11 @@ void Deck::updateEffectDisplayStates (DisplayState &view)
     updateFluxPadLedState(view);
   }
 
-  // if (isFluxDisplayed())
-  // {
-  //   updateFluxRingState(view);
-  // }
+  if (isFluxDisplayed())
+  {
+    // updateFluxRingState(view);
+    view.layerCount = 0; // Clear any other layers if flux is displayed (TODO, remove this)
+  }
 
   // Grit pad LEDs
   if (isGritDisplayed() || getGritActive())

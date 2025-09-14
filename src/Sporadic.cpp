@@ -31,6 +31,8 @@ void Sporadic::setPosition (float p, bool gritLatch)
   else if (positionChanged && !getGritMenuOpen())
   {
     position_ = positionControl_;
+    // Set fold window dirty flag to update visualization
+    foldWindowDirty_ = true;
   }
 }
 
@@ -47,6 +49,8 @@ void Sporadic::setSize (float s, bool gritLatch)
   else if (sizeChanged && !getGritMenuOpen())
   {
     size_ = sizeControl_;
+    // Set fold window dirty flag to update visualization
+    foldWindowDirty_ = true;
   }
 }
 
@@ -63,6 +67,8 @@ void Sporadic::setShape (float s, bool gritLatch)
   else if (shapeChanged && !getGritMenuOpen())
   {
     shape_ = shapeControl_;
+    // Set fold window dirty flag to update visualization
+    foldWindowDirty_ = true;
   }
 }
 
@@ -80,6 +86,8 @@ void Sporadic::setPitch (float p, bool gritLatch)
   {
     // Set the tree density in the delay network
     delayNetwork_.setTreeDensity(pitchControl_);
+    // Set fold window dirty flag to update visualization
+    foldWindowDirty_ = true;
   }
 }
 
@@ -159,14 +167,25 @@ void Sporadic::updateDisplayState ()
     // Flux/Grit pad LEDs and ring display
     updateEffectDisplayStates(view);
 
-    // Overlay dark red LEDs indicating the Diffusion filter cutoff frequencies
-    updateDiffusionRingState(view);
+    if (isGritDisplayed())
+    {
+      // Overlay dark red LEDs indicating the Diffusion filter cutoff frequencies
+      updateDiffusionRingState(view);
+    }
   }
 
   if (!isEffectDisplayed())
   {
-    // Sporadic fold window visualization
-    updateFoldWindowState(view);
+    if (foldWindowDirty_)
+    {
+      resetDisplayRingLayers(foldView_);
+      // Sporadic fold window visualization
+      updateFoldWindowState(foldView_);
+      foldWindowDirty_ = false;
+    }
+    // Copy the fold view rings to the display view
+    std::copy(foldView_.rings.begin(), foldView_.rings.end(), view.rings.begin());
+    view.layerCount = foldView_.layerCount;
   }
 
   // Publish the state of the display
@@ -314,6 +333,7 @@ void Sporadic::updateFoldWindowState(DisplayState &view)
   {
     envelopeRing_[i] = ringSpan.led[i].brightness;
   }
+
   // Provide the fold window to DelayNetwork for internal gain staging
   delayNetwork_.setFoldWindow(envelopeRing_, N);
 
