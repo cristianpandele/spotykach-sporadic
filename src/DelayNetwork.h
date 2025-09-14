@@ -25,6 +25,7 @@ class DelayNetwork
     void init (float sampleRate, size_t blockSize, int numBands, int numProcs);
     void setParameters (const Parameters &p);
 
+    // Getter for current band cutoff frequencies
     void getBandFrequencies (std::vector<float> &frequencies) const;
 
     // Process a block: input mono arrays (size N) -> output mono (size N)
@@ -66,7 +67,7 @@ class DelayNetwork
     // Current length of the fold window
     size_t foldWindowLen_ = 0;
     // Current per-processor gains
-    std::array<float, kMaxNumDelayProcs> perProcGains_{};
+    std::array<Utils::SmoothValue, kMaxNumDelayProcs> perProcGains_;
 
     // Allocate storage for internal buffers and delay processors
     void allocateStorage ();

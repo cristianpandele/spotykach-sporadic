@@ -23,8 +23,10 @@ class DelayNodes
     // Only the first numProcs_ rows are written; the rest should be treated as zero.
     void processBlockMono (float **inBand, float **treeOutputs, size_t ch, size_t blockSize);
 
+    // Getter for number of bands for diffusion
     int getNumBands () const { return numBands_; }
 
+    // Set the stretch factor controlling delay times (overall scale).
     void setStretch (float stretch);
 
     // Entanglement controls how strongly the inter-node connections evolve over time.

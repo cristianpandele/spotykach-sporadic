@@ -83,7 +83,9 @@ namespace spotykach_hwtest
       class SmoothValue
       {
         public:
-          SmoothValue (float smoothTimeMs, float updatePeriodMs) : SmoothValue(0.0f, smoothTimeMs, updatePeriodMs) {}
+          SmoothValue () : SmoothValue(0.0f, 0.0f, 0.0f) {};
+
+          SmoothValue (float smoothTimeMs, float updatePeriodMs) : SmoothValue(0.0f, smoothTimeMs, updatePeriodMs) { }
 
           SmoothValue (float currentValue, float smoothTimeMs, float updatePeriodMs)
           {
@@ -151,9 +153,6 @@ namespace spotykach_hwtest
               smoothing_ = false;
             }
           }
-
-          ///////////
-          NOCOPY (SmoothValue);
       };
   };
 

@@ -88,14 +88,14 @@ class Deck
 
       // Up to a few ring spans to draw; 0..count-1 valid
       uint8_t  layerCount = 0;
-      RingSpan rings[kMaxRingLayers];
+      std::array<RingSpan, kMaxRingLayers> rings;
 
       // Flags indicating the colours for the two LED phases
-      LedRgbBrightness fluxLedColors[kMaxLedPhases];
-      LedRgbBrightness gritLedColors[kMaxLedPhases];
-      LedRgbBrightness reverseLedColors[kMaxLedPhases];
-      LedRgbBrightness playLedColors[kMaxLedPhases];
-      LedRgbBrightness altLedColors[kMaxLedPhases];
+      std::array<LedRgbBrightness, kMaxLedPhases> fluxLedColors;
+      std::array<LedRgbBrightness, kMaxLedPhases> gritLedColors;
+      std::array<LedRgbBrightness, kMaxLedPhases> reverseLedColors;
+      std::array<LedRgbBrightness, kMaxLedPhases> playLedColors;
+      std::array<LedRgbBrightness, kMaxLedPhases> altLedColors;
     };
 
     Deck (size_t sampleRate, size_t blockSize) : sampleRate_(sampleRate), blockSize_(blockSize) { }

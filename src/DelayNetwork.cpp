@@ -41,6 +41,7 @@ void DelayNetwork::setParameters (const Parameters &p)
   stretch_    = newStretch;
 }
 
+// Getter for current band cutoff frequencies
 void DelayNetwork::getBandFrequencies (std::vector<float> &frequencies) const
 {
   diffusion_.getBandFrequencies(frequencies);
@@ -81,7 +82,7 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
   for (size_t p = 0; p < numProcs_; ++p)
   {
     const float *procBuf = treeOutputs[p];
-    const float  gain    = perProcGains_[p];
+    const float  gain    = perProcGains_[p].getSmoothVal();
     for (size_t i = 0; i < blockSize; ++i)
     {
       out[i] += procBuf[i] * gain;
