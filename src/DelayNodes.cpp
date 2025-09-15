@@ -90,7 +90,17 @@ void DelayNodes::setTreeDensity(float density)
 
   numActiveTrees_ = newActiveTrees;
 
+  // Update tree positions (this also updates delay times)
   updateTreePositions((treeDensity_ < 0.5f));    // Uniform if density < 0.5
+  // Update the entanglement factor based on density
+  if (treeDensity_ > 0.5f)
+  {
+    entanglement_ = infrasonic::map(treeDensity_, 0.5f, 1.0f, 0.0f, 1.0f);
+  }
+  else
+  {
+    entanglement_ = 0.0f;
+  }
 }
 
 void DelayNodes::getTreePositions(std::vector<float>& positions) const
@@ -116,7 +126,6 @@ void DelayNodes::updateTreePositions(bool uniform)
 
   if (uniform)
   {
-
     for (size_t i = 0; i < numActiveTrees_ - 1; ++i)
     {
 

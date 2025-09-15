@@ -29,9 +29,6 @@ class DelayNodes
     // Set the stretch factor controlling delay times (overall scale).
     void setStretch (float stretch);
 
-    // Entanglement controls how strongly the inter-node connections evolve over time.
-    void setEntanglement (float e) {entanglement_ = daisysp::fclamp(e, 0.0f, 1.0f); }
-
     // Update the inter-node routing matrix (2D: numProcs_ x numProcs_)
     void updateNodeInterconnections ();
 
@@ -56,7 +53,7 @@ class DelayNodes
     size_t numBands_     = kMaxNutrientBands;
     size_t numProcs_     = kMaxNumDelayProcs;
     float  stretch_      = 1.0f;
-    float  entanglement_ = 0.35f;    // [0,1] strength of interconnection dynamics
+    float  entanglement_ = 0.0f;    // [0,1] strength of interconnection dynamics
 
     static constexpr float kNodeInterconnectionUpdateIntervalMs = 2000.0f; // Update routing every 2 seconds
 
