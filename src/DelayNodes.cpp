@@ -31,7 +31,6 @@ void DelayNodes::allocateResources ()
     }
   }
   // Set default parameters
-  setDelayProcsParameters();
   setInitialConnections();
   // Initialize tree positions to full density by default
   numActiveTrees_ = std::max(static_cast<size_t>(1), numProcs_);
@@ -40,12 +39,14 @@ void DelayNodes::allocateResources ()
 
 void DelayNodes::setDelayProcsParameters ()
 {
-  float perProcStretch = stretch_ / static_cast<float>(std::max(static_cast<size_t>(1), numProcs_));
-  for (uint8_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  for (size_t p = 0; p < numProcs_; ++p)
   {
-    for (size_t p = 0; p < numProcs_; ++p)
+    float prevTreePos = (p == 0) ? 0.0f : treePositions_[p - 1];
+    // Space out stretch according to tree position in [0,1]
+    float perProcStretch = stretch_ * (treePositions_[p] - prevTreePos);
+    for (uint8_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
-      delayProcs_[ch][p].setParameters(perProcStretch, 0.0f);
+      delayProcs_[ch][p].setParameters(perProcStretch, 1.0f);
     }
   }
 }
@@ -89,7 +90,7 @@ void DelayNodes::setTreeDensity(float density)
 
   numActiveTrees_ = newActiveTrees;
 
-  updateTreePositions((treeDensity_ < 0.5f));    // uniform if density < 0.5
+  updateTreePositions((treeDensity_ < 0.5f));    // Uniform if density < 0.5
 }
 
 void DelayNodes::getTreePositions(std::vector<float>& positions) const
@@ -165,6 +166,8 @@ void DelayNodes::updateTreePositions(bool uniform)
 
   // Sort to ensure increasing order
   std::sort(treePositions_.begin(), treePositions_.begin() + numActiveTrees_ - 1);
+
+  setDelayProcsParameters();    // Update delay times according to new tree positions
 }
 
 void DelayNodes::updateNodeInterconnections ()
