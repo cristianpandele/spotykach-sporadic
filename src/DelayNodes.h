@@ -48,12 +48,13 @@ class DelayNodes
     void getTreePositions(std::vector<float>& positions) const;
 
   private:
-    float  sampleRate_   = 48000.0f;
-    size_t blockSize_    = 16;
-    size_t numBands_     = kMaxNutrientBands;
-    size_t numProcs_     = kMaxNumDelayProcs;
-    float  stretch_      = 1.0f;
-    float  entanglement_ = 0.0f;    // [0,1] strength of interconnection dynamics
+    float  sampleRate_    = 48000.0f;
+    size_t blockSize_     = 16;
+    size_t numBands_      = kMaxNutrientBands;
+    size_t numProcs_      = kMaxNumDelayProcs;
+    float  stretch_       = 1.0f;
+    float  entanglement_  = 0.0f;    // [0,1] strength of interconnection dynamics
+    bool   ignoreMycelia_ = false;  // If true, ignore inter-node connections
 
     static constexpr float kNodeInterconnectionUpdateIntervalMs = 2000.0f; // Update routing every 2 seconds
 

@@ -101,6 +101,16 @@ void DelayNodes::setTreeDensity(float density)
   {
     entanglement_ = 0.0f;
   }
+
+  // If density < 0.5, ignore inter-node connections (linear chain only)
+  if (treeDensity_ < 0.5f)
+  {
+    ignoreMycelia_ = true;
+  }
+  else
+  {
+    ignoreMycelia_ = false;
+  }
 }
 
 void DelayNodes::getTreePositions(std::vector<float>& positions) const
@@ -354,13 +364,24 @@ void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t c
     for (size_t p = 0; p < numProcs_; ++p)
     {
       float inVal = (p == 0 ? externalInput : 0.0f);
-      // Sum contributions from previous processors per routing matrix
-      for (size_t src = 0; src < numProcs_; ++src)
+      if (ignoreMycelia_)
       {
-        float w = interNodeConnections_[src][p];
-        if (w != 0.0f)
+        // Sum contribution only from previous processor in chain
+        if (p > 0)
         {
-          inVal += processorBuffers_[src] * w;
+          inVal += processorBuffers_[p - 1];
+        }
+      }
+      else
+      {
+        // Sum contributions all other processors per routing matrix
+        for (size_t src = 0; src < numProcs_; ++src)
+        {
+          float w = interNodeConnections_[src][p];
+          if (w != 0.0f)
+          {
+            inVal += processorBuffers_[src] * w;
+          }
         }
       }
       processorBuffers_[p] = delayProcs_[ch][p].process(inVal);
