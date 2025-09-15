@@ -250,7 +250,10 @@ void DelayNodes::updateNodeInterconnections ()
     {
       sum += interNodeConnections_[src][dst];
     }
-    if (sum > 1.0f)
+
+    float age = delayProcs_[0][dst].getAge();
+    if ((sum > 1.0f) ||     // Normalize only if sum > 1.0f (to prevent excessive feedback)
+        (age > 0.5f))       // or if the pair is old enough and nodes start decaying
     {
       float inv = 1.0f / (sum + 0.05f); // +0.05f to avoid being at the edge of feedback instability
       for (size_t src = 0; src < kMaxNumDelayProcs; ++src)
