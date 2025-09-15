@@ -46,7 +46,7 @@ void DelayNodes::setDelayProcsParameters ()
     float perProcStretch = stretch_ * (treePositions_[p] - prevTreePos);
     for (uint8_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
-      delayProcs_[ch][p].setParameters(perProcStretch, 1.0f);
+      delayProcs_[ch][p].setParameters(perProcStretch, feedback_);
     }
   }
 }
@@ -90,8 +90,19 @@ void DelayNodes::setTreeDensity(float density)
 
   numActiveTrees_ = newActiveTrees;
 
+  // Update feedback level
+  if (treeDensity_ < 0.5f)
+  {
+    feedback_ = 0.0f;
+  }
+  else
+  {
+    feedback_ = infrasonic::map(treeDensity_, 0.5f, 1.0f, 0.6f, 1.0f);
+  }
+
   // Update tree positions (this also updates delay times)
   updateTreePositions((treeDensity_ < 0.5f));    // Uniform if density < 0.5
+
   // Update the entanglement factor based on density
   if (treeDensity_ > 0.5f)
   {

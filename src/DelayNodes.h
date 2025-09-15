@@ -54,7 +54,8 @@ class DelayNodes
     size_t numProcs_      = kMaxNumDelayProcs;
     float  stretch_       = 1.0f;
     float  entanglement_  = 0.0f;    // [0,1] strength of interconnection dynamics
-    bool   ignoreMycelia_ = false;  // If true, ignore inter-node connections
+    float  feedback_      = 0.0f;    // Feedback level for all delay processors
+    bool   ignoreMycelia_ = false;   // If true, ignore inter-node connections
 
     static constexpr float kNodeInterconnectionUpdateIntervalMs = 2000.0f; // Update routing every 2 seconds
 
