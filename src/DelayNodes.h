@@ -70,7 +70,7 @@ class DelayNodes
     void allocateResources ();
     void setInitialConnections ();
     void setDelayProcsParameters ();
-    void updateTreePositions ();
+    void updateTreePositions (bool uniform = true);
     void updateSidechainLevels (size_t ch);
 
     // Routing matrix: weight from src (row) to dst (col).

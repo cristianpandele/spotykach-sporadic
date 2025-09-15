@@ -460,6 +460,13 @@ void AppImpl::logDebugInfo ()
   //   Log::PrintLine("Band %d Frequency: " FLT_FMT(5), i, FLT_VAR(5, bandFreqs[i]));
   // }
 
+  std::vector<float> treePositions;
+  sporadic.getTreePositions(treePositions);
+  for (size_t i = 0; i < treePositions.size(); ++i)
+  {
+    Log::PrintLine("Tree %d Position: " FLT_FMT(5), i, FLT_VAR(5, treePositions[i]));
+  }
+
   // Print the nodeInterconnection matrix
   std::vector<std::vector<float>> matrix;
   sporadic.getNodeInterconnectionMatrix(matrix);

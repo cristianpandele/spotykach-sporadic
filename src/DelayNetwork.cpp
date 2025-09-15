@@ -106,8 +106,7 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
 
 void DelayNetwork::setTreeDensity (float density)
 {
-  treeDensity_ = std::max(0.0f, std::min(1.0f, density));
-  delayNodes_.setTreeDensity(treeDensity_);
+  delayNodes_.setTreeDensity(density);
   // Cache active tree count for external queries
   numActiveTrees_ = delayNodes_.getNumActiveTrees();
   updatePerProcGains();    // Tree topology changed -> resample gains

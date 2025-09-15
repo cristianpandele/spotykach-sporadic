@@ -114,6 +114,11 @@ void Sporadic::getNodeInterconnectionMatrix (std::vector<std::vector<float>> &ma
 {
   delayNetwork_.getNodeInterconnectionMatrix(matrix);
 }
+
+void Sporadic::getTreePositions (std::vector<float> &positions) const
+{
+  delayNetwork_.getTreePositions(positions);
+}
 #endif
 
 void Sporadic::setDelayNetworkParameters(float centerFreq, float stretch)

@@ -67,26 +67,29 @@ void DelayNodes::setInitialConnections ()
 void DelayNodes::setTreeDensity(float density)
 {
   // Clamp to [0,1]
-  float d = infrasonic::unitclamp(density);
-  if (d == treeDensity_ && numActiveTrees_)
-  {
-    return;
-  }
-  treeDensity_ = d;
+  float treeDensity_ = infrasonic::unitclamp(density);
 
   float newActiveTrees;
   // Map to [numProcs_, 1, numProcs_] following a U-shaped curve
-  if (d < 0.5f)
+  if (treeDensity_ < 0.5f)
   {
-    newActiveTrees = infrasonic::map(d, 0.0f, 0.5f, static_cast<float>(numProcs_), 0.0f);
+    newActiveTrees = infrasonic::map(treeDensity_, 0.0f, 0.5f, static_cast<float>(numProcs_ + 1), 0.0f);
   }
   else
   {
-    newActiveTrees = infrasonic::map(d, 0.5f, 1.0f, 0.0f, static_cast<float>(numProcs_));
+    newActiveTrees = infrasonic::map(treeDensity_, 0.5f, 1.0f, 0.0f, static_cast<float>(numProcs_ + 1));
   }
   newActiveTrees  = std::round<size_t>(newActiveTrees);
-  numActiveTrees_ = std::max(static_cast<size_t>(1), static_cast<size_t>(newActiveTrees));
-  updateTreePositions();
+  newActiveTrees  = std::max(static_cast<size_t>(1), static_cast<size_t>(newActiveTrees));
+
+  if (newActiveTrees == numActiveTrees_)
+  {
+    return;
+  }
+
+  numActiveTrees_ = newActiveTrees;
+
+  updateTreePositions((treeDensity_ < 0.5f));    // uniform if density < 0.5
 }
 
 void DelayNodes::getTreePositions(std::vector<float>& positions) const
@@ -99,7 +102,7 @@ void DelayNodes::getTreePositions(std::vector<float>& positions) const
   }
 }
 
-void DelayNodes::updateTreePositions()
+void DelayNodes::updateTreePositions(bool uniform)
 {
   // Ensure last tree is at 1.0
   treePositions_[numActiveTrees_ - 1] = 1.0f;    // single tree at end of chain
@@ -110,12 +113,58 @@ void DelayNodes::updateTreePositions()
     treePositions_[i] = 0.0f;
   }
 
-  // Uniform distribution of any remaining trees in [0,1]
+  if (uniform)
+  {
+
+    for (size_t i = 0; i < numActiveTrees_ - 1; ++i)
+    {
+
+    }
+  }
+
   const float step = 1.0f / static_cast<float>(numActiveTrees_);
   for (size_t i = 0; i < numActiveTrees_ - 1; ++i)
   {
+    float variationFactor = 1.0f;
+    if (!uniform)
+    {
+      // Random distribution of any remaining trees in [0,1]
+      // 75% chance to have a variation of ±2.5% of the base delay time
+      // 15% chance to have a variation of ±5% of the base delay time
+      // 7.5% chance to have a variation of ±7.5% of the base delay time
+      // 2.5% chance to have a variation of ±25% of the base delay time
+      // Generate a random number between 0 and 1
+      float randomValue = daisy::Random::GetFloat(0.0f, 1.0f);
+      if (randomValue < 0.75f)
+      {
+        // 75% chance for ±2.5%
+        variationFactor = 0.975f + daisy::Random::GetFloat(0.0f, 0.05f);
+      }
+      else if (randomValue < 0.90f)
+      {
+        // 15% chance for ±5%
+        variationFactor = 0.95f + daisy::Random::GetFloat(0.0f, 0.1f);
+      }
+      else if (randomValue < 0.975f)
+      {
+        // 7.5% chance for ±7.5%
+        variationFactor = 0.925f + daisy::Random::GetFloat(0.0f, 0.15f);
+      }
+      else
+      {
+        // 2.5% chance for ±25%
+        variationFactor = 0.75f + daisy::Random::GetFloat(0.0f, 0.5f);
+      }
+    }
+
+    // Uniform distribution of any remaining trees in [0,1]
     treePositions_[i] = step * (static_cast<float>(i) + 0.5f);
+    // Apply variation factor
+    treePositions_[i] *= variationFactor;
   }
+
+  // Sort to ensure increasing order
+  std::sort(treePositions_.begin(), treePositions_.begin() + numActiveTrees_ - 1);
 }
 
 void DelayNodes::updateNodeInterconnections ()

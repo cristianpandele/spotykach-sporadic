@@ -28,6 +28,7 @@ class Sporadic : public Deck
     void getBandFrequencies (std::vector<float> &frequencies) const;
 #ifdef DEBUG
     void getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const;
+    void getTreePositions (std::vector<float> &positions) const;
 #endif
 
   private:
