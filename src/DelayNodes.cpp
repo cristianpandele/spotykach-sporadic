@@ -67,15 +67,25 @@ void DelayNodes::setInitialConnections ()
 void DelayNodes::setTreeDensity(float density)
 {
   // Clamp to [0,1]
-  float d = std::max(0.0f, std::min(1.0f, density));
+  float d = infrasonic::unitclamp(density);
   if (d == treeDensity_ && numActiveTrees_)
   {
     return;
   }
   treeDensity_ = d;
-  // Map to [1, numProcs_]
-  size_t newActiveTrees = std::round(daisysp::fmap(d, 0.0f, numProcs_));
-  numActiveTrees_ = std::max(static_cast<size_t>(1), newActiveTrees);
+
+  float newActiveTrees;
+  // Map to [numProcs_, 1, numProcs_] following a U-shaped curve
+  if (d < 0.5f)
+  {
+    newActiveTrees = infrasonic::map(d, 0.0f, 0.5f, static_cast<float>(numProcs_), 0.0f);
+  }
+  else
+  {
+    newActiveTrees = infrasonic::map(d, 0.5f, 1.0f, 0.0f, static_cast<float>(numProcs_));
+  }
+  newActiveTrees  = std::round<size_t>(newActiveTrees);
+  numActiveTrees_ = std::max(static_cast<size_t>(1), static_cast<size_t>(newActiveTrees));
   updateTreePositions();
 }
 
