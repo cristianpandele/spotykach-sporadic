@@ -14,6 +14,9 @@ class EdgeTree
 
     void init (float sampleRate);
 
+    // Set tree size
+    void setTreeSize (float size);
+
     // Process a single input sample: apply envelope following and modulate volume
     float process (float input);
 
@@ -21,11 +24,6 @@ class EdgeTree
 
     // Getter for current envelope value
     float getEnvelope() const { return envelope_; }
-
-    // Set attack/release times
-    void setAttackMs (float ms) { envFollower_.setAttackMs(ms); }
-
-    void setReleaseMs (float ms) { envFollower_.setReleaseMs(ms); }
 
   private:
     EnvelopeFollower envFollower_;

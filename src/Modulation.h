@@ -56,11 +56,6 @@ class EnvelopeFollower
     float output (bool attenuate = false) const;
 
   private:
-    static constexpr float kMinAttackTime  = 20.0f;
-    static constexpr float kMaxAttackTime  = 2400.0f;
-    static constexpr float kMinReleaseTime = 10.0f;
-    static constexpr float kMaxReleaseTime = 800.0f;
-
     float sampleRate_;
     float attackMs_;
     float releaseMs_;

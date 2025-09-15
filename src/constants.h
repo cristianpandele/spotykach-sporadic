@@ -27,6 +27,12 @@ namespace spotykach
   constexpr float kMidLedBrightness = 0.5f;
   constexpr float kMaxLedBrightness = 0.8f;
 
+  // Constants for the envelope follower
+  static constexpr float kMinAttackTime  = 20.0f;
+  static constexpr float kMaxAttackTime  = 2400.0f;
+  static constexpr float kMinReleaseTime = 10.0f;
+  static constexpr float kMaxReleaseTime = 800.0f;
+
   // Threshold for parameter change detection
   static constexpr float kParamChThreshold = 0.015f;
 };    // namespace spotykach
