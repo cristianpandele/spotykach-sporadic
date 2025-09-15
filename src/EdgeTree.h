@@ -19,6 +19,9 @@ class EdgeTree
 
     void processBlockMono (float *input, float *output, size_t blockSize);
 
+    // Getter for current envelope value
+    float getEnvelope() const { return envelope_; }
+
     // Set attack/release times
     void setAttackMs (float ms) { envFollower_.setAttackMs(ms); }
 
@@ -26,6 +29,8 @@ class EdgeTree
 
   private:
     EnvelopeFollower envFollower_;
+
+    float envelope_ = 0.0f;    // Current envelope value
 
     ///////////
     NOCOPY (EdgeTree);

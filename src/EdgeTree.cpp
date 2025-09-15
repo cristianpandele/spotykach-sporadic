@@ -9,8 +9,8 @@ void EdgeTree::init (float sampleRate)
 // Process a single input sample: apply envelope following and modulate volume
 float EdgeTree::process (float input)
 {
-  float envelope = envFollower_.process(input);
-  return input * envelope;    // Modulate volume by envelope
+  envelope_ = envFollower_.process(input);
+  return input * envelope_;    // Modulate volume by envelope
 }
 
 void EdgeTree::processBlockMono (float *input, float *output, size_t blockSize)

@@ -193,8 +193,17 @@ void Sporadic::updateDisplayState ()
       resetDisplayRingLayers(foldView_);
       // Sporadic fold window visualization
       updateFoldWindowState(foldView_);
+
+      // Provide the fold window to DelayNetwork for internal gain staging
+      delayNetwork_.setFoldWindow(envelopeRing_, spotykach::Hardware::kNumLedsPerRing);
+
+      // Overlay dark red LEDs indicating the tree positions
+      updateTreeRingState(foldView_);
+
+      // Update the envelope ring if the fold window changed
       foldWindowDirty_ = false;
     }
+
     // Copy the fold view rings to the display view
     std::copy(foldView_.rings.begin(), foldView_.rings.end(), view.rings.begin());
     view.layerCount = foldView_.layerCount;
@@ -304,10 +313,14 @@ void Sporadic::updateTreeRingState (DisplayState &view)
     }
 
     // Linear mapping: 0..1 -> 0.07..0.89*N
-    float t          = treePos[i];
-    t                = daisysp::fmap(t, 0.07f * static_cast<float>(N), 0.89f * static_cast<float>(N));
-    uint8_t ledIdx   = std::round(t);
-    ledColor[ledIdx] = {0xff0000, kLowLedBrightness};    // Dark Red
+    float t         = treePos[i];
+    t               = daisysp::fmap(t, 0.07f * static_cast<float>(N), 0.89f * static_cast<float>(N));
+    uint8_t ledIdx  = std::round(t);
+    uint8_t channel = channelConfig_ == isChannelActive(1) ? 1 : 0;
+    // Use the envelope level for brightness
+    float brightness = edgeTree_[channel].getEnvelope();
+    brightness       = daisysp::fmap(brightness, kLowLedBrightness, kMidLedBrightness, Mapping::LOG);
+    ledColor[ledIdx] = {0xff0000, brightness};    // Dark Red
     // Update the ring span information
     ringSpan.start = ledIdx;
     ringSpan.end   = ledIdx + 1;
@@ -345,9 +358,4 @@ void Sporadic::updateFoldWindowState(DisplayState &view)
   {
     envelopeRing_[i] = ringSpan.led[i].brightness;
   }
-
-  // Provide the fold window to DelayNetwork for internal gain staging
-  delayNetwork_.setFoldWindow(envelopeRing_, N);
-
-  updateTreeRingState(view);
 }
