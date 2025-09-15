@@ -86,6 +86,21 @@ void Sporadic::setPitch (float p, bool gritLatch)
   {
     // Set the tree density in the delay network
     delayNetwork_.setTreeDensity(pitchControl_);
+
+    // Set the tree size of the edge trees
+    float edgeTreeSize = 0.0f;
+    if (pitchControl_ < 0.5f)
+    {
+      edgeTreeSize = infrasonic::map(pitchControl_, 0.0f, 0.5f, 1.0f, 0.4f);
+    }
+    else
+    {
+      edgeTreeSize = infrasonic::map(pitchControl_, 0.5f, 1.0f, 0.4f, 1.0f);
+    }
+    for (auto &et : edgeTree_)
+    {
+      et.setTreeSize(edgeTreeSize);
+    }
     // Set fold window dirty flag to update visualization
     foldWindowDirty_ = true;
   }
