@@ -375,12 +375,41 @@ void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::Outpu
   // Process each deck into its own temporary buffer (deckOutputs_)
   for (size_t slot = 0; slot < kNumberDeckSlots; ++slot)
   {
+    const float *slotIn[kNumberChannelsStereo];
     float *slotOut[kNumberChannelsStereo];
+    if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
+    {
+      // In generative mode, deck 0 gets the input, deck 1 gets the output of Deck 0
+      if (slot == 0)
+      {
+        // Deck 0 gets input
+        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+        {
+          slotIn[ch] = in[ch];
+        }
+      }
+      else
+      {
+        // Deck 1 gets output of Deck 0
+        for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+        {
+          slotIn[ch] = deckOutputs_[0][ch];
+        }
+      }
+    }
+    else
+    {
+      // In dual mono/stereo modes, both decks get the same input
+      for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+      {
+        slotIn[ch] = in[ch];
+      }
+    }
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       slotOut[ch] = deckOutputs_[slot][ch];
     }
-    decks[slot]->processAudio(in, slotOut, blockSize);
+    decks[slot]->processAudio(slotIn, slotOut, blockSize);
   }
 
   // Crossfade / blend between deck 0 and 1 outputs into final out (linear)
