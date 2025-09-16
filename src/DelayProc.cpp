@@ -21,10 +21,10 @@ void DelayProc::init (float sr, size_t maxDelaySamples)
   outputEnvFollower.init(sampleRate_);
   // Initialize compressor
   compressor.Init(sampleRate_);
-  compressor.SetAttack(0.1f);
-  compressor.SetRelease(0.05f);
-  compressor.SetThreshold(-6.0f);
-  compressor.SetRatio(4.0f);
+  compressor.SetAttack(0.02f);
+  compressor.SetRelease(0.25f);
+  compressor.SetThreshold(-24.0f);
+  compressor.SetRatio(6.0f);
   compressor.AutoMakeup(false);
 }
 
