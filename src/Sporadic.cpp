@@ -311,8 +311,16 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
         std::copy(in[ch], in[ch] + blockSize, inputSculptBuf_[ch]);
       }
 
-      // First, modulate input volume using EdgeTree per-sample
-      edgeTree_[ch].processBlockMono(inputSculptBuf_[ch], modulatedInputBuf_[ch], blockSize);
+      if (pitchControl_ < 0.5f)
+      {
+        // Skip the edge tree processing if the pitch is in the lower half
+        std::copy(inputSculptBuf_[ch], inputSculptBuf_[ch] + blockSize, modulatedInputBuf_[ch]);
+      }
+      else
+      {
+        // First, modulate input volume using EdgeTree per-sample
+        edgeTree_[ch].processBlockMono(inputSculptBuf_[ch], modulatedInputBuf_[ch], blockSize);
+      }
 
       delayNetwork_.processBlockMono(modulatedInputBuf_[ch], ch, delayNetworkBuf_[ch], blockSize);
 
