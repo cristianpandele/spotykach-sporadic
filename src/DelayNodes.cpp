@@ -276,7 +276,7 @@ void DelayNodes::updateNodeInterconnections ()
     if ((sum > 1.0f) ||     // Normalize only if sum > 1.0f (to prevent excessive feedback)
         (age > 0.5f))       // or if the pair is old enough and nodes start decaying
     {
-      float inv = 1.0f / (sum + 0.05f); // +0.05f to avoid being at the edge of feedback instability
+      float inv = 1.0f / (sum + 0.075f); // +0.075f to avoid being at the edge of feedback instability
       for (size_t src = 0; src < kMaxNumDelayProcs; ++src)
       {
         interNodeConnections_[src][dst] *= inv;
