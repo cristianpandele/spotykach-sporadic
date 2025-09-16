@@ -270,9 +270,7 @@ void Spotykach::setAltPlay (bool r)
 
 void Spotykach::setSpotyPlay (bool s)
 {
-  bool reset = s;
-
-  if (reset)
+  if (s)
   {
     // Switch to OFF state
     // Log::PrintLine("Switching to OFF state");

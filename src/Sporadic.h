@@ -63,6 +63,7 @@ class Sporadic : public Deck
     void setShape (float s) override { setShape(s, false); }
     void setPitch (float p, bool gritLatch = false);
     void setPitch (float p) override { setPitch(p, false); }
+    void setSpotyPlay (bool s);
     void setSpoty (float s) override;
 
     // Prepare and set delay network parameters

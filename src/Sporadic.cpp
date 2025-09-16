@@ -106,6 +106,14 @@ void Sporadic::setPitch (float p, bool gritLatch)
   }
 }
 
+void Sporadic::setSpotyPlay (bool s)
+{
+  if (s)
+  {
+    init();
+  }
+}
+
 void Sporadic::setSpoty (float s)
 {
   s = infrasonic::unitclamp(s);
@@ -159,6 +167,15 @@ void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
 {
   // Update the digital deck parameters based on the control frame
+  setSpotyPlay(c.spotyPlay);
+  if (c.spotyPlay)
+  {
+    setReverse(false);
+    setPlay(false);
+    return;
+  }
+
+  // Update the digital deck parameters based on the control frame
   setReverse(c.reverse);
   setPlay(c.play);
   setFlux(c.flux);
@@ -182,9 +199,8 @@ void Sporadic::getDigitalControls (DigitalControlFrame &c)
 void Sporadic::updateDisplayState ()
 {
   DisplayState view{};
-  // view.reverseActive = reverse_;
-  // view.playActive    = play_;
-  // view.altActive     = false; // not used
+  view.reverseActive = reverse_;
+  view.playActive    = play_;
 
   // Check if there is an update to the held state of the effect pads
   detectEffectPadsHeld();

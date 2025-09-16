@@ -17,14 +17,6 @@ static constexpr size_t kEchoAudioDataSamples = 2.0f * kSampleRate;
 class Spotykach : public Deck
 {
   public:
-    enum State
-    {
-      OFF,
-      ECHO,
-      RECORDING,
-      LOOP_PLAYBACK
-    };
-
     Spotykach (size_t sampleRate, size_t blockSize) : Deck(sampleRate, blockSize) { }
     ~Spotykach () = default;
 
@@ -66,6 +58,14 @@ class Spotykach : public Deck
 #endif // DEBUG
 
   private:
+    enum State
+    {
+      OFF,
+      ECHO,
+      RECORDING,
+      LOOP_PLAYBACK
+    };
+
     // Span structure for representing a range
     template<typename T>
     struct Span
@@ -92,7 +92,6 @@ class Spotykach : public Deck
     float feedback_ = 0.0f;
     // Record flag
     bool record_ = false;
-
     // Safe to play flag for ECHO mode
     bool safeToPlay = false;
 
