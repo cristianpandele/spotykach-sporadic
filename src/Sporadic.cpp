@@ -26,7 +26,7 @@ void Sporadic::setPosition (float p, bool gritLatch)
 
   if (positionChangedGrit)
   {
-    setDelayNetworkParameters(inputSculptCenterFreq_, spoty_);
+    setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
   }
   else if (positionChanged && !getGritMenuOpen())
   {
@@ -106,11 +106,33 @@ void Sporadic::setPitch (float p, bool gritLatch)
   }
 }
 
+void Sporadic::setPlay (bool p)
+{
+  bool playChanged = (p != play_);
+  play_ = p;
+
+  if (playChanged)
+  {
+    setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
+  }
+}
+
 void Sporadic::setSpotyPlay (bool s)
 {
   if (s)
   {
     init();
+  }
+}
+
+void Sporadic::setReverse (bool r)
+{
+  bool reverseChanged = (r != reverse_);
+  reverse_            = r;
+
+  if (reverseChanged)
+  {
+    setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
   }
 }
 
@@ -123,7 +145,7 @@ void Sporadic::setSpoty (float s)
   if (spotyChanged)
   {
     spoty_ = spotyControl_;
-    setDelayNetworkParameters(inputSculptCenterFreq_, spoty_);
+    setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
   }
 }
 
@@ -144,9 +166,11 @@ void Sporadic::getTreePositions (std::vector<float> &positions) const
 }
 #endif
 
-void Sporadic::setDelayNetworkParameters(float centerFreq, float stretch)
+void Sporadic::setDelayNetworkParameters(bool play, bool reverse, float centerFreq, float stretch)
 {
-  delayNetwork_.setParameters({.numBands   = kMaxNutrientBands,
+  delayNetwork_.setParameters({.play       = play,
+                               .reverse    = reverse,
+                               .numBands   = kMaxNutrientBands,
                                .numProcs   = kMaxNumDelayProcs,
                                .centerFreq = centerFreq,
                                .stretch    = stretch});
@@ -186,13 +210,13 @@ void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
 
 void Sporadic::getDigitalControls (DigitalControlFrame &c)
 {
-  // c.reverse   = reverse_;
-  // c.play      = play_;
-  c.altPlay   = false;    // Not used in this deck
-  c.spotyPlay = false;    // Not used in this deck
-  // c.flux      = flux_;
+  c.reverse   = reverse_;
+  c.play      = play_;
+  c.altPlay   = false;    // Spotykach+Play is just a toggle
+  c.spotyPlay = false;
+  c.flux      = flux_;
   c.altFlux   = false;    // Alt+Flux is just a toggle
-  // c.grit      = grit_;
+  c.grit      = grit_;
   c.altGrit   = false;    // Alt+Grit is just a toggle
 }
 
@@ -238,6 +262,25 @@ void Sporadic::updateDisplayState ()
     // Copy the fold view rings to the display view
     std::copy(foldView_.rings.begin(), foldView_.rings.end(), view.rings.begin());
     view.layerCount = foldView_.layerCount;
+  }
+
+  // Play LED colors
+  view.playLedColors.fill({0x000000, kOffLedBrightness});
+  if (play_)
+  {
+    view.playLedColors[0] = {0x00ff00, kMaxLedBrightness};    // Green
+  }
+  else
+  {
+    view.playLedColors[0] = {0x000000, kOffLedBrightness};    // Off
+  }
+
+  // Reverse pad LED handling
+  if (reverse_)
+  {
+    std::fill(std::begin(view.reverseLedColors),
+              std::end(view.reverseLedColors),
+              LedRgbBrightness{0x0000ff, kMaxLedBrightness});
   }
 
   // Publish the state of the display

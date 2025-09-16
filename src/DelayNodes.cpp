@@ -46,7 +46,7 @@ void DelayNodes::setDelayProcsParameters ()
     float perProcStretch = stretch_ * (treePositions_[p] - prevTreePos);
     for (uint8_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
-      delayProcs_[ch][p].setParameters(perProcStretch, feedback_);
+      delayProcs_[ch][p].setParameters(reverse_, perProcStretch, feedback_);
     }
   }
 }

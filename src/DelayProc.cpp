@@ -28,8 +28,9 @@ void DelayProc::init (float sr, size_t maxDelaySamples)
   compressor.AutoMakeup(false);
 }
 
-void DelayProc::setParameters (float stretch, float fb)
+void DelayProc::setParameters (bool reverse, float stretch, float fb)
 {
+  reverse_ = reverse;
   if ((stretch != stretch_) || (fb != feedback_))
   {
     stretch_     = stretch;
@@ -84,7 +85,8 @@ float DelayProc::process (float in)
   // Age update based on growth rate (and input level)
   if (inputLevel > kMetabolicThreshold)
   {
-    currentAge_ = infrasonic::unitclamp(currentAge_ + kGrowthRate);
+    float sign = reverse_ ? -1.0f : 1.0f;
+    currentAge_ = infrasonic::unitclamp(currentAge_ + sign * kGrowthRate);
   }
   return y;
 }

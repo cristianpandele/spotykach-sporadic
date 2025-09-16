@@ -14,10 +14,12 @@ class DelayNetwork
   public:
     struct Parameters
     {
-        int   numBands;
-        int   numProcs;
-        float centerFreq;
-        float stretch;
+      bool  play;
+      bool  reverse;
+      int   numBands;
+      int   numProcs;
+      float centerFreq;
+      float stretch;
     };
 
     // Provide expected processing block size so internal buffers can be
@@ -53,6 +55,8 @@ class DelayNetwork
     size_t blockSize_      = 16;
     size_t numBands_       = kMaxNutrientBands;
     size_t numProcs_       = kMaxNumDelayProcs;
+    bool   play_           = false;
+    bool   reverse_        = false;
     float  centerFreq_     = 1000.0f;
     float  stretch_        = 1.0f;
     float  treeDensity_    = 1.0f;    // [0,1]

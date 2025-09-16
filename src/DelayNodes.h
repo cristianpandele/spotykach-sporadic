@@ -26,6 +26,8 @@ class DelayNodes
     // Getter for number of bands for diffusion
     int getNumBands () const { return numBands_; }
 
+    void setReverse(bool reverse) { reverse_ = reverse; }
+
     // Set the stretch factor controlling delay times (overall scale).
     void setStretch (float stretch);
 
@@ -52,7 +54,8 @@ class DelayNodes
     size_t blockSize_     = 16;
     size_t numBands_      = kMaxNutrientBands;
     size_t numProcs_      = kMaxNumDelayProcs;
-    float  stretch_       = 1.0f;
+    bool   reverse_       = false;   // Whether the delay network is in reverse mode
+    float  stretch_       = 1.0f;    // Overall stretch factor for delay times
     float  entanglement_  = 0.0f;    // [0,1] strength of interconnection dynamics
     float  feedback_      = 0.0f;    // Feedback level for all delay processors
     bool   ignoreMycelia_ = false;   // If true, ignore inter-node connections

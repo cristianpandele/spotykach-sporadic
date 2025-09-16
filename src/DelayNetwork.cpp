@@ -19,9 +19,15 @@ void DelayNetwork::init (float sampleRate, size_t blockSize, int numBands, int n
 
 void DelayNetwork::setParameters (const Parameters &p)
 {
-  size_t newBands = std::max(1, p.numBands);
-  size_t newProcs = std::max(1, p.numProcs);
-  float newCenterFreq = daisysp::fclamp(p.centerFreq, DiffusionControl::kMinFreq, DiffusionControl::kMaxFreq);
+  bool   newPlay       = p.play;
+  bool   newReverse    = p.reverse;
+  size_t newBands      = std::max(1, p.numBands);
+  size_t newProcs      = std::max(1, p.numProcs);
+  float  newCenterFreq = daisysp::fclamp(p.centerFreq, DiffusionControl::kMinFreq, DiffusionControl::kMaxFreq);
+  if (newReverse != reverse_)
+  {
+    delayNodes_.setReverse(newReverse);
+  }
   if ((newBands != numBands_) || (newCenterFreq != centerFreq_))
   {
     diffusion_.setParameters({.numActiveBands = newBands, .centerFreq = newCenterFreq});
@@ -35,6 +41,9 @@ void DelayNetwork::setParameters (const Parameters &p)
   {
     delayNodes_.setStretch(newStretch);
   }
+
+  play_       = newPlay;
+  reverse_    = newReverse;
   centerFreq_ = newCenterFreq;
   numBands_   = newBands;
   numProcs_   = newProcs;
@@ -59,6 +68,16 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
 {
   // Block size must match initialized block size (simplest design); assert in debug.
   assert(blockSize == blockSize_);
+
+  if (!play_)
+  {
+    // If not playing, silence the output
+    for (size_t b = 0; b < numBands_; ++b)
+    {
+      std::fill(out, out + blockSize, 0.0f);
+    }
+    return;
+  }
 
   float *outBand[numBands_];
   // Stage 1: Diffusion writes into the "input" staging buffers for the delay network.
@@ -96,12 +115,6 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
       out[i] += procBuf[i] * gain;
     }
   }
-  // Optional normalization by number of active processors
-  // float norm = 1.0f / static_cast<float>(std::max(static_cast<size_t>(1), numProcs_));
-  // for (size_t i = 0; i < blockSize; ++i)
-  // {
-  //   out[i] *= norm;
-  // }
 }
 
 void DelayNetwork::setTreeDensity (float density)

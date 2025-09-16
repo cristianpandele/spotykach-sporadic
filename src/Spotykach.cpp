@@ -494,7 +494,9 @@ void Spotykach::updateDisplayState()
   // Reverse pad LED handling
   if (reverse_)
   {
-    std::fill(std::begin(view.reverseLedColors), std::end(view.reverseLedColors), LedRgbBrightness{0x0000ff, kMaxLedBrightness});
+    std::fill(std::begin(view.reverseLedColors),
+              std::end(view.reverseLedColors),
+              LedRgbBrightness{0x0000ff, kMaxLedBrightness});
   }
 
   // Check if there is an update to the held state of the effect pads

@@ -32,6 +32,9 @@ struct DelayProc
   float targetDelay_;
   float currentDelay_;
 
+  // Whether the delay processors aging is in reverse mode
+  bool reverse_;
+
   // Envelope followers: track input and output levels for dynamic processing
   float inputLevel;
   float outputLevel;
@@ -47,7 +50,7 @@ struct DelayProc
   DelayProc () = default;
 
   void  init (float sr, size_t maxDelaySamples);
-  void  setParameters (float dMs, float fb);
+  void  setParameters (bool reverse, float dMs, float fb);
   void  updateCurrentDelay ();
   void  setSidechainLevel (float sc);
   float process (float in);
