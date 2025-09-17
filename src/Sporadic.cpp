@@ -115,6 +115,7 @@ void Sporadic::setPlay (bool p)
   {
     setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
   }
+  foldWindowDirty_ = true;
 }
 
 void Sporadic::setSpotyPlay (bool s)
@@ -371,6 +372,12 @@ void Sporadic::updateDiffusionRingState (DisplayState &view)
 
 void Sporadic::updateTreeRingState (DisplayState &view)
 {
+  // Only display the canvas when not playing
+  if (!play_)
+  {
+    return;
+  }
+
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
   Deck::RingSpan    ringSpan;
   LedRgbBrightness  ledColor[N];
@@ -423,17 +430,21 @@ void Sporadic::updateFoldWindowState(DisplayState &view)
   populateLedRing(ringSpan, N, ledColor, start, N);
   view.rings[view.layerCount++] = ringSpan;
 
-  constexpr uint8_t kMinWinLen = 4;
-  // Fold window start in LED slots (at at latest N - kMinWinLen)
-  start            = std::round(daisysp::fmap(position_, 0.0f, N - kMinWinLen));
-  // Fold window length in LED slots (at least kMinWinLen)
-  uint8_t winLen   = std::round(daisysp::fmap(size_, kMinWinLen, N + 1));
-  winLen           = daisysp::fclamp(winLen, 0, N - start);
-  ledColor         = {0x00ff00, kMaxLedBrightness};    // Green
+  // Green area for the fold window if playing
+  if (play_)
+  {
+    constexpr uint8_t kMinWinLen = 5;
+    // Fold window start in LED slots (at at latest N - kMinWinLen)
+    start            = std::round(daisysp::fmap(position_, 0.0f, N - kMinWinLen));
+    // Fold window length in LED slots (at least kMinWinLen)
+    uint8_t winLen   = std::round(daisysp::fmap(size_, kMinWinLen, N + 1));
+    winLen           = daisysp::fclamp(winLen, 0, N - start);
+    ledColor         = {0x00ff00, kMaxLedBrightness};    // Green
 
-  // Populate the LED Ring
-  populateLedRing(ringSpan, N, ledColor, start, winLen, true);
-  view.rings[view.layerCount++] = ringSpan;
+    // Populate the LED Ring
+    populateLedRing(ringSpan, N, ledColor, start, winLen, true);
+    view.rings[view.layerCount++] = ringSpan;
+  }
 
   // Copy the brightness levels to the envelopeRing array for use in mixing
   for (size_t i = 0; i < N; ++i)
