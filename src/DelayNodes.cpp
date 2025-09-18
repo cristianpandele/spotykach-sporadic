@@ -261,6 +261,25 @@ void DelayNodes::updateNodeInterconnections ()
     }
   }
 
+  // Normalize per source so that the sum of outgoing weights is 1.0f
+  for (size_t src = 0; src < kMaxNumDelayProcs; ++src)
+  {
+    float sum = 0.0f;
+    for (size_t dst = 0; dst < kMaxNumDelayProcs; ++dst)
+    {
+      float &connectionStrength = interNodeConnections_[src][dst];
+      sum += connectionStrength;
+    }
+    if (sum > 0.0f)
+    {
+      for (size_t dst = 0; dst < kMaxNumDelayProcs; ++dst)
+      {
+        float &connectionStrength = interNodeConnections_[src][dst];
+        connectionStrength /= sum;
+      }
+    }
+  }
+
   // Normalize per destination so that sum of incoming weights is just a bit under 1.0f
   // - this prevents runaway feedback in the common case of a loop
   // Note: this does not prevent feedback loops if the matrix contains cycles; that is left to the user to explore.
