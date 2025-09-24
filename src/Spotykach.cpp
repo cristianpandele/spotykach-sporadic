@@ -344,7 +344,7 @@ void Spotykach::updateLooperDisplayState(DisplayState &view)
 
   // Yellow area indicating the buffer
   uint8_t start = 0;
-  LedRgbBrightness ledColor = {0xffff00, kMaxLedBrightness};
+  LedRgbBrightness ledColor = {0xffff00, kMidLedBrightness};
   populateLedRing(ringSpan, N, ledColor, start, N);
   view.rings[view.layerCount++] = ringSpan;
 

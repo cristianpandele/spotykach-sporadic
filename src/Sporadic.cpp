@@ -426,7 +426,7 @@ void Sporadic::updateFoldWindowState(DisplayState &view)
 
   // Yellow area for the canvas
   uint8_t          start    = 0;
-  LedRgbBrightness ledColor = {0xffff00, kMaxLedBrightness};
+  LedRgbBrightness ledColor = {0xffff00, kMidLedBrightness};
   populateLedRing(ringSpan, N, ledColor, start, N);
   view.rings[view.layerCount++] = ringSpan;
 

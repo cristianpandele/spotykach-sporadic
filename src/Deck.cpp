@@ -699,7 +699,7 @@ void Deck::updateGritRingState (DisplayState &view)
   Deck::RingSpan    ringSpan;
 
   // Yellow area indicating the frequency range
-  populateLedRing(ringSpan, N, {0xffff00, kMaxLedBrightness}, 0, N);
+  populateLedRing(ringSpan, N, {0xffff00, kMidLedBrightness}, 0, N);
   view.rings[view.layerCount++] = ringSpan;
 
   uint8_t squareSpanStart       = 0;
