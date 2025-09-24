@@ -1008,21 +1008,21 @@ void AppImpl::handleDisplay ()
   }
 
   // Mode A & B switches
-  for (size_t side = 0; side < kNumberDeckSlots; side++)
-  {
-    if (currentDeckMode[side] == DeckMode::MODE_3)
-    {
-      hw.leds.Set(Hardware::kLedGritIds[side], 0x00ff00, kMaxLedBrightness);
-    }
-    else if (currentDeckMode[side] == DeckMode::MODE_1)
-    {
-      hw.leds.Set(Hardware::kLedGritIds[side], 0x0000ff, kMaxLedBrightness);
-    }
-    else
-    {
-      hw.leds.Set(Hardware::kLedGritIds[side], 0xff0000, kMaxLedBrightness);
-    }
-  }
+  // for (size_t side = 0; side < kNumberDeckSlots; side++)
+  // {
+  //   if (currentDeckMode[side] == DeckMode::MODE_3)
+  //   {
+  //     hw.leds.Set(Hardware::kLedGritIds[side], 0x00ff00, kMaxLedBrightness);
+  //   }
+  //   else if (currentDeckMode[side] == DeckMode::MODE_1)
+  //   {
+  //     hw.leds.Set(Hardware::kLedGritIds[side], 0x0000ff, kMaxLedBrightness);
+  //   }
+  //   else
+  //   {
+  //     hw.leds.Set(Hardware::kLedGritIds[side], 0xff0000, kMaxLedBrightness);
+  //   }
+  // }
 
   // Manual tempo tap switch
   if (sr2.test(6))
@@ -1073,15 +1073,15 @@ void AppImpl::handleDisplay ()
 
   // --- CV INPUTS ---
 
-  // For these we just add together the 3 CVs on each side and render to drift LEDs
-  for (uint8_t side = 0; side < kNumberDeckSlots; side++)
-  {
-    float cv = 0;
-    cv += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
-    cv += hw.GetControlVoltageValue(Hardware::kCvVOctIds[side]);
-    cv += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
-    hw.leds.Set(Hardware::kLedGritIds[side], cv >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv));
-  }
+  // // For these we just add together the 3 CVs on each side and render to drift LEDs
+  // for (uint8_t side = 0; side < kNumberDeckSlots; side++)
+  // {
+  //   float cv = 0;
+  //   cv += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
+  //   cv += hw.GetControlVoltageValue(Hardware::kCvVOctIds[side]);
+  //   cv += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
+  //   hw.leds.Set(Hardware::kLedGritIds[side], cv >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv));
+  // }
 
   // --- MIDI INPUT ---
   if (midi_in_note_on)
