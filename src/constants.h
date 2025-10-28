@@ -17,8 +17,8 @@ namespace spotykach
   constexpr size_t kMaxNutrientBands = 4;    // Maximum number of nutrient bands
 
   // Constants for the delay nodes
-  constexpr float kMinStretch = 1.0f / 16.0f;    // Minimum stretch factor for delay nodes
-  constexpr float kMaxStretch = 16.0f;           // Maximum stretch factor for delay nodes
+  constexpr float kMinStretch = 1.0f / 32.0f;    // Minimum stretch factor for delay nodes
+  constexpr float kMaxStretch = 32.0f;           // Maximum stretch factor for delay nodes
 
   // Constants for the LEDs
   constexpr float kOffLedBrightness = 0.0f;

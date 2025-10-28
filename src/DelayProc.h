@@ -15,7 +15,7 @@ struct DelayProc
   static constexpr size_t kDefaultBpm = 120;
   static constexpr size_t kMaxBpm     = 300;
   static constexpr size_t kMaxDelaySamples =
-    kSampleRate * (static_cast<float>(kSecInMin) / static_cast<float>(kDefaultBpm)) * kMaxStretch;    // 8 seconds at 120 BPM (at 48kHz)
+    kSampleRate * (static_cast<float>(kSecInMin) / static_cast<float>(kDefaultBpm)) * kMaxStretch;    // 16 seconds at 120 BPM (at 48kHz)
 
   static constexpr float kGrowthRate         = 5e-8f;  // This gives us approximately 10 minutes to age out completely
   static constexpr float kMetabolicThreshold = 1e-3f;
