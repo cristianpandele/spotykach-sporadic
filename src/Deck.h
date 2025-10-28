@@ -120,6 +120,32 @@ class Deck
     virtual void processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t blockSize) = 0;
 
   protected:
+    struct SoftTakeoverState
+    {
+      bool  initialized = false;
+      bool  waiting     = false;
+      float lastControl = 0.0f;
+      float targetValue = 0.0f;
+    };
+
+    struct DualLayerSoftTakeover
+    {
+      SoftTakeoverState primary;
+      SoftTakeoverState alternate;
+      bool              hasActiveLayer       = false;
+      bool              activeLayerAlternate = false;
+    };
+
+    bool prepareSoftTakeover(DualLayerSoftTakeover &state,
+                             bool                    usingAlternateLayer,
+                             float                   controlValue,
+                             float                   currentValue);
+
+    void finalizeSoftTakeover(DualLayerSoftTakeover &state,
+                              bool                    usingAlternateLayer,
+                              float                   controlValue,
+                              float                   newValue);
+
     // Channel configuration for the deck
     ChannelConfig channelConfig_ = ChannelConfig::OFF;
 
@@ -156,6 +182,18 @@ class Deck
     // Shape control
     float shapeControl_ = 0.0f;
     float shape_        = 0.0f;
+
+    DualLayerSoftTakeover positionSoftTakeover_{};
+    DualLayerSoftTakeover sizeSoftTakeover_{};
+    DualLayerSoftTakeover shapeSoftTakeover_{};
+    DualLayerSoftTakeover pitchSoftTakeover_{};
+    DualLayerSoftTakeover mixSoftTakeover_{};
+
+    float mixAltControl_ = 0.0f;
+    float positionGritControl_ = 0.0f;
+    float sizeGritControl_     = 0.0f;
+    float shapeGritControl_    = 0.0f;
+    float pitchGritControl_    = 0.0f;
 
     // Spotykach slider control
     float spotyControl_ = 0.0f;
@@ -214,8 +252,20 @@ class Deck
       bool x##ChangedWhileGritLatched  = x##Changed && gritLatch;                                                          \
       bool x##ChangedWhileGritMenuOpen = x##Changed && getGritMenuOpen();
 
+    // Helper for implementing soft takeover/catch between primary and alternate layers
+    void setSoftTakeoverControl (DualLayerSoftTakeover &state,
+                                 bool                    usingAlternateLayer,
+                                 float                   incomingValue,
+                                 float                  &primaryValue,
+                                 float                  &alternateValue,
+                                 bool                   &changed,
+                                 bool                   &changedAlt);
+
     // Setters for deck parameters
-    virtual void setMix (float m) { mix_ = infrasonic::unitclamp(m); }
+    virtual void setMix(float m)
+    {
+      mix_ = infrasonic::unitclamp(m);
+    }
     virtual void setPitch (float p) { pitch_ = infrasonic::unitclamp(p); }
     void         setPitch (float p, bool gritLatch, bool &pitchChanged, bool &pitchChangedGrit);
     virtual void setPosition (float p) { position_ = infrasonic::unitclamp(p); }

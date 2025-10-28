@@ -10,9 +10,6 @@ using namespace daisy;
 using namespace daisysp;
 using namespace spotykach_hwtest;
 
-static constexpr size_t kLooperAudioDataSamples = 15.0f * kSampleRate * kNumberChannelsMono;
-static constexpr size_t kEchoAudioDataSamples = 2.0f * kSampleRate;
-
 // Class for Spotykach looper implementation
 class Spotykach : public Deck
 {

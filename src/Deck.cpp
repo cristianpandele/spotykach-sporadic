@@ -3,6 +3,77 @@
 
 using infrasonic::Log;
 
+bool Deck::prepareSoftTakeover(DualLayerSoftTakeover &state,
+                               bool                    usingAlternateLayer,
+                               float                   controlValue,
+                               float                   currentValue)
+{
+  SoftTakeoverState &layer = usingAlternateLayer ? state.alternate : state.primary;
+
+  if (!layer.initialized)
+  {
+    layer.initialized = true;
+    layer.waiting     = false;
+    layer.lastControl = controlValue;
+    layer.targetValue = currentValue;
+    state.hasActiveLayer       = true;
+    state.activeLayerAlternate = usingAlternateLayer;
+    return true;
+  }
+
+  if (!state.hasActiveLayer || state.activeLayerAlternate != usingAlternateLayer)
+  {
+    state.hasActiveLayer       = true;
+    state.activeLayerAlternate = usingAlternateLayer;
+
+    layer.targetValue = currentValue;
+    layer.lastControl = controlValue;
+    layer.waiting     = std::abs(controlValue - currentValue) > kParamChThreshold;
+    return !layer.waiting;
+  }
+
+  if (!layer.waiting)
+  {
+    layer.lastControl = controlValue;
+    layer.targetValue = currentValue;
+    return true;
+  }
+
+  const float previousDelta = layer.lastControl - layer.targetValue;
+  const float currentDelta  = controlValue - currentValue;
+
+  layer.lastControl = controlValue;
+  layer.targetValue = currentValue;
+
+  if (std::abs(currentDelta) <= kParamChThreshold)
+  {
+    layer.waiting = false;
+    return true;
+  }
+
+  if ((previousDelta < 0.0f && currentDelta >= 0.0f) || (previousDelta > 0.0f && currentDelta <= 0.0f))
+  {
+    layer.waiting = false;
+    return true;
+  }
+
+  return false;
+}
+
+void Deck::finalizeSoftTakeover(DualLayerSoftTakeover &state,
+                                bool                    usingAlternateLayer,
+                                float                   controlValue,
+                                float                   newValue)
+{
+  SoftTakeoverState &layer = usingAlternateLayer ? state.alternate : state.primary;
+  layer.initialized        = true;
+  layer.waiting            = false;
+  layer.lastControl        = controlValue;
+  layer.targetValue        = newValue;
+  state.hasActiveLayer       = true;
+  state.activeLayerAlternate = usingAlternateLayer;
+}
+
 void Deck::setChannelConfig (ChannelConfig mode)
 {
   if (mode < ChannelConfig::OFF || mode >= ChannelConfig::CH_CONFIG_LAST)
@@ -24,18 +95,65 @@ void Deck::setMode (DeckMode m)
   mode_ = m;
 }
 
+void Deck::setSoftTakeoverControl (DualLayerSoftTakeover &state,
+                                   bool                    usingAlternateLayer,
+                                   float                   incomingValue,
+                                   float                  &primaryValue,
+                                   float                  &alternateValue,
+                                   bool                   &changed,
+                                   bool                   &changedAlt)
+{
+  changed    = false;
+  changedAlt = false;
+
+  float &activeValue = usingAlternateLayer ? alternateValue : primaryValue;
+
+  if (!prepareSoftTakeover(state, usingAlternateLayer, incomingValue, activeValue))
+  {
+    return;
+  }
+
+  const float delta = std::abs(incomingValue - activeValue);
+  if (delta <= kParamChThreshold)
+  {
+    finalizeSoftTakeover(state, usingAlternateLayer, incomingValue, activeValue);
+    return;
+  }
+
+  activeValue = incomingValue;
+  finalizeSoftTakeover(state, usingAlternateLayer, incomingValue, activeValue);
+
+  if (usingAlternateLayer)
+  {
+    changedAlt = true;
+  }
+  else
+  {
+    changed = true;
+  }
+}
+
 void Deck::setPosition (float position, bool gritLatch, bool &changed, bool &changedGrit)
 {
   position = infrasonic::unitclamp(position);
-  MAKE_GRIT_CHANGE_STATUS(position, positionControl_, gritLatch);
-  changed          = positionChanged;
-  changedGrit      = positionChangedWhileGritLatched || positionChangedWhileGritMenuOpen;
-  positionControl_ = positionChanged ? position : positionControl_;
 
+  bool useGritLayer = gritLatch || getGritMenuOpen();
+  if (useGritLayer && !positionSoftTakeover_.alternate.initialized)
+  {
+    positionGritControl_ = positionControl_;
+  }
+
+  setSoftTakeoverControl(positionSoftTakeover_,
+                         useGritLayer,
+                         position,
+                         positionControl_,
+                         positionGritControl_,
+                         changed,
+                         changedGrit);
   if (changedGrit)
   {
     inputSculptCenterFreq_ =
-      daisysp::fmap(positionControl_, InputSculpt::kMinFreq, InputSculpt::kMaxFreq, Mapping::LOG);
+      daisysp::fmap(positionGritControl_, InputSculpt::kMinFreq, InputSculpt::kMaxFreq, Mapping::LOG);
 
     // If grit latched, set input sculpt frequency instead of position
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
@@ -51,10 +169,19 @@ void Deck::setPosition (float position, bool gritLatch, bool &changed, bool &cha
 void Deck::setSize (float size, bool gritLatch, bool &changed, bool &changedGrit)
 {
   size = infrasonic::unitclamp(size);
-  MAKE_GRIT_CHANGE_STATUS(size, sizeControl_, gritLatch);
-  changed      = sizeChanged;
-  changedGrit  = sizeChangedWhileGritLatched || sizeChangedWhileGritMenuOpen;
-  sizeControl_ = sizeChanged ? size : sizeControl_;
+  bool useGritLayer = gritLatch || getGritMenuOpen();
+  if (useGritLayer && !sizeSoftTakeover_.alternate.initialized)
+  {
+    sizeGritControl_ = sizeControl_;
+  }
+
+  setSoftTakeoverControl(sizeSoftTakeover_,
+                         useGritLayer,
+                         size,
+                         sizeControl_,
+                         sizeGritControl_,
+                         changed,
+                         changedGrit);
 
   if (changedGrit)
   {
@@ -63,7 +190,7 @@ void Deck::setSize (float size, bool gritLatch, bool &changed, bool &changedGrit
     {
       if (isChannelActive(ch))
       {
-        inputSculpt_[ch].setWidth(sizeControl_);
+        inputSculpt_[ch].setWidth(sizeGritControl_);
       }
     }
   }
@@ -72,10 +199,19 @@ void Deck::setSize (float size, bool gritLatch, bool &changed, bool &changedGrit
 void Deck::setShape (float shape, bool gritLatch, bool &changed, bool &changedGrit)
 {
   shape = infrasonic::unitclamp(shape);
-  MAKE_GRIT_CHANGE_STATUS(shape, shapeControl_, gritLatch);
-  changed       = shapeChanged;
-  changedGrit   = shapeChangedWhileGritLatched || shapeChangedWhileGritMenuOpen;
-  shapeControl_ = shapeChanged ? shape : shapeControl_;
+  bool useGritLayer = gritLatch || getGritMenuOpen();
+  if (useGritLayer && !shapeSoftTakeover_.alternate.initialized)
+  {
+    shapeGritControl_ = shapeControl_;
+  }
+
+  setSoftTakeoverControl(shapeSoftTakeover_,
+                         useGritLayer,
+                         shape,
+                         shapeControl_,
+                         shapeGritControl_,
+                         changed,
+                         changedGrit);
 
   if (changedGrit)
   {
@@ -84,7 +220,7 @@ void Deck::setShape (float shape, bool gritLatch, bool &changed, bool &changedGr
     {
       if (isChannelActive(ch))
       {
-        inputSculpt_[ch].setShape(shapeControl_);
+        inputSculpt_[ch].setShape(shapeGritControl_);
       }
     }
   }
@@ -93,10 +229,20 @@ void Deck::setShape (float shape, bool gritLatch, bool &changed, bool &changedGr
 void Deck::setPitch (float pitch, bool gritLatch, bool &changed, bool &changedGrit)
 {
   pitch                   = infrasonic::unitclamp(pitch);
-  MAKE_GRIT_CHANGE_STATUS(pitch, pitchControl_, gritLatch);
-  changed       = pitchChanged;
-  changedGrit   = pitchChangedWhileGritLatched || pitchChangedWhileGritMenuOpen;
-  pitchControl_ = pitchChanged ? pitch : pitchControl_;
+
+  bool useGritLayer = gritLatch || getGritMenuOpen();
+  if (useGritLayer && !pitchSoftTakeover_.alternate.initialized)
+  {
+    pitchGritControl_ = pitchControl_;
+  }
+
+  setSoftTakeoverControl(pitchSoftTakeover_,
+                         useGritLayer,
+                         pitch,
+                         pitchControl_,
+                         pitchGritControl_,
+                         changed,
+                         changedGrit);
 
   if (changedGrit)
   {
@@ -105,7 +251,7 @@ void Deck::setPitch (float pitch, bool gritLatch, bool &changed, bool &changedGr
     {
       if (isChannelActive(ch))
       {
-        inputSculpt_[ch].setOverdrive(pitchControl_);
+        inputSculpt_[ch].setOverdrive(pitchGritControl_);
       }
     }
   }

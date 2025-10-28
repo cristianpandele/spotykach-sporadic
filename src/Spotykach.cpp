@@ -1,6 +1,9 @@
 #include "app.h"
 #include "Spotykach.h"
 
+static constexpr size_t kLooperAudioDataSamples = 15.0f * kSampleRate * kNumberChannelsMono;
+static constexpr size_t kEchoAudioDataSamples = 2.0f * kSampleRate;
+
 // Reserve a buffer for the 15-second Spotykach looper (for each channel) - 16bit mono audio at 48khz (about 0.172 MB each)
 static DSY_SDRAM_BSS float   looperAudioData[kNumberChannelsStereo][kLooperAudioDataSamples] {{0.0f}};
 
@@ -85,17 +88,30 @@ void Spotykach::configureEnvelopeLength (float windowLenSamples)
 
 void Spotykach::setMix (float m, bool altLatch)
 {
-  m                              = infrasonic::unitclamp(m);
-  bool mixChanged                = (std::abs(m - mixControl_) > kParamChThreshold);
-  bool mixChangedWhileAltLatched = (mixChanged && altLatch);
-  mixControl_                    = mixChanged ? m : mixControl_;
+  m = infrasonic::unitclamp(m);
 
-  if (mixChangedWhileAltLatched)
+  bool useAltLayer = altLatch;
+  bool changed     = false;
+  bool changedAlt  = false;
+
+  if (useAltLayer && !mixSoftTakeover_.alternate.initialized)
   {
-    // If alt latch is pressed, set feedback instead of mix
-    setFeedback(mixControl_);
+    mixAltControl_ = feedback_;
   }
-  else if (mixChanged)
+
+  setSoftTakeoverControl(mixSoftTakeover_,
+                         useAltLayer,
+                         m,
+                         mixControl_,
+                         mixAltControl_,
+                         changed,
+                         changedAlt);
+
+  if (changedAlt)
+  {
+    setFeedback(mixAltControl_);
+  }
+  else if (changed)
   {
     mix_ = mixControl_;
   }
