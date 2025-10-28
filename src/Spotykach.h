@@ -106,10 +106,7 @@ class Spotykach : public Deck
     float prevWindowSamples_ = 0.0f;
     uint32_t envSampleCounter_ = 0;
 
-    // Setters for mix, position and size (overloads point to Spotykach versions)
-    void setMix (float m, bool altLatch = false);
-    void setMix (float m) override { setMix(m, false); }
-    void setFeedback (float fb) { feedback_ = std::clamp(fb, 0.0f, 0.99f); }
+    // Setters for position and size (overloads point to Spotykach versions)
     void setPosition (float p, bool gritLatch = false);
     void setPosition (float p) override { setPosition(p, false); }
     void setSize (float s, bool gritLatch = false);

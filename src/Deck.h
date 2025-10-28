@@ -183,21 +183,25 @@ class Deck
     float shapeControl_ = 0.0f;
     float shape_        = 0.0f;
 
+    // Spotykach slider control
+    float spotyControl_ = 0.0f;
+    float spoty_        = 0.0f;
+
     DualLayerSoftTakeover positionSoftTakeover_{};
     DualLayerSoftTakeover sizeSoftTakeover_{};
     DualLayerSoftTakeover shapeSoftTakeover_{};
     DualLayerSoftTakeover pitchSoftTakeover_{};
     DualLayerSoftTakeover mixSoftTakeover_{};
 
-    float mixAltControl_ = 0.0f;
+    // Grit layer controls
+    float mixAltControl_       = 0.0f;
     float positionGritControl_ = 0.0f;
     float sizeGritControl_     = 0.0f;
     float shapeGritControl_    = 0.0f;
     float pitchGritControl_    = 0.0f;
 
-    // Spotykach slider control
-    float spotyControl_ = 0.0f;
-    float spoty_        = 0.0f;
+    // Feedback level
+    float feedback_ = 0.0f;
 
     // Reverse playback flag
     bool reverse_ = false;
@@ -262,10 +266,9 @@ class Deck
                                  bool                   &changedAlt);
 
     // Setters for deck parameters
-    virtual void setMix(float m)
-    {
-      mix_ = infrasonic::unitclamp(m);
-    }
+    void         setMix (float m) { mix_ = infrasonic::unitclamp(m); }
+    void         setMix (float m, bool altLatch = false);
+    void         setFeedback (float fb) { feedback_ = std::clamp(fb, 0.0f, 0.99f); }
     virtual void setPitch (float p) { pitch_ = infrasonic::unitclamp(p); }
     void         setPitch (float p, bool gritLatch, bool &pitchChanged, bool &pitchChangedGrit);
     virtual void setPosition (float p) { position_ = infrasonic::unitclamp(p); }

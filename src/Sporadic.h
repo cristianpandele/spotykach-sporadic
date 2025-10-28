@@ -44,6 +44,9 @@ class Sporadic : public Deck
     // Buffer for modulated input before input sculpt
     float modulatedInputBuf_[kNumberChannelsStereo][kBlockSize]{};
 
+    // Buffer for output after delay network processing (for feedback mixing)
+    float feedbackMixBuf_[kNumberChannelsStereo][kBlockSize]{};
+
     // Envelope ring (visual + mixing gains source). 32 slots per ring.
     static constexpr uint8_t kNumLeds = spotykach::Hardware::kNumLedsPerRing;
     float envelopeRing_[kNumLeds]{};

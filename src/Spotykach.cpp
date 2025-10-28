@@ -85,38 +85,6 @@ void Spotykach::configureEnvelopeLength (float windowLenSamples)
 
 //////////
 // Handle parameter changes
-
-void Spotykach::setMix (float m, bool altLatch)
-{
-  m = infrasonic::unitclamp(m);
-
-  bool useAltLayer = altLatch;
-  bool changed     = false;
-  bool changedAlt  = false;
-
-  if (useAltLayer && !mixSoftTakeover_.alternate.initialized)
-  {
-    mixAltControl_ = feedback_;
-  }
-
-  setSoftTakeoverControl(mixSoftTakeover_,
-                         useAltLayer,
-                         m,
-                         mixControl_,
-                         mixAltControl_,
-                         changed,
-                         changedAlt);
-
-  if (changedAlt)
-  {
-    setFeedback(mixAltControl_);
-  }
-  else if (changed)
-  {
-    mix_ = mixControl_;
-  }
-}
-
 void Spotykach::setPosition (float p, bool gritLatch)
 {
   bool positionChanged;

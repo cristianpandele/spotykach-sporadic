@@ -181,7 +181,7 @@ void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame
   // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
-  setMix(c.mix);
+  setMix(c.mix, c.mixAlt);
   setPitch(c.pitch, c.pitchGrit);
   setPosition(c.position, c.positionGrit);
   setSize(c.size, c.sizeGrit);
@@ -312,6 +312,12 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
         std::copy(in[ch], in[ch] + blockSize, inputSculptBuf_[ch]);
       }
 
+      // Mix in the feedback from the delay network
+      for (size_t n = 0; n < blockSize; ++n)
+      {
+        inputSculptBuf_[ch][n] += feedback_ * feedbackMixBuf_[ch][n];
+      }
+
       if (pitchControl_ < 0.5f)
       {
         // Skip the edge tree processing if the pitch is in the lower half
@@ -326,7 +332,10 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
       delayNetwork_.processBlockMono(modulatedInputBuf_[ch], ch, delayNetworkBuf_[ch], blockSize);
 
       // Apply dry-wet mix
-      Utils::audioBlockLerp(inputSculptBuf_[ch], delayNetworkBuf_[ch], out[ch], mix_, blockSize);
+      Utils::audioBlockLerp(inputSculptBuf_[ch], delayNetworkBuf_[ch], feedbackMixBuf_[ch], mix_, blockSize);
+
+      // Copy the feedback mix buffer to the output
+      std::copy(feedbackMixBuf_[ch], feedbackMixBuf_[ch] + blockSize, out[ch]);
     }
   }
 }

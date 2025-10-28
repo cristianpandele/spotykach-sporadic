@@ -133,6 +133,30 @@ void Deck::setSoftTakeoverControl (DualLayerSoftTakeover &state,
   }
 }
 
+void Deck::setMix (float m, bool altLatch)
+{
+  m                  = infrasonic::unitclamp(m);
+
+  bool mixChanged    = false;
+  bool mixChangedAlt = false;
+
+  if (altLatch && !mixSoftTakeover_.alternate.initialized)
+  {
+    mixAltControl_ = feedback_;
+  }
+
+  setSoftTakeoverControl(mixSoftTakeover_, altLatch, m, mixControl_, mixAltControl_, mixChanged, mixChangedAlt);
+
+  if (mixChangedAlt)
+  {
+    setFeedback(mixAltControl_);
+  }
+  else if (mixChanged)
+  {
+    mix_ = mixControl_;
+  }
+}
+
 void Deck::setPosition (float position, bool gritLatch, bool &changed, bool &changedGrit)
 {
   position = infrasonic::unitclamp(position);
