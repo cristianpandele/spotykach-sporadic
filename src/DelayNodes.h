@@ -8,6 +8,8 @@
 
 using namespace spotykach;
 
+struct DelayProc;
+
 // DelayNodes: per channel we maintain a set of delay processors (proc[0..numProcs_-1]).
 // A routing matrix interNodeConnections_[src][dst] (size kMaxNumDelayProcs^2) defines how
 // the output of processor 'src' feeds the input of processor 'dst'. Matrix defaulting to
@@ -17,6 +19,9 @@ using namespace spotykach;
 class DelayNodes
 {
   public:
+    DelayNodes();
+    using DelayProcMatrix = DelayProc (*)[kMaxNumDelayProcs];
+
     void init (float sampleRate, size_t blockSize, size_t numBands, size_t numProcs);
     // Process a block. Inputs are per-band buffers (numBands_ x blockSize).
     // Outputs are per-processor buffers (kMaxNumDelayProcs x blockSize).

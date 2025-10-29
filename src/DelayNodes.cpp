@@ -1,12 +1,29 @@
 #include "DelayNodes.h"
 #include "DelayProc.h"
+#include "hardware.h"
 #include <algorithm>
+#include <cassert>
 
-// Delay processors laid out as: channel x proc
-static DSY_SDRAM_BSS std::array<std::array<DelayProc, kMaxNumDelayProcs>, kNumberChannelsStereo> delayProcs_;
+namespace
+{
+  DSY_SDRAM_BSS DelayProc delayProcPool[spotykach::kNumberDeckSlots][kNumberChannelsStereo][kMaxNumDelayProcs];
+  size_t         delayProcPoolNext = 0;
+}    // namespace
+
+DelayNodes::DelayNodes ()
+{
+  assert(delayProcPoolNext < spotykach::kNumberDeckSlots);
+  const size_t poolIdx = std::min(delayProcPoolNext, static_cast<size_t>(spotykach::kNumberDeckSlots - 1));
+  delayProcs_          = delayProcPool[poolIdx];
+  if (delayProcPoolNext < spotykach::kNumberDeckSlots)
+  {
+    ++delayProcPoolNext;
+  }
+}
 
 void DelayNodes::init (float sampleRate, size_t blockSize, size_t numBands, size_t numProcs)
 {
+  assert(delayProcs_ != nullptr);
   sampleRate_ = sampleRate;
   numBands_   = std::clamp(numBands, static_cast<size_t>(1), kMaxNutrientBands);
   numProcs_   = std::clamp(numProcs, static_cast<size_t>(1), kMaxNumDelayProcs);
@@ -23,6 +40,7 @@ void DelayNodes::setStretch (float stretch)
 
 void DelayNodes::allocateResources ()
 {
+  assert(delayProcs_ != nullptr);
   for (uint8_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
     for (size_t p = 0; p < numProcs_; ++p)
