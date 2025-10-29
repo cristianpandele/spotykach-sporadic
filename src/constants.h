@@ -13,7 +13,7 @@ namespace spotykach
   constexpr size_t kBlockSize      = 48;
 
   // Constants for Sporadic
-  constexpr size_t kMaxNumDelayProcs = 6;    // Maximum number of trees (output taps)
+  constexpr size_t kMaxNumDelayProcs = 4;    // Maximum number of trees (output taps)
   constexpr size_t kMaxNutrientBands = 4;    // Maximum number of nutrient bands
 
   // Constants for the delay nodes
