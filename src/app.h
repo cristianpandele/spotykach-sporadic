@@ -12,9 +12,11 @@ namespace spotykach_hwtest
   #define PRINT_CPU_LOAD
 
   // Timers
-  constexpr size_t kDebugLogPeriodMs      = 500;
-  constexpr size_t kLedUpdatePeriodMs     = 2;
-  constexpr size_t kLedUpdateRate         = (1000.0f / kLedUpdatePeriodMs);
+  constexpr size_t   kDebugLogPeriodMs    = 500;
+  constexpr size_t   kLedUpdatePeriodMs   = 2;
+  constexpr size_t   kLedUpdateRate       = (1000.0f / kLedUpdatePeriodMs);
+  constexpr uint32_t kTakeoverAttackMs    = 50;
+  constexpr uint32_t kTakeoverDecayMs     = 100;
 
   // Enum for Size/Pos switch position
   enum SizePosSwitchState
@@ -355,6 +357,13 @@ namespace spotykach_hwtest
       // Alt+Grit combo toggle flag for each side
       bool altGritStateChanged[kNumberDeckSlots]{false};
       bool currentAltGritState[kNumberDeckSlots]{false};
+
+      // Soft takeover indicator for each side
+      bool currentTakeoverState[kNumberDeckSlots]{false};
+      bool takeoverPulseActive_[kNumberDeckSlots]{false};
+
+      // Soft takeover envelope generators
+      daisysp::AdEnv takeoverEnv_[kNumberDeckSlots];
 
       // Pad touch states
       std::bitset<16> padTouchStates;

@@ -59,6 +59,8 @@ class Deck
       bool  spotyPlay;    // latched Spotykach pad when Play pressed
       bool  altFlux;      // latched Alt+Flux combo toggle (enters flux mode / overrides flux)
       bool  altGrit;      // latched Alt+Grit combo toggle (enters grit mode / overrides grit)
+      // Soft takeover notification
+      bool  takeover;     // asserted when a soft takeover just occurred
     };
 
     // Render-ready view the UI can draw without peeking internals
@@ -146,6 +148,13 @@ class Deck
                               float                   controlValue,
                               float                   newValue);
 
+    bool consumeTakeoverFlag ()
+    {
+      bool triggered    = takeoverTriggered_;
+      takeoverTriggered_ = false;
+      return triggered;
+    }
+
     // Channel configuration for the deck
     ChannelConfig channelConfig_ = ChannelConfig::OFF;
 
@@ -187,6 +196,7 @@ class Deck
     float spotyControl_ = 0.0f;
     float spoty_        = 0.0f;
 
+    // Soft takeover states for the controls
     DualLayerSoftTakeover positionSoftTakeover_{};
     DualLayerSoftTakeover sizeSoftTakeover_{};
     DualLayerSoftTakeover shapeSoftTakeover_{};
@@ -214,6 +224,9 @@ class Deck
 
     // Grit flag
     bool grit_ = false;
+
+    // Soft takeover notification flag consumed by digital plumbing
+    bool takeoverTriggered_ = false;
 
     // Current deck mode
     DeckMode mode_ = MODE_1;

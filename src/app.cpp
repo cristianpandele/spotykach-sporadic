@@ -101,6 +101,16 @@ void AppImpl::init ()
   spotykachLooper.init();
   sporadic.init();
 
+  // Initialize the soft takeover envelope generators
+  for (size_t i = 0; i < kNumberDeckSlots; i++)
+  {
+    takeoverEnv_[i].Init(kLedUpdateRate);
+    takeoverEnv_[i].SetMin(0.0f);
+    takeoverEnv_[i].SetMax(1.0f);
+    takeoverEnv_[i].SetTime(ADENV_SEG_ATTACK, 0.050f); // 50 ms attack
+    takeoverEnv_[i].SetTime(ADENV_SEG_DECAY, 0.100f);  // 100 ms decay
+  }
+
 #if DEBUG
   Log::StartLog(false);
   log_timer.Init();
@@ -189,7 +199,9 @@ void AppImpl::updateDigitalControlFrame(Deck::DigitalControlFrame &frame, size_t
     .altPlay   = currentAltPlayState[slot],
     .spotyPlay = currentSpotyPlayState[slot],
     .altFlux   = currentAltFluxState[slot],
-    .altGrit   = currentAltGritState[slot]
+    .altGrit   = currentAltGritState[slot],
+    // Soft takeover notification
+    .takeover  = false
   };
 }
 
@@ -376,7 +388,7 @@ void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::Outpu
   for (size_t slot = 0; slot < kNumberDeckSlots; ++slot)
   {
     const float *slotIn[kNumberChannelsStereo];
-    float *slotOut[kNumberChannelsStereo];
+    float       *slotOut[kNumberChannelsStereo];
     if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
     {
       // In generative mode, deck 0 gets the input, deck 1 gets the output of Deck 0
@@ -940,6 +952,25 @@ void AppImpl::handleDigitalControls ()
 
   // Update the previous touch states
   padTouchStatesPrev = padTouchStates;
+
+  for (size_t side = 0; side < kNumberDeckSlots; side++)
+  {
+    if (decks[side] != nullptr)
+    {
+      Deck::DigitalControlFrame takeoverProbe {};
+      decks[side]->getDigitalControls(takeoverProbe);
+      currentTakeoverState[side] = takeoverProbe.takeover;
+    }
+  }
+
+  for (size_t side = 0; side < kNumberDeckSlots; side++)
+  {
+    if (currentTakeoverState[side])
+    {
+      takeoverPulseActive_[side] = true;
+      takeoverEnv_[side].Trigger();
+    }
+  }
 }
 
 void AppImpl::handleDisplay ()
@@ -985,6 +1016,14 @@ void AppImpl::handleDisplay ()
   using ModType = ModulationEngine::ModType;
   for (size_t side = 0; side < kNumberDeckSlots; side++)
   {
+    if (takeoverPulseActive_[side])
+    {
+      float envVal = takeoverEnv_[side].Process();
+      hw.leds.Set(Hardware::kLedCycleIds[side], 0xffffff, daisysp::fmap(envVal, kMinLedBrightness, kMaxLedBrightness, Mapping::EXP));
+      takeoverPulseActive_[side] = takeoverEnv_[side].IsRunning();
+      continue;
+    }
+
     float modLedBrightness = daisysp::fmap(modCv[side], kMinLedBrightness, kMaxLedBrightness, Mapping::LOG);
     switch (currentModType[side])
     {

@@ -319,6 +319,7 @@ void Spotykach::getDigitalControls(DigitalControlFrame &c)
   c.altFlux = false; // Reset Alt+Flux state
   c.grit = grit_;
   c.altGrit = false; // Reset Alt+Grit state
+  c.takeover = consumeTakeoverFlag();
 }
 
 void Spotykach::updateLooperDisplayState(DisplayState &view)

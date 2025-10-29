@@ -219,6 +219,7 @@ void Sporadic::getDigitalControls (DigitalControlFrame &c)
   c.altFlux   = false;    // Alt+Flux is just a toggle
   c.grit      = grit_;
   c.altGrit   = false;    // Alt+Grit is just a toggle
+  c.takeover  = consumeTakeoverFlag();
 }
 
 void Sporadic::updateDisplayState ()

@@ -106,6 +106,11 @@ void Deck::setSoftTakeoverControl (DualLayerSoftTakeover &state,
   changed    = false;
   changedAlt = false;
 
+  SoftTakeoverState &layer = usingAlternateLayer ? state.alternate : state.primary;
+  const bool         layerWasWaiting = layer.waiting;
+  const bool         layerSwitched   = (!state.hasActiveLayer || state.activeLayerAlternate != usingAlternateLayer);
+  const bool         takeoverPending = layerWasWaiting || layerSwitched;
+
   float &activeValue = usingAlternateLayer ? alternateValue : primaryValue;
 
   if (!prepareSoftTakeover(state, usingAlternateLayer, incomingValue, activeValue))
@@ -117,6 +122,10 @@ void Deck::setSoftTakeoverControl (DualLayerSoftTakeover &state,
   if (delta <= kParamChThreshold)
   {
     finalizeSoftTakeover(state, usingAlternateLayer, incomingValue, activeValue);
+    if (takeoverPending)
+    {
+      takeoverTriggered_ = true;
+    }
     return;
   }
 
