@@ -15,19 +15,6 @@ using namespace daisysp;
 using namespace infrasonic;
 using infrasonic::Log;
 
-namespace spotykach_hwtest
-{
-  // SD Card test stuff
-  #define TEST_FILE_NAME "test_data"
-  SdmmcHandler   sd;
-  FatFSInterface fsi;
-  FIL            SDFile;
-
-  // Simulate a one-minute 16bit stereo audio file at 48khz (about 11.5 MB)
-  constexpr size_t             kAudioDataBytes = 60 * kSampleRate * 2 * sizeof(int16_t);
-  static DSY_SDRAM_BSS uint8_t audioData[kAudioDataBytes];
-}    // namespace spotykach_hwtest
-
 static AppImpl   impl;
 static Spotykach spotykachLooper = Spotykach(kSampleRate, kBlockSize);
 static Sporadic  sporadic(kSampleRate, kBlockSize);
@@ -86,10 +73,6 @@ void AppImpl::init ()
 
   pot_monitor.Init(ui_queue, hw, 500, 0.005f, 0.002f);
   std::fill(std::begin(last_pot_moved), std::end(last_pot_moved), 0);
-
-  // Uncomment this if you want to test the SD card -
-  // this takes about 10s and is blocking
-  // testSDCard();
 
   hw.seed.usb_handle.SetReceiveCallback(UsbCallback, UsbHandle::FS_EXTERNAL);
 
@@ -334,7 +317,6 @@ void AppImpl::loop ()
 
       // View part of MVC
       hw.leds.Clear();
-
 
       handleDisplay();
       hw.leds.Show();
@@ -1185,93 +1167,6 @@ void AppImpl::handleDisplay ()
       }
     }
   }
-}
-
-void AppImpl::testSDCard ()
-{
-  uint32_t len, byteswritten, bytesread;
-
-  for (size_t i = 0; i < kAudioDataBytes; i++)
-  {
-    audioData[i] = rand() & 255;
-  }
-
-  // Init SD Card
-  SdmmcHandler::Config sd_cfg;
-  sd_cfg.Defaults();
-  sd_cfg.speed = SdmmcHandler::Speed::STANDARD;
-  sd_cfg.width = SdmmcHandler::BusWidth::BITS_1;
-  sd.Init(sd_cfg);
-
-  // Links libdaisy i/o to fatfs driver.
-  fsi.Init(FatFSInterface::Config::MEDIA_SD);
-
-  // Mount SD Card
-  if (f_mount(&fsi.GetSDFileSystem(), "/", 1) != FR_OK)
-  {
-  }
-
-  uint32_t start = System::GetNow();
-
-  // Open and write the test file to the SD Card.
-  uint32_t offset = 0;
-  Log::PrintLine("Writing ~11.5MB (approx 60s stereo 16-bit audio) to file...");
-  if (f_open(&SDFile, TEST_FILE_NAME, (FA_CREATE_ALWAYS) | (FA_WRITE)) == FR_OK)
-  {
-    Log::PrintLine("Opened file for writing");
-    // write in 32kB chunks
-    while (offset < kAudioDataBytes)
-    {
-      len = std::min(kAudioDataBytes - offset, 32768ul);
-      f_write(&SDFile, &audioData[offset], len, (UINT *)&byteswritten);
-      offset += 32768ul;
-    }
-  }
-  else
-  {
-    Log::PrintLine("Failed to open file for writing");
-    return;
-  }
-  f_close(&SDFile);
-
-  uint32_t write_time = System::GetNow() - start;
-  Log::PrintLine("Write took %u ms", write_time);
-
-  Log::PrintLine("Reading ~11.5MB (approx 60s stereo 16-bit audio) from file...");
-
-  // Read back the test file from the SD Card.
-  offset = 0;
-  start  = System::GetNow();
-  if (f_open(&SDFile, TEST_FILE_NAME, FA_OPEN_EXISTING | FA_READ) == FR_OK)
-  {
-    Log::PrintLine("Opened file for reading");
-    while (offset < kAudioDataBytes)
-    {
-      FRESULT res;
-      res = f_read(&SDFile, &audioData[offset], 32768, (UINT *)&bytesread);
-      if (res != FR_OK)
-      {
-        Log::PrintLine("Chunk read failed: %u", res);
-        break;
-      }
-      // Log::PrintLine("Read %u bytes in %u ms", bytesread, System::GetNow() - start);
-      if (bytesread < 32768)
-      {
-        break;
-      }
-      offset += bytesread;
-    }
-
-    uint32_t read_time = System::GetNow() - start;
-    Log::PrintLine("Read took %u ms", read_time);
-  }
-  else
-  {
-    Log::PrintLine("Failed to open file for reading");
-    return;
-  }
-
-  f_close(&SDFile);
 }
 
 // ---------------------
