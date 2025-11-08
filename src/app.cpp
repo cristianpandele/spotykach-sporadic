@@ -17,7 +17,7 @@ using infrasonic::Log;
 
 static AppImpl   impl;
 static Spotykach spotykachLooper = Spotykach(kSampleRate, kBlockSize);
-static Sporadic  sporadic(kSampleRate, kBlockSize);
+static Sporadic  sporadic[kNumberDeckSlots] = { { kSampleRate, kBlockSize }, { kSampleRate, kBlockSize } };
 
 // Array of pointers to Decks
 Deck* decks[kNumberDeckSlots];
@@ -82,7 +82,8 @@ void AppImpl::init ()
 
   // Initialize the Spotykach looper
   spotykachLooper.init();
-  sporadic.init();
+  sporadic[0].init();
+  sporadic[1].init();
 
   // Initialize the soft takeover envelope generators
   for (size_t i = 0; i < kNumberDeckSlots; i++)
@@ -109,25 +110,24 @@ void AppImpl::setRoutingMode (AppImpl::AppMode mode)
 {
   if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
   {
-    spotykachLooper.setChannelConfig(ChannelConfig::STEREO);
-    sporadic.setChannelConfig(ChannelConfig::STEREO);
-    decks[0] = &spotykachLooper;
-    decks[1] = &sporadic;
+    // spotykachLooper.setChannelConfig(ChannelConfig::STEREO);
+    sporadic[0].setChannelConfig(ChannelConfig::STEREO);
+    sporadic[1].setChannelConfig(ChannelConfig::STEREO);
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_MONO)
   {
-    spotykachLooper.setChannelConfig(ChannelConfig::MONO_LEFT);
-    sporadic.setChannelConfig(ChannelConfig::MONO_RIGHT);
-    decks[0] = &spotykachLooper;
-    decks[1] = &sporadic;
+    // spotykachLooper.setChannelConfig(ChannelConfig::MONO_LEFT);
+    sporadic[0].setChannelConfig(ChannelConfig::MONO_LEFT);
+    sporadic[1].setChannelConfig(ChannelConfig::MONO_RIGHT);
   }
   else if (currentRoutingMode == AppMode::ROUTING_DUAL_STEREO)
   {
-    spotykachLooper.setChannelConfig(ChannelConfig::STEREO);
-    sporadic.setChannelConfig(ChannelConfig::STEREO);
-    decks[0] = &spotykachLooper;
-    decks[1] = &sporadic;
+    // spotykachLooper.setChannelConfig(ChannelConfig::STEREO);
+    sporadic[0].setChannelConfig(ChannelConfig::STEREO);
+    sporadic[1].setChannelConfig(ChannelConfig::STEREO);
   }
+  decks[0] = &sporadic[0];
+  decks[1] = &sporadic[1];
 }
 
 void AppImpl::updateAnalogControlFrame(Deck::AnalogControlFrame &frame, size_t slot)
@@ -484,7 +484,7 @@ void AppImpl::logDebugInfo ()
   // }
 
   std::vector<float> treePositions;
-  sporadic.getTreePositions(treePositions);
+  sporadic[0].getTreePositions(treePositions);
   for (size_t i = 0; i < treePositions.size(); ++i)
   {
     Log::PrintLine("Tree %d Position: " FLT_FMT(5), i, FLT_VAR(5, treePositions[i]));
@@ -492,7 +492,7 @@ void AppImpl::logDebugInfo ()
 
   // Print the nodeInterconnection matrix
   std::vector<std::vector<float>> matrix;
-  sporadic.getNodeInterconnectionMatrix(matrix);
+  sporadic[0].getNodeInterconnectionMatrix(matrix);
   Log::PrintLine("Interconnection Matrix:");
   for (size_t i = 0; i < matrix.size(); ++i)
   {
