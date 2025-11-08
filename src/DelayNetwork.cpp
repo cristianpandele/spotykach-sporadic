@@ -24,30 +24,56 @@ void DelayNetwork::setParameters (const Parameters &p)
   size_t newBands      = std::max(1, p.numBands);
   size_t newProcs      = std::max(1, p.numProcs);
   float  newCenterFreq = daisysp::fclamp(p.centerFreq, DiffusionControl::kMinFreq, DiffusionControl::kMaxFreq);
+  float  newStretch    = daisysp::fmap(p.stretch, kMinStretch, kMaxStretch, Mapping::LOG);
+  float  newTreeDensity = std::min(1.0f, p.treeDensity);
+  float  newTreeOffset  = std::min(1.0f, p.treeOffset);
+  float  newMyceliaMix  = std::min(1.0f, p.myceliaMix);
+  // Reverse
   if (newReverse != reverse_)
   {
     delayNodes_.setReverse(newReverse);
   }
+  // Configure diffusion
   if ((newBands != numBands_) || (newCenterFreq != centerFreq_))
   {
     diffusion_.setParameters({.numActiveBands = newBands, .centerFreq = newCenterFreq});
   }
+  // Initialize delay nodes
   if ((newBands != numBands_) || (newProcs != numProcs_))
   {
     delayNodes_.init(sampleRate_, blockSize_, newBands, newProcs);
+    // delayNodes_.setMyceliaMix(myceliaMix_);
+    // reinitialized = true;
   }
-  float newStretch = daisysp::fmap(p.stretch, kMinStretch, kMaxStretch, Mapping::LOG);
+  // Stretch
   if (newStretch != stretch_)
   {
     delayNodes_.setStretch(newStretch);
   }
-
-  play_       = newPlay;
-  reverse_    = newReverse;
-  centerFreq_ = newCenterFreq;
-  numBands_   = newBands;
-  numProcs_   = newProcs;
-  stretch_    = newStretch;
+  // Tree density
+  if (newTreeDensity != treeDensity_)
+  {
+    delayNodes_.setTreeDensity(newTreeDensity);
+  }
+  // Tree offset
+  if (newTreeOffset != treeOffset_)
+  {
+    delayNodes_.setTreeOffset(newTreeOffset);
+  }
+  // Mycelia mix
+  if (newMyceliaMix != myceliaMix_)
+  {
+    delayNodes_.setMyceliaMix(newMyceliaMix);
+  }
+  play_        = newPlay;
+  reverse_     = newReverse;
+  centerFreq_  = newCenterFreq;
+  numBands_    = newBands;
+  numProcs_    = newProcs;
+  stretch_     = newStretch;
+  treeDensity_ = newTreeDensity;
+  treeOffset_  = newTreeOffset;
+  myceliaMix_  = newMyceliaMix;
 }
 
 // Getter for current band cutoff frequencies

@@ -74,10 +74,10 @@ class Sporadic : public Deck
     void setPlay (bool p) override;
     void setReverse (bool r) override;
     void setSpotyPlay (bool s);
-    void setSpoty (float s) override;
+    // void setSpoty (float s) override;
 
     // Prepare and set delay network parameters
-    void setDelayNetworkParameters (bool play, bool reverse, float centerFreq, float stretch);
+    void setDelayNetworkParameters ();
 
     // Update the diffusion ring state in the DisplayState
     void updateDiffusionRingState(DisplayState &view);
