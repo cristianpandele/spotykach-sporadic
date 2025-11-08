@@ -86,7 +86,7 @@ void DelayNodes::setInitialConnections ()
 void DelayNodes::setTreeDensity(float density)
 {
   // Clamp to [0,1]
-  float treeDensity_ = infrasonic::unitclamp(density);
+  treeDensity_ = infrasonic::unitclamp(density);
 
   float newActiveTrees;
   // Map to [numProcs_, 1, numProcs_] following a U-shaped curve
@@ -130,16 +130,16 @@ void DelayNodes::setTreeDensity(float density)
   {
     entanglement_ = 0.0f;
   }
+}
 
-  // If density < 0.5, ignore inter-node connections (linear chain only)
-  if (treeDensity_ < 0.5f)
-  {
-    ignoreMycelia_ = true;
-  }
-  else
-  {
-    ignoreMycelia_ = false;
-  }
+void DelayNodes::setTreeOffset (float offset)
+{
+  treeOffset_ = std::clamp(offset, 0.0f, 1.0f);
+}
+
+void DelayNodes::setMyceliaMix (float mix)
+{
+  myceliaMix_ = std::clamp(mix, 0.0f, 1.0f);
 }
 
 void DelayNodes::getTreePositions(std::vector<float>& positions) const
@@ -366,11 +366,8 @@ void DelayNodes::updateSidechainLevels (size_t ch)
       sc = inflow - delayProcs_[ch][p].outputLevel;
     }
     sidechainLevels_[p] = daisysp::fclamp(sc, 0.0f, 1.0f);
-  }
 
-  // Push to processors
-  for (size_t p = 0; p < numProcs_; ++p)
-  {
+    // Push to processor
     delayProcs_[ch][p].setSidechainLevel(sidechainLevels_[p]);
   }
 }
@@ -435,7 +432,8 @@ void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t c
           inVal[i] += (1.0f - mix) * processorBuffers_[p - 1][i];
         }
       }
-      else
+
+      if (mix > 0.0f)
       {
         float networkContribution[kBurstSizeSamples] = {0.0f, 0.0f, 0.0f, 0.0f};
         // Sum contributions from all other processors per routing matrix
@@ -461,6 +459,7 @@ void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t c
 
     // Write per-processor outputs for this sample
     for (size_t p = 0; p < numProcs_; ++p)
+
     {
       for (size_t i = 0; i < kBurstSizeSamples; ++i)
       {
@@ -469,3 +468,4 @@ void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t c
     }
   }
 }
+

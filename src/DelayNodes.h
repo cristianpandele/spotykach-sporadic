@@ -36,6 +36,16 @@ class DelayNodes
     // Set the stretch factor controlling delay times (overall scale).
     void setStretch (float stretch);
 
+    // Set the tree offset (normalized position in [0,1]).
+    void setTreeOffset (float offset);
+
+    // Density controls how many trees (processors) are considered active.
+    // 0 -> 1 active tree, 1 -> numProcs_ active trees (linear mapping).
+    void setTreeDensity (float density);
+
+    // Blend between simple chain routing (0) and full mycelial network (1).
+    void setMyceliaMix (float mix);
+
     // Update the inter-node routing matrix (2D: numProcs_ x numProcs_)
     void updateNodeInterconnections ();
 
@@ -43,10 +53,6 @@ class DelayNodes
     // Getter for current inter-node connection matrix (numProcs x numProcs)
     void getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const;
 #endif
-
-    // Density controls how many trees (processors) are considered active.
-    // 0 -> 1 active tree, 1 -> numProcs_ active trees (linear mapping).
-    void setTreeDensity(float density);
 
     // Number of active trees computed from density (in [1, numProcs_]).
     int getNumActiveTrees() const { return numActiveTrees_; }
@@ -63,14 +69,14 @@ class DelayNodes
     float  stretch_       = 1.0f;    // Overall stretch factor for delay times
     float  entanglement_  = 0.0f;    // [0,1] strength of interconnection dynamics
     float  feedback_      = 0.0f;    // Feedback level for all delay processors
-    bool   ignoreMycelia_ = false;   // If true, ignore inter-node connections
+    float  myceliaMix_    = 1.0f;    // Blend factor for inter-node routing
+    float  treeOffset_    = 0.0f;    // Normalized offset applied to tree positions
+    float  treeDensity_   = 1.0f;    // Normalized tree density (0..1)
 
     static constexpr float  kNodeInterconnectionUpdateIntervalMs = 2000.0f;    // Update routing every 2 seconds
 
     DelayProcMatrix delayProcs_ = nullptr;
 
-    // Tree density (0..1) maps linearly to number of active trees [1..numProcs_].
-    float treeDensity_ = 1.0f;    // [0,1]
     // The current number of active trees
     size_t numActiveTrees_ = 1;    // [1,numProcs_]
     // Normalized positions within [0,1]; last entry is 1.0 to indicate end of chain.
