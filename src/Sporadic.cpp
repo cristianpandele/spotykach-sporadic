@@ -29,11 +29,14 @@ void Sporadic::setPosition (float p, bool gritLatch)
 
   if (positionChangedGrit)
   {
-    setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
+    // Set the dispersion center frequency in the delay network
+    setDelayNetworkParameters();
   }
   else if (positionChanged && !getGritMenuOpen())
   {
     position_ = positionControl_;
+    // Set the mycelia mix in the delay network
+    setDelayNetworkParameters();
     // Set fold window dirty flag to update visualization
     foldWindowDirty_ = true;
   }
@@ -52,6 +55,8 @@ void Sporadic::setSize (float s, bool gritLatch)
   else if (sizeChanged && !getGritMenuOpen())
   {
     size_ = sizeControl_;
+    // Set the tree offset in the delay network
+    setDelayNetworkParameters();
     // Set fold window dirty flag to update visualization
     foldWindowDirty_ = true;
   }
@@ -70,6 +75,8 @@ void Sporadic::setShape (float s, bool gritLatch)
   else if (shapeChanged && !getGritMenuOpen())
   {
     shape_ = shapeControl_;
+    // Set the tree density in the delay network
+    setDelayNetworkParameters();
     // Set fold window dirty flag to update visualization
     foldWindowDirty_ = true;
   }
@@ -87,8 +94,9 @@ void Sporadic::setPitch (float p, bool gritLatch)
   }
   if (pitchChanged && !getGritMenuOpen())
   {
-    // Set the tree density in the delay network
-    delayNetwork_.setTreeDensity(pitchControl_);
+    pitch_ = pitchControl_;
+    // Set the stretch factor in the delay network
+    setDelayNetworkParameters();
 
     // Set the tree size of the edge trees
     float edgeTreeSize = 0.0f;
@@ -116,7 +124,7 @@ void Sporadic::setPlay (bool p)
 
   if (playChanged)
   {
-    setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
+    setDelayNetworkParameters();
   }
   foldWindowDirty_ = true;
 }
@@ -136,22 +144,22 @@ void Sporadic::setReverse (bool r)
 
   if (reverseChanged)
   {
-    setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
+    setDelayNetworkParameters();
   }
 }
 
-void Sporadic::setSpoty (float s)
-{
-  s = infrasonic::unitclamp(s);
-  bool spotyChanged = (std::abs(s - spotyControl_) > kParamChThreshold);
-  spotyControl_ = spotyChanged ? s : spotyControl_;
+// void Sporadic::setSpoty (float s)
+// {
+//   s = infrasonic::unitclamp(s);
+//   bool spotyChanged = (std::abs(s - spotyControl_) > kParamChThreshold);
+//   spotyControl_ = spotyChanged ? s : spotyControl_;
 
-  if (spotyChanged)
-  {
-    spoty_ = spotyControl_;
-    setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
-  }
-}
+//   if (spotyChanged)
+//   {
+//     spoty_ = spotyControl_;
+//     setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
+//   }
+// }
 
 void Sporadic::getBandFrequencies (std::vector<float> &frequencies) const
 {
@@ -175,14 +183,17 @@ void Sporadic::getSidechainLevels (size_t ch, std::vector<float> &scLevels) cons
 }
 #endif
 
-void Sporadic::setDelayNetworkParameters(bool play, bool reverse, float centerFreq, float stretch)
+void Sporadic::setDelayNetworkParameters()
 {
-  delayNetwork_.setParameters({.play       = play,
-                               .reverse    = reverse,
-                               .numBands   = kMaxNutrientBands,
-                               .numProcs   = kMaxNumDelayProcs,
-                               .centerFreq = centerFreq,
-                               .stretch    = stretch});
+  delayNetwork_.setParameters({.play        = play_,
+                               .reverse     = reverse_,
+                               .numBands    = kMaxNutrientBands,
+                               .numProcs    = kMaxNumDelayProcs,
+                               .centerFreq  = inputSculptCenterFreq_,
+                               .stretch     = pitch_,
+                               .treeDensity = shape_,
+                               .treeOffset  = position_,
+                               .myceliaMix  = size_});
 }
 
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
@@ -194,7 +205,7 @@ void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
   setPosition(c.position, c.positionGrit);
   setSize(c.size, c.sizeGrit);
   setShape(c.shape, c.shapeGrit);
-  setSpoty(c.spoty);
+  // setSpoty(c.spoty);
 }
 
 void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
@@ -221,7 +232,7 @@ void Sporadic::getDigitalControls (DigitalControlFrame &c)
 {
   c.reverse   = reverse_;
   c.play      = play_;
-  c.altPlay   = false;    // Spotykach+Play is just a toggle
+  c.altPlay   = false;    // Alt+Play is just a toggle
   c.spotyPlay = false;
   c.flux      = flux_;
   c.altFlux   = false;    // Alt+Flux is just a toggle

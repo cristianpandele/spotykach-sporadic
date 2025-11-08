@@ -36,6 +36,16 @@ class DelayNodes
     // Set the stretch factor controlling delay times (overall scale).
     void setStretch (float stretch);
 
+    // Set the tree offset (normalized position in [0,1]).
+    void setTreeOffset (float offset);
+
+    // Density controls how many trees (processors) are considered active.
+    // 0 -> 1 active tree, 1 -> numProcs_ active trees (linear mapping).
+    void setTreeDensity (float density);
+
+    // Blend between simple chain routing (0) and full mycelial network (1).
+    void setMyceliaMix (float mix);
+
     // Update the inter-node routing matrix (2D: numProcs_ x numProcs_)
     void updateNodeInterconnections ();
 
@@ -46,10 +56,6 @@ class DelayNodes
     // Get current sidechain levels for all processors
     void getSidechainLevels (size_t ch, std::vector<float> &scLevels) const;
 #endif
-
-    // Density controls how many trees (processors) are considered active.
-    // 0 -> 1 active tree, 1 -> numProcs_ active trees (linear mapping).
-    void setTreeDensity(float density);
 
     // Get normalized tree positions in [0,1], size == numActiveTrees_.
     void getTreePositions (std::vector<float> &positions) const;
@@ -66,7 +72,9 @@ class DelayNodes
     float  stretch_       = 1.0f;    // Overall stretch factor for delay times
     float  entanglement_  = 0.0f;    // [0,1] strength of interconnection dynamics
     float  feedback_      = 0.0f;    // Feedback level for all delay processors
-    bool   ignoreMycelia_ = false;   // If true, ignore inter-node connections
+    float  myceliaMix_    = 1.0f;    // Blend factor for inter-node routing
+    float  treeOffset_    = 0.0f;    // Normalized offset applied to tree positions
+    float  treeDensity_   = 1.0f;    // Normalized tree density (0..1)
 
     static constexpr float  kNodeInterconnectionUpdateIntervalMs = 2000.0f;    // Update routing every 2 seconds
 

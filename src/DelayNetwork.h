@@ -20,6 +20,9 @@ class DelayNetwork
       int   numProcs;
       float centerFreq;
       float stretch;
+      float treeDensity;
+      float treeOffset;
+      float myceliaMix;
     };
 
     // Provide expected processing block size so internal buffers can be
@@ -64,6 +67,8 @@ class DelayNetwork
     bool   reverse_        = false;
     float  centerFreq_     = 1000.0f;
     float  stretch_        = 1.0f;
+    float  treeOffset_     = 0.0f;    // Normalized offset applied to tree positions
+    float  myceliaMix_     = 1.0f;    // Blend factor for inter-node routing
     float  treeDensity_    = 1.0f;    // [0,1]
     size_t numActiveTrees_ = kMaxNumDelayProcs;
 
