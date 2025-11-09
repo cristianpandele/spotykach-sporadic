@@ -17,8 +17,8 @@ void DelayProc::init (float sr, size_t maxDelaySamples)
   // Initialize sub-components
   delay.Init();
   // Initialize envelope followers
-  inputEnvFollower.init(sampleRate_);
-  outputEnvFollower.init(sampleRate_);
+  inputEnvFollower.init(sampleRate_ / kBurstSizeSamples);
+  outputEnvFollower.init(sampleRate_ / kBurstSizeSamples);
   // Initialize compressor
   compressor.Init(sampleRate_);
   compressor.SetAttack(0.02f);
@@ -62,31 +62,41 @@ void DelayProc::setSidechainLevel (float sc)
   compressor.Process(key);
 }
 
-float DelayProc::process (float in)
+void DelayProc::processBurst (const float in[kBurstSizeSamples], float out[kBurstSizeSamples])
 {
-  // Update input envelope
-  inputLevel = std::abs(in);
-  inputLevel = inputEnvFollower.process(in);
-
-  // Update current delay value
+  // Update current delay value (once per kBurstSizeSamples samples)
   updateCurrentDelay();
 
-  // Process delay
-  float read = delay.ReadHermite(currentDelay_);
-  // Update output envelope follower
-  outputLevel = outputEnvFollower.process(read);
+  // Read samples from delay line using burst mode
+  float read_samples[kBurstSizeSamples];
+  delay.ReadHermiteBurst(currentDelay_, read_samples);
 
-  // Apply sidechain compression to the feedback path.
-  float y = compressor.Apply(read);
+  inputLevel = std::abs(in[0]);
+  inputLevel = inputEnvFollower.process(in[0]);
 
-  // Write back with feedback
-  delay.Write((y - read) * feedback_ + in);
-
-  // Age update based on growth rate (and input level)
-  if (inputLevel > kMetabolicThreshold)
+  // Process each of the 4 samples
+  float write_samples[4];
+  for (int i = 0; i < 4; i++)
   {
-    float sign = reverse_ ? -1.0f : 1.0f;
-    currentAge_ = infrasonic::unitclamp(currentAge_ + sign * kGrowthRate);
+
+    // Apply sidechain compression to the feedback path
+    float y = compressor.Apply(read_samples[i]);
+    out[i] = y;
+
+    // Prepare write sample with feedback
+    write_samples[i] = (read_samples[i] - y) * feedback_ + in[i];
+
+    // Age update based on growth rate (and input level)
+    if (inputLevel > kMetabolicThreshold)
+    {
+      float sign = reverse_ ? -1.0f : 1.0f;
+      currentAge_ = infrasonic::unitclamp(currentAge_ + sign * kGrowthRate);
+    }
   }
-  return y;
+
+  // Update output envelope follower
+  outputLevel = outputEnvFollower.process(out[0]);
+
+  // Write 4 samples back to delay line using burst mode
+  delay.WriteBurst(write_samples);
 }

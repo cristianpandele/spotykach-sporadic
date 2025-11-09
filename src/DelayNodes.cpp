@@ -399,46 +399,73 @@ void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t c
   // Update sidechain levels once per block
   updateSidechainLevels(ch);
 
-  for (size_t s = 0; s < blockSize; ++s)
+  // Build input buffers sample-by-sample (routing depends on current sample outputs)
+  // Then process each processor's block once using processBlock()
+  for (size_t s = 0; s < blockSize; s += kBurstSizeSamples)
   {
     // External mixed input across bands
-    float externalInput = 0.0f;
+    float externalInput[kBurstSizeSamples] = {0.0f, 0.0f, 0.0f, 0.0f};
     for (size_t b = 0; b < numBands_; ++b)
     {
-      externalInput += inBand[b][s];
+      for (size_t i = 0; i < kBurstSizeSamples; ++i)
+      {
+        externalInput[i] += inBand[b][s + i];
+      }
     }
 
-    // Compute each processor output
+    // Compute each processor input for this sample
+    // Process processors sequentially to maintain routing dependencies
     for (size_t p = 0; p < numProcs_; ++p)
     {
-      float inVal = (p == 0 ? externalInput : 0.0f);
-      if (ignoreMycelia_)
+      float inVal[kBurstSizeSamples] = {0.0f, 0.0f, 0.0f, 0.0f};
+      if (p == 0)
       {
-        // Sum contribution only from previous processor in chain
-        if (p > 0)
+        for (size_t i = 0; i < kBurstSizeSamples; ++i)
         {
-          inVal += processorBuffers_[p - 1];
+          inVal[i] = externalInput[i];
+        }
+      }
+
+      // Blend between simple linear chain and full mycelial network routing
+      const float mix = myceliaMix_;
+      if (p > 0 && (1.0f - mix) > 0.0f)
+      {
+        for (size_t i = 0; i < kBurstSizeSamples; ++i)
+        {
+          inVal[i] += (1.0f - mix) * processorBuffers_[p - 1][i];
         }
       }
       else
       {
-        // Sum contributions all other processors per routing matrix
+        float networkContribution[kBurstSizeSamples] = {0.0f, 0.0f, 0.0f, 0.0f};
+        // Sum contributions from all other processors per routing matrix
         for (size_t src = 0; src < numProcs_; ++src)
         {
           float w = interNodeConnections_[src][p];
           if (w != 0.0f)
           {
-            inVal += processorBuffers_[src] * w;
+            for (size_t i = 0; i < kBurstSizeSamples; ++i)
+            {
+              networkContribution[i] += processorBuffers_[src][i] * w;
+            }
           }
         }
+        for (size_t i = 0; i < kBurstSizeSamples; ++i)
+        {
+          inVal[i] += mix * networkContribution[i];
+        }
       }
-      processorBuffers_[p] = delayProcs_[ch][p].process(inVal);
+
+      delayProcs_[ch][p].processBurst(inVal, &processorBuffers_[p][0]);
     }
 
     // Write per-processor outputs for this sample
     for (size_t p = 0; p < numProcs_; ++p)
     {
-      treeOutputs[p][s] = processorBuffers_[p];
+      for (size_t i = 0; i < kBurstSizeSamples; ++i)
+      {
+        treeOutputs[p][s + i] = processorBuffers_[p][i];
+      }
     }
   }
 }

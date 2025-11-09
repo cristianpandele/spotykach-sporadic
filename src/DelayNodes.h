@@ -65,10 +65,10 @@ class DelayNodes
     float  feedback_      = 0.0f;    // Feedback level for all delay processors
     bool   ignoreMycelia_ = false;   // If true, ignore inter-node connections
 
-    static constexpr float kNodeInterconnectionUpdateIntervalMs = 2000.0f; // Update routing every 2 seconds
+    static constexpr float  kNodeInterconnectionUpdateIntervalMs = 2000.0f;    // Update routing every 2 seconds
 
-    // Tree density (0..1) maps linearly to number of active trees [1..numProcs_].
-    float treeDensity_ = 1.0f;    // [0,1]
+    DelayProcMatrix delayProcs_ = nullptr;
+
     // The current number of active trees
     size_t numActiveTrees_ = 1;    // [1,numProcs_]
     // Normalized positions within [0,1]; last entry is 1.0 to indicate end of chain.
@@ -83,7 +83,7 @@ class DelayNodes
     // Routing matrix: weight from src (row) to dst (col).
     float interNodeConnections_[kMaxNumDelayProcs][kMaxNumDelayProcs] = {};
     // Per-processor scratch buffer for current sample processing.
-    float processorBuffers_[kMaxNumDelayProcs] = {};
+    float processorBuffers_[kMaxNumDelayProcs][kBurstSizeSamples] = {};
     // Per-processor sidechain level (computed from routing + env levels)
     float sidechainLevels_[kMaxNumDelayProcs] = {};
 
