@@ -100,14 +100,8 @@ void Sporadic::setPitch (float p, bool gritLatch)
 
     // Set the tree size of the edge trees
     float edgeTreeSize = 0.0f;
-    if (pitchControl_ < 0.5f)
-    {
-      edgeTreeSize = infrasonic::map(pitchControl_, 0.0f, 0.5f, 1.0f, 0.4f);
-    }
-    else
-    {
-      edgeTreeSize = infrasonic::map(pitchControl_, 0.5f, 1.0f, 0.4f, 1.0f);
-    }
+    edgeTreeSize = daisysp::fmap(pitchControl_, 0.6f, 1.0f);
+
     for (auto &et : edgeTree_)
     {
       et.setTreeSize(edgeTreeSize);

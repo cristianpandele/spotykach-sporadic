@@ -220,14 +220,10 @@ void DelayNodes::updateNodeInterconnections ()
         continue;
       }
 
-      // normalized entanglement in [0,1]
-      float normEntanglement = entanglement_;
-
       if (connectionStrength > 0.0f)
       {
         // Existing connection: add a small delta that decays (and finally recedes) with age
-        float pairEntanglementDelta =
-          daisy::Random::GetFloat(0.0f, 0.1f) * normEntanglement * (0.5f - pairMinAge);
+        float pairEntanglementDelta = daisy::Random::GetFloat(0.0f, 0.1f) * entanglement_ * (0.5f - pairMinAge);
         pairEntanglementDelta *= connectionStrength;
         connectionStrength += pairEntanglementDelta;
       }
@@ -247,12 +243,12 @@ void DelayNodes::updateNodeInterconnections ()
 
         // Random chance to create a new connection
         float rnd        = daisy::Random::GetFloat(0.0f, 1.0f);
-        float createProb = normEntanglement * (1.0f - pairMinAge);
+        float createProb = entanglement_ * (1.0f - pairMinAge);
         if (rnd < createProb)
         {
           // Create a new connection with strength scaled by entanglement, proximity, and age
           connectionStrength = daisy::Random::GetFloat(0.0f, 0.5f) / (1.0f + pairMinAge);
-          connectionStrength *= normEntanglement;
+          connectionStrength *= entanglement_;
           connectionStrength *= proximity;
         }
       }
