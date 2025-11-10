@@ -88,6 +88,9 @@ class Sporadic : public Deck
     // Draw the envelope ring to the current DisplayState using position_/size_/shape_.
     void updateFoldWindowState(DisplayState &view);
 
+    // Update the ring state (play/pause) in the DisplayState
+    void updateRingState (DisplayState &view);
+
     ///////////
     NOCOPY (Sporadic);
 };
