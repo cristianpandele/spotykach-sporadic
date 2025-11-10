@@ -108,33 +108,19 @@ void DelayNodes::setTreeDensity(float density)
 
   numActiveTrees_ = newActiveTrees;
 
-  // Update feedback level
-  if (treeDensity_ < 0.5f)
-  {
-    feedback_ = 0.0f;
-  }
-  else
-  {
-    feedback_ = infrasonic::map(treeDensity_, 0.5f, 1.0f, 0.6f, 1.0f);
-  }
-
   // Update tree positions (this also updates delay times)
-  updateTreePositions((treeDensity_ < 0.5f));    // Uniform if density < 0.5
+  updateTreePositions(myceliaMix_ < 0.001f);    // Uniform if mycelial mix is 0
 
   // Update the entanglement factor based on density
-  if (treeDensity_ > 0.5f)
-  {
-    entanglement_ = infrasonic::map(treeDensity_, 0.5f, 1.0f, 0.0f, 1.0f);
-  }
-  else
-  {
-    entanglement_ = 0.0f;
-  }
+  entanglement_ = daisysp::fmap(treeDensity_, 0.0f, 1.0f, Mapping::EXP);
 }
 
 void DelayNodes::setTreeOffset (float offset)
 {
   treeOffset_ = std::clamp(offset, 0.0f, 1.0f);
+
+  // Update tree positions (this also updates delay times)
+  updateTreePositions(myceliaMix_ < 0.001f);    // Uniform if mycelial mix is 0
 }
 
 void DelayNodes::setMyceliaMix (float mix)
