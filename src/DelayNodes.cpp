@@ -89,15 +89,9 @@ void DelayNodes::setTreeDensity(float density)
   treeDensity_ = infrasonic::unitclamp(density);
 
   float newActiveTrees;
-  // Map to [numProcs_, 1, numProcs_] following a U-shaped curve
-  if (treeDensity_ < 0.5f)
-  {
-    newActiveTrees = infrasonic::map(treeDensity_, 0.0f, 0.5f, static_cast<float>(numProcs_ + 1), 0.0f);
-  }
-  else
-  {
-    newActiveTrees = infrasonic::map(treeDensity_, 0.5f, 1.0f, 0.0f, static_cast<float>(numProcs_ + 1));
-  }
+  // Map to [0, numProcs_]
+  newActiveTrees = daisysp::fmap(treeDensity_, 0.0f, static_cast<float>(numProcs_ + 1));
+
   newActiveTrees  = std::round<size_t>(newActiveTrees);
   newActiveTrees  = std::max(static_cast<size_t>(1), static_cast<size_t>(newActiveTrees));
 
@@ -190,6 +184,16 @@ void DelayNodes::updateTreePositions(bool uniform)
 
   // Sort to ensure increasing order
   std::sort(treePositions_.begin(), treePositions_.begin() + numActiveTrees_ - 1);
+
+  // Apply tree offset (circularly)
+  for (size_t i = 0; i < numActiveTrees_; ++i)
+  {
+    treePositions_[i] += treeOffset_;
+    if (treePositions_[i] > 1.0f)
+    {
+      treePositions_[i] -= 1.0f;
+    }
+  }
 
   setDelayProcsParameters();    // Update delay times according to new tree positions
 }
