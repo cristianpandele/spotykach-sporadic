@@ -29,6 +29,7 @@ class Sporadic : public Deck
 #ifdef DEBUG
     void getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const;
     void getTreePositions (std::vector<float> &positions) const;
+    void getSidechainLevels (size_t ch, std::vector<float> &scLevels) const;
 #endif
 
   private:

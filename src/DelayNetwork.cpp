@@ -62,7 +62,19 @@ void DelayNetwork::getNodeInterconnectionMatrix (std::vector<std::vector<float>>
 {
   delayNodes_.getNodeInterconnectionMatrix(matrix);
 }
+
+void DelayNetwork::getSidechainLevels (size_t ch, std::vector<float> &scLevels) const
+{
+  const_cast<DelayNodes &>(delayNodes_).getSidechainLevels(ch, scLevels);
+}
 #endif
+
+void DelayNetwork::getTreePositions (std::vector<float> &positions) const
+{
+  // Gather from nodes; DelayNodes holds the authoritative positions
+  // Note: const_cast used to call non-const getter if needed; prefer const in DelayNodes if making changes later
+  const_cast<DelayNodes &>(delayNodes_).getTreePositions(positions);
+}
 
 void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *out, size_t blockSize)
 {
@@ -123,13 +135,6 @@ void DelayNetwork::setTreeDensity (float density)
   // Cache active tree count for external queries
   numActiveTrees_ = delayNodes_.getNumActiveTrees();
   updatePerProcGains();    // Tree topology changed -> resample gains
-}
-
-void DelayNetwork::getTreePositions (std::vector<float> &positions) const
-{
-  // Gather from nodes; DelayNodes holds the authoritative positions
-  // Note: const_cast used to call non-const getter if needed; prefer const in DelayNodes if making changes later
-  const_cast<DelayNodes &>(delayNodes_).getTreePositions(positions);
 }
 
 void DelayNetwork::setFoldWindow (const float *ring, uint8_t len)

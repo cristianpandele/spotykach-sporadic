@@ -504,6 +504,15 @@ void AppImpl::logDebugInfo ()
     // Log::PrintLine("Node %d: %s", i, row.c_str());
   }
 
+  // Print the sidechain levels
+  std::vector<float> scLevels;
+  sporadic[0].getSidechainLevels(0, scLevels);
+  Log::PrintLine("Sidechain Levels:");
+  for (size_t i = 0; i < scLevels.size(); ++i)
+  {
+    Log::PrintLine("Processor %d Level: " FLT_FMT(5), i, FLT_VAR(5, scLevels[i]));
+  }
+
   if (spotyControl.isSmoothing())
     Log::PrintLine("Spotykach Slider Smoothing  : true");
   else

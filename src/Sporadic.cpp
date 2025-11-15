@@ -168,6 +168,11 @@ void Sporadic::getTreePositions (std::vector<float> &positions) const
 {
   delayNetwork_.getTreePositions(positions);
 }
+
+void Sporadic::getSidechainLevels (size_t ch, std::vector<float> &scLevels) const
+{
+  delayNetwork_.getSidechainLevels(ch, scLevels);
+}
 #endif
 
 void Sporadic::setDelayNetworkParameters(bool play, bool reverse, float centerFreq, float stretch)

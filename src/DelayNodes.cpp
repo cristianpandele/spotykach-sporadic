@@ -142,16 +142,6 @@ void DelayNodes::setTreeDensity(float density)
   }
 }
 
-void DelayNodes::getTreePositions(std::vector<float>& positions) const
-{
-  positions.clear();
-  positions.reserve(static_cast<size_t>(numActiveTrees_));
-  for (size_t i = 0; i < numActiveTrees_; ++i)
-  {
-    positions.push_back(treePositions_[i]);
-  }
-}
-
 void DelayNodes::updateTreePositions(bool uniform)
 {
   // Ensure last tree is at 1.0
@@ -339,7 +329,29 @@ void DelayNodes::getNodeInterconnectionMatrix (std::vector<std::vector<float>> &
     }
   }
 }
+
+// Get current sidechain levels for all processors
+void DelayNodes::getSidechainLevels (size_t ch, std::vector<float> &scLevels) const
+{
+  scLevels.clear();
+  scLevels.resize(numProcs_);
+  for (size_t p = 0; p < numProcs_; ++p)
+  {
+    scLevels[p] = sidechainLevels_[p];
+  }
+}
 #endif
+
+// Get normalized tree positions [0,1], size == numActiveTrees
+void DelayNodes::getTreePositions (std::vector<float> &positions) const
+{
+  positions.clear();
+  positions.reserve(static_cast<size_t>(numActiveTrees_));
+  for (size_t i = 0; i < numActiveTrees_; ++i)
+  {
+    positions.push_back(treePositions_[i]);
+  }
+}
 
 void DelayNodes::updateSidechainLevels (size_t ch)
 {

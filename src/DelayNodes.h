@@ -42,17 +42,20 @@ class DelayNodes
 #ifdef DEBUG
     // Getter for current inter-node connection matrix (numProcs x numProcs)
     void getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const;
+
+    // Get current sidechain levels for all processors
+    void getSidechainLevels (size_t ch, std::vector<float> &scLevels) const;
 #endif
 
     // Density controls how many trees (processors) are considered active.
     // 0 -> 1 active tree, 1 -> numProcs_ active trees (linear mapping).
     void setTreeDensity(float density);
 
+    // Get normalized tree positions in [0,1], size == numActiveTrees_.
+    void getTreePositions (std::vector<float> &positions) const;
+
     // Number of active trees computed from density (in [1, numProcs_]).
     int getNumActiveTrees() const { return numActiveTrees_; }
-
-    // Get normalized tree positions in [0,1], size == numActiveTrees_.
-    void getTreePositions(std::vector<float>& positions) const;
 
   private:
     float  sampleRate_    = 48000.0f;

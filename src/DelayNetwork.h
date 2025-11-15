@@ -33,6 +33,9 @@ class DelayNetwork
 #ifdef DEBUG
     // Getter for current inter-node connection matrix (numProcs x numProcs)
     void getNodeInterconnectionMatrix (std::vector<std::vector<float>> &matrix) const;
+
+    // Get current sidechain levels for all processors
+    void getSidechainLevels (size_t ch, std::vector<float> &scLevels) const;
 #endif
 
     // Process a block: input mono arrays (size N) -> output mono (size N)
@@ -46,9 +49,11 @@ class DelayNetwork
     // Tree density (0..1) maps linearly to number of active trees [1..numProcs_].
     void setTreeDensity(float density);
 
+    // Getter for number of active trees
+    int getNumActiveTrees () const { return numActiveTrees_; }
+
     // Get normalized tree positions [0,1], size == numActiveTrees
-    void getTreePositions(std::vector<float>& positions) const;
-    int  getNumActiveTrees() const { return numActiveTrees_; }
+    void getTreePositions (std::vector<float> &positions) const;
 
   private:
     float  sampleRate_     = 48000.0f;
