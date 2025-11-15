@@ -1,6 +1,7 @@
 #pragma once
 
 #include "InputSculpt.h"
+#include "Utils.h"
 #include "common.h"
 #include "constants.h"
 #include "daisy_seed.h"
