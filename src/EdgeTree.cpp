@@ -3,7 +3,6 @@
 void EdgeTree::init (float sampleRate)
 {
   envFollower_ = EnvelopeFollower(sampleRate);
-  envFollower_.setAmplitude(1.0f);    // Full modulation range
 }
 
 // Set tree size

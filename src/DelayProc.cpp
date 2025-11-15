@@ -17,10 +17,10 @@ void DelayProc::init (float sr, size_t maxDelaySamples)
   // Initialize sub-components
   delay.Init();
   // Initialize envelope followers
-  inputEnvFollower.init(sampleRate_);
+  inputEnvFollower.init(sampleRate_ / kBurstSizeSamples);
   inputEnvFollower.setAttackMs(20.0f);
   inputEnvFollower.setReleaseMs(200.0f);
-  outputEnvFollower.init(sampleRate_);
+  outputEnvFollower.init(sampleRate_ / kBurstSizeSamples);
   outputEnvFollower.setAttackMs(20.0f);
   outputEnvFollower.setReleaseMs(200.0f);
   // Initialize compressor

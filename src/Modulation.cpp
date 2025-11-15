@@ -173,7 +173,6 @@ float SampleAndHold::process ()
 
 EnvelopeFollower::EnvelopeFollower (float sampleRate)
 {
-  sampleRate_ = sampleRate;
   init(sampleRate);
 }
 
