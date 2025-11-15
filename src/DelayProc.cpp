@@ -17,8 +17,12 @@ void DelayProc::init (float sr, size_t maxDelaySamples)
   // Initialize sub-components
   delay.Init();
   // Initialize envelope followers
-  inputEnvFollower.init(sampleRate_ / kBurstSizeSamples);
-  outputEnvFollower.init(sampleRate_ / kBurstSizeSamples);
+  inputEnvFollower.init(sampleRate_);
+  inputEnvFollower.setAttackMs(20.0f);
+  inputEnvFollower.setReleaseMs(200.0f);
+  outputEnvFollower.init(sampleRate_);
+  outputEnvFollower.setAttackMs(20.0f);
+  outputEnvFollower.setReleaseMs(200.0f);
   // Initialize compressor
   compressor.Init(sampleRate_);
   compressor.SetAttack(0.02f);
@@ -69,34 +73,31 @@ void DelayProc::processBurst (const float in[kBurstSizeSamples], float out[kBurs
 
   // Read samples from delay line using burst mode
   float read_samples[kBurstSizeSamples];
+  float write_samples[kBurstSizeSamples];
+
   delay.ReadHermiteBurst(currentDelay_, read_samples);
 
-  inputLevel = std::abs(in[0]);
   inputLevel = inputEnvFollower.process(in[0]);
-
-  // Process each of the 4 samples
-  float write_samples[4];
-  for (int i = 0; i < 4; i++)
+  // Age update based on growth rate (and input level)
+  if (inputLevel > kMetabolicThreshold)
   {
+    float sign  = reverse_ ? -1.0f : 1.0f;
+    currentAge_ = infrasonic::unitclamp(currentAge_ + kBurstSizeSamples * sign * kGrowthRate);
+  }
 
+  // Process each of the kBurstSizeSamples samples
+  for (size_t i = 0; i < kBurstSizeSamples; i++)
+  {
     // Apply sidechain compression to the feedback path
-    float y = compressor.Apply(read_samples[i]);
-    out[i] = y;
+    out[i] = compressor.Apply(read_samples[i]);
 
     // Prepare write sample with feedback
-    write_samples[i] = (read_samples[i] - y) * feedback_ + in[i];
-
-    // Age update based on growth rate (and input level)
-    if (inputLevel > kMetabolicThreshold)
-    {
-      float sign = reverse_ ? -1.0f : 1.0f;
-      currentAge_ = infrasonic::unitclamp(currentAge_ + sign * kGrowthRate);
-    }
+    write_samples[i] = (read_samples[i] - out[i]) * feedback_ + in[i];
   }
 
   // Update output envelope follower
   outputLevel = outputEnvFollower.process(out[0]);
 
-  // Write 4 samples back to delay line using burst mode
+  // Write kBurstSizeSamples samples back to delay line using burst mode
   delay.WriteBurst(write_samples);
 }
