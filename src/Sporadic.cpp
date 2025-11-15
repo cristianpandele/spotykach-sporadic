@@ -354,7 +354,8 @@ void Sporadic::updateDiffusionRingState (DisplayState &view)
   std::vector<float> cutoffFreqs(kMaxNutrientBands);
   delayNetwork_.getBandFrequencies(cutoffFreqs);
 
-  if (cutoffFreqs.empty())
+  // Return early if no cutoff frequencies or not playing
+  if (cutoffFreqs.empty() || !play_)
   {
     return;
   }
@@ -368,8 +369,9 @@ void Sporadic::updateDiffusionRingState (DisplayState &view)
     float freq = cutoffFreqs[i];
     if (freq > 0.0f)
     {
-      uint8_t ledIdx   = freqToLed(freq, N, gritFilterMinFreq, gritFilterMaxFreq);
-      ledColor[ledIdx] = {0xff0000, kLowLedBrightness};    // Dark Red
+      uint8_t ledIdx     = freqToLed(freq, N, gritFilterMinFreq, gritFilterMaxFreq);
+      float   brightness = daisysp::fmap(1 - mix_, kLowLedBrightness, kMidLedBrightness, Mapping::LOG);
+      ledColor[ledIdx]   = {0xff0000, brightness};    // Dark Red - taking mix into account
       // Update the ring span information
       ringSpan.start = ledIdx;
       ringSpan.end   = ledIdx + 1;
