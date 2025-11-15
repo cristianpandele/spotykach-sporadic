@@ -365,10 +365,9 @@ void DelayNodes::updateSidechainLevels (size_t ch)
     {
       const size_t dst    = p + 1;
       float        inflow = 0.0f;
+
       for (size_t src = 0; src < numProcs_; ++src)
       {
-        if (src == p)
-          continue;
         float w = interNodeConnections_[src][dst];
         if (w > 0.0f)
         {
@@ -440,11 +439,11 @@ void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t c
 
       // Blend between simple linear chain and full mycelial network routing
       const float mix = myceliaMix_;
-      if (p > 0 && (1.0f - mix) > 0.0f)
+      if (p > 0)
       {
         for (size_t i = 0; i < kBurstSizeSamples; ++i)
         {
-          inVal[i] += (1.0f - mix) * processorBuffers_[p - 1][i];
+          inVal[i] += interNodeConnections_[p - 1][p] * processorBuffers_[p - 1][i];
         }
       }
       else
