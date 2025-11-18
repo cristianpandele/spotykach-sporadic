@@ -269,7 +269,7 @@ void DelayNodes::updateNodeInterconnections ()
     }
   }
 
-  // Normalize per source so that the sum of outgoing weights is 1.0f
+  // Normalize per source so that the sum of outgoing weights is just a bit under 1.0f
   for (size_t src = 0; src < kMaxNumDelayProcs; ++src)
   {
     float sum = 0.0f;
@@ -283,7 +283,7 @@ void DelayNodes::updateNodeInterconnections ()
       for (size_t dst = 0; dst < kMaxNumDelayProcs; ++dst)
       {
         float &connectionStrength = interNodeConnections_[src][dst];
-        connectionStrength /= sum;
+        connectionStrength /= (sum + 0.005f);    // +0.005f to avoid being at the edge of feedback instability
       }
     }
   }
