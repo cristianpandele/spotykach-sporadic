@@ -81,7 +81,7 @@ class Utils
         // Overload assignment to set targetValue
         SmoothValue &operator=(float v)
         {
-          if (std::abs(v - targetValue_) > 0.015f)
+          if (std::abs(v - targetValue_) > 0.01f)
           {
             targetValue_ = v;
             // Check if the value is undergoing smoothing
