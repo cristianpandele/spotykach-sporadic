@@ -131,10 +131,10 @@ namespace spotykach_hwtest
       bool    routingModeChanged = false;
       AppMode currentRoutingMode = AppMode::OFF;
 
-      // Mix controls for the two sides (updated at audio sample rate)
+      // Mix controls for the two sides (updated at audio block rate)
       using SmoothValue                         = Utils::SmoothValue;
-      SmoothValue mixControls[kNumberDeckSlots] = {SmoothValue(75.0f, kSamplePeriodMs),
-                                                   SmoothValue(75.0f, kSamplePeriodMs)};
+      SmoothValue mixControls[kNumberDeckSlots] = {SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
+                                                   SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
 
       // Mix control alt latch for the two sides
       bool mixAltLatch[kNumberDeckSlots] = {false};
