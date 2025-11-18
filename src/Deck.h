@@ -5,6 +5,7 @@
 #include "common.h"
 #include "constants.h"
 #include "daisy_seed.h"
+#include <daisysp.h>
 #include "hardware.h"
 using namespace daisy;
 using namespace spotykach;
@@ -72,6 +73,8 @@ class Deck
     static constexpr uint32_t kDoubleTapTimeoutMs = 425;
     // Timeout for held detection
     static constexpr uint32_t kHeldTimeoutMs = 150;
+    // Timeout for long-held detection (3 seconds)
+    static constexpr uint32_t kLongHeldTimeoutMs = 3000;
 
     struct RingSpan
     {
@@ -101,8 +104,8 @@ class Deck
       std::array<LedRgbBrightness, kMaxLedPhases> altLedColors;
     };
 
-    Deck (size_t sampleRate, size_t blockSize) : sampleRate_(sampleRate), blockSize_(blockSize) { }
-    Deck ()            = delete;
+    Deck (size_t sampleRate, size_t blockSize);
+    Deck ()              = delete;
     virtual ~Deck ()   = default;
 
     virtual void init () = 0;
@@ -330,16 +333,20 @@ class Deck
     virtual bool isGritPlaying () const { return (getGritHeld() || getGritMenuOpen() || getGritActive()); }
     virtual bool isEffectPlaying () const { return (isFluxPlaying() || isGritPlaying()); }
 
+    // Handle long-hold modulation (for each effect)
+    void processFluxLongHoldModulation ();
+    void processGritLongHoldModulation ();
+
     // Utility functions
     bool isChannelActive (size_t ch) const;
     // Detect if the Flux pad is held; returns true if held
-    bool detectFluxHeld ();
+    void detectFluxHeld ();
     // Detect if the Grit pad is held; returns true if held
-    bool detectGritHeld ();
-    // Handle Flux tap/hold detection; returns states via references
-    void handleFluxTap (const bool flux, bool &doubleTap, bool &held);
-    // Handle Grit tap/hold detection; returns states via references
-    void handleGritTap (const bool grit, bool &doubleTap, bool &held);
+    void detectGritHeld ();
+    // Handle Flux tap/hold detection; returns states via references (doubleTap, held, longHeld)
+    void handleFluxTap (const bool flux, bool &doubleTap, bool &held, bool &longHeld);
+    // Handle Grit tap/hold detection; returns states via references (doubleTap, held, longHeld)
+    void handleGritTap (const bool grit, bool &doubleTap, bool &held, bool &longHeld);
     // Map frequency to LED index
     uint8_t freqToLed (float f, uint8_t numLeds, float fMin, float fMax);
     // Interpolate between 4 values based on shape_
@@ -381,32 +388,59 @@ class Deck
     ///////////
     // Flux pad states
     bool           fluxActive_               = false;
+    // Pad held state (150ms)
     bool           fluxHeld_                 = false;
+    // Long-held state (3s)
+    bool           fluxLongHeld_             = false;
+    // Double-tap and held timers & states
     bool           fluxDoubleTapTimerActive_ = false;
     bool           fluxHeldTimerActive_      = false;
-    bool           fluxMenuOpen_             = false;
     StopwatchTimer fluxDoubleTapTimer_;
     StopwatchTimer fluxHeldTimer_;
+    // Flux menu state
+    bool           fluxMenuOpen_             = false;
 
     // Grit pad states
     bool           gritActive_               = false;
+    // Pad held state (150ms)
     bool           gritHeld_                 = false;
+    // Long-held state (3s)
+    bool           gritLongHeld_             = false;
+    // Double-tap and held timers & states
     bool           gritDoubleTapTimerActive_ = false;
     bool           gritHeldTimerActive_      = false;
-    bool           gritMenuOpen_             = false;
     StopwatchTimer gritDoubleTapTimer_;
     StopwatchTimer gritHeldTimer_;
+    // Grit menu state
+    bool           gritMenuOpen_             = false;
 
     ///////////
     // Held detection
-    void detectHeld (StopwatchTimer &timer, bool &timerActive, bool &held);
-    // General tap/hold handler. Returns true if a double-tap detected; updates "held"; stops timer if pressed == false.
+    void detectHeld (StopwatchTimer &timer, bool &timerActive, bool &held, bool &longHeld);
+
+    ///////////
+    // Long-hold modulation state
+    using SmoothValue = Utils::SmoothValue;
+
+    static constexpr float kLongHoldRampSec = 500.0f;    // ramp time for freq/amp from min->max
+
+    daisysp::Oscillator fluxOsc_;
+    SmoothValue         fluxFreqSmoother_ = SmoothValue(kLongHoldRampSec * 1000.0f, (1000.f * blockSize_ / sampleRate_));
+    SmoothValue         fluxAmpSmoother_  = SmoothValue(kLongHoldRampSec * 1000.0f, (1000.f * blockSize_ / sampleRate_));
+    bool                fluxLongHeldPrev_ = false;
+
+    daisysp::Oscillator gritOsc_;
+    SmoothValue         gritFreqSmoother_ = SmoothValue(kLongHoldRampSec * 1000.0f, (1000.f * blockSize_ / sampleRate_));
+    SmoothValue         gritAmpSmoother_  = SmoothValue(kLongHoldRampSec * 1000.0f, (1000.f * blockSize_ / sampleRate_));
+    bool                gritLongHeldPrev_ = false;
+    // General tap/hold handler. Returns double-tap state; updates "held" and "longHeld"; stops timers if pressed == false.
     void handleTap (const bool      padPressed,
                     StopwatchTimer &heldTimer,
                     bool           &heldTimerActive,
                     StopwatchTimer &doubleTapTimer,
                     bool           &doubleTapTimerActive,
                     bool           &held,
+                    bool           &longHeld,
                     bool           &doubleTap);
 
     ///////////

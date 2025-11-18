@@ -1,5 +1,18 @@
 #include "common.h"
 #include "Deck.h"
+#include "app.h"
+
+Deck::Deck(size_t sampleRate, size_t blockSize)
+  : sampleRate_(sampleRate), blockSize_(blockSize)
+{
+  const float updateRate = sampleRate_ / static_cast<float>(blockSize_);
+
+  // Initialize LFOs
+  fluxOsc_.Init(updateRate);
+  fluxOsc_.SetWaveform(daisysp::Oscillator::WAVE_SIN);
+  gritOsc_.Init(updateRate);
+  gritOsc_.SetWaveform(daisysp::Oscillator::WAVE_SIN);
+}
 
 using infrasonic::Log;
 
@@ -340,45 +353,44 @@ bool Deck::isChannelActive (size_t ch) const
 
 ///////////
 // Handle effect pad taps
-bool Deck::detectFluxHeld ()
+void Deck::detectFluxHeld ()
 {
-  detectHeld(fluxHeldTimer_, fluxHeldTimerActive_, fluxHeld_);
-  return fluxHeld_;
+  detectHeld(fluxHeldTimer_, fluxHeldTimerActive_, fluxHeld_, fluxLongHeld_);
 }
 
-bool Deck::detectGritHeld ()
+void Deck::detectGritHeld ()
 {
-  detectHeld(gritHeldTimer_, gritHeldTimerActive_, gritHeld_);
-  return gritHeld_;
+  detectHeld(gritHeldTimer_, gritHeldTimerActive_, gritHeld_, gritLongHeld_);
 }
 
-void Deck::handleFluxTap (const bool flux, bool &doubleTap, bool &held)
+void Deck::handleFluxTap (const bool flux, bool &doubleTap, bool &held, bool &longHeld)
 {
   handleTap(flux,
             fluxHeldTimer_,
             fluxHeldTimerActive_,
             fluxDoubleTapTimer_,
             fluxDoubleTapTimerActive_,
-            fluxHeld_,
+            held,
+            longHeld,
             doubleTap);
-  held = fluxHeld_;
 }
 
-void Deck::handleGritTap (const bool grit, bool &doubleTap, bool &held)
+void Deck::handleGritTap (const bool grit, bool &doubleTap, bool &held, bool &longHeld)
 {
   handleTap(grit,
             gritHeldTimer_,
             gritHeldTimerActive_,
             gritDoubleTapTimer_,
             gritDoubleTapTimerActive_,
-            gritHeld_,
+            held,
+            longHeld,
             doubleTap);
-  held = gritHeld_;
 }
 
-void Deck::detectHeld (StopwatchTimer &timer, bool &heldTimerActive, bool &held)
+void Deck::detectHeld (StopwatchTimer &timer, bool &heldTimerActive, bool &held, bool &longHeld)
 {
   held = ((heldTimerActive) && timer.HasPassedMs(kHeldTimeoutMs));
+  longHeld = ((heldTimerActive) && timer.HasPassedMs(kLongHeldTimeoutMs));
 }
 
 void Deck::handleTap (const bool      padPressed,
@@ -387,6 +399,7 @@ void Deck::handleTap (const bool      padPressed,
                         StopwatchTimer &doubleTapTimer,
                         bool           &doubleTapTimerActive,
                         bool           &held,
+                        bool           &longHeld,
                         bool           &doubleTap)
 {
   // If button released, stop timer and clear held
@@ -394,25 +407,30 @@ void Deck::handleTap (const bool      padPressed,
   {
     heldTimerActive = false;
     held            = false;
+    longHeld        = false;
     return;
   }
   else
   {
     // Handle held pad taps
     bool heldTimerExpired = heldTimer.HasPassedMs(kHeldTimeoutMs);
+    bool longTimerExpired = heldTimer.HasPassedMs(kLongHeldTimeoutMs);
+
     if (!heldTimerActive)
     {
       heldTimer.Init();
       heldTimerActive = true;
-      // infrasonic::Log::PrintLine("Held timer started");
     }
     else
     {
+      // Mark held/long-held once thresholds are breached; keep timer active so long-held can still be detected
       if (heldTimerExpired)
       {
-        // Held if we exceeded the held threshold
-        heldTimerActive = false;
-        held            = true;
+        held = true;
+      }
+      if (longTimerExpired)
+      {
+        longHeld = true;
       }
     }
 
@@ -489,9 +507,8 @@ void Deck::updateDigitalControlsEffects (const DigitalControlFrame &c)
   // Always feed flux state so release stops timer
   {
     bool dbl = false;
-    bool h   = false;
-    handleFluxTap(c.flux, dbl, h);
-    if (dbl || h)
+    handleFluxTap(c.flux, dbl, fluxHeld_, fluxLongHeld_);
+    if (dbl || fluxHeld_)
     {
       toggleFluxMenu();
     }
@@ -511,12 +528,110 @@ void Deck::updateDigitalControlsEffects (const DigitalControlFrame &c)
   // Always feed grit state so release stops timer
   {
     bool dbl = false;
-    bool h   = false;
-    handleGritTap(c.grit, dbl, h);
-    if (dbl || h)
+    handleGritTap(c.grit, dbl, gritHeld_, gritLongHeld_);
+    if (dbl || gritHeld_)
     {
       toggleGritMenu();
     }
+  }
+}
+
+///////////
+// Long-hold modulation handler implementations
+// Flux modulation
+void Deck::processFluxLongHoldModulation ()
+{
+  // if (fluxActive_ && fluxLongHeld_)
+  // {
+  //   if (!fluxLongHeldPrev_)
+  //   {
+  //     // Initialize smoothers on first long-hold detection
+  //     fluxFreqSmoother_ = 10.0f;
+  //     fluxAmpSmoother_  = 500.0f < inputSculptCenterFreq_ ? 500.0f : inputSculptCenterFreq_;
+  //   }
+
+  //   // Update LFO parameters
+  //   float fluxFreqCurrent = fluxFreqSmoother_.getSmoothVal();
+  //   float fluxAmpCurrent  = fluxAmpSmoother_.getSmoothVal();
+  //   fluxOsc_.SetFreq(fluxFreqCurrent);
+  //   fluxOsc_.SetAmp(fluxAmpCurrent);
+  //   float fluxLfo = fluxOsc_.Process();
+
+  //   // Apply modulation to input sculpt frequencies
+  //   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  //   {
+  //     if (isChannelActive(ch))
+  //     {
+  //       {
+  //         float sign          = (ch == 0) ? 1.0f : -1.0f;
+  //         inputSculpt_[ch].setFreq(inputSculptCenterFreq_ + fluxLfo * sign);
+  //       }
+  //     }
+  //   }
+
+  //   fluxLongHeldPrev_ = fluxLongHeld_;
+  // }
+  // else
+  // {
+  //   fluxLongHeldPrev_ = false;
+  //   // Reset input sculpt frequencies to base values
+  //   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  //   {
+  //     if (isChannelActive(ch))
+  //     {
+  //       inputSculpt_[ch].setFreq(inputSculptCenterFreq_);
+  //     }
+  //   }
+  // }
+}
+
+// Grit modulation
+void Deck::processGritLongHoldModulation ()
+{
+  if (gritActive_ && gritLongHeld_)
+  {
+    if (!gritLongHeldPrev_)
+    {
+      // Initialize smoothers on first long-hold detection
+      gritFreqSmoother_ = 7.0f;
+      gritAmpSmoother_  = 300.0f < inputSculptCenterFreq_ ? 300.0f : inputSculptCenterFreq_ / 2.0f;
+    }
+
+    // Update LFO parameters
+    float gritFreqCurrent =
+      gritFreqSmoother_.isSmoothing() ? gritFreqSmoother_.getSmoothVal() : gritFreqSmoother_.getTargetVal();
+    float gritAmpCurrent  = gritAmpSmoother_.isSmoothing() ? gritAmpSmoother_.getSmoothVal() : gritAmpSmoother_.getTargetVal();
+
+    gritOsc_.SetFreq(gritFreqCurrent);
+    gritOsc_.SetAmp(gritAmpCurrent);
+    float gritLfo = gritOsc_.Process();
+
+    // Apply modulation to input sculpt frequencies
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        float sign = (ch == 0) ? 1.0f : -1.0f;
+        inputSculpt_[ch].setFreq(inputSculptCenterFreq_ + gritLfo * sign);
+      }
+    }
+
+    gritLongHeldPrev_ = gritLongHeld_;
+  }
+  else
+  {
+    gritLongHeldPrev_ = false;
+    // Reset input sculpt frequencies to base values
+    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+    {
+      if (isChannelActive(ch))
+      {
+        inputSculpt_[ch].setFreq(inputSculptCenterFreq_);
+      }
+    }
+    // Reset smoothers
+    gritFreqSmoother_ = SmoothValue(0.0f, kLongHoldRampSec * 1000.0f, (1000.0f * blockSize_ / sampleRate_));
+    gritAmpSmoother_  = SmoothValue(0.0f, kLongHoldRampSec * 1000.0f, (1000.0f * blockSize_ / sampleRate_));
   }
 }
 

@@ -306,6 +306,16 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     return;
   }
 
+  if (isFluxPlaying())
+  {
+    Deck::processFluxLongHoldModulation();
+  }
+
+  if (isGritPlaying())
+  {
+    Deck::processGritLongHoldModulation();
+  }
+
   // Fill sculpted input (per-channel enable) into member scratch buffers
   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
