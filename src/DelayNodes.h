@@ -20,7 +20,6 @@ class DelayNodes
 {
   public:
     DelayNodes();
-    using DelayProcMatrix = DelayProc (*)[kMaxNumDelayProcs];
 
     void init (float sampleRate, size_t blockSize, size_t numBands, size_t numProcs);
     // Process a block. Inputs are per-band buffers (numBands_ x blockSize).
@@ -78,6 +77,7 @@ class DelayNodes
 
     static constexpr float  kNodeInterconnectionUpdateIntervalMs = 2000.0f;    // Update routing every 2 seconds
 
+    using DelayProcMatrix                                        = DelayProc (*)[kMaxNumDelayProcs];
     DelayProcMatrix delayProcs_ = nullptr;
 
     // The current number of active trees
