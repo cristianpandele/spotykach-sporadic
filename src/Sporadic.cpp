@@ -2,6 +2,13 @@
 #include "Sporadic.h"
 #include <cmath>
 
+namespace
+{
+  // Reverse configuration
+  DSY_SDRAM_BSS float     revBufPool[spotykach::kNumberDeckSlots][kNumberChannelsStereo][Sporadic::kMaxRevBufSize]{};
+  size_t                  revBufPoolNext = 0;
+}    // namespace
+
 void Sporadic::init ()
 {
   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
@@ -17,6 +24,27 @@ void Sporadic::init ()
   }
   // Initialize the delay network
   delayNetwork_.init(sampleRate_, blockSize_, kMaxNutrientBands, kMaxNumDelayProcs);
+
+  // Allocate reverse buffers from the pool
+  assert(revBufPoolNext < spotykach::kNumberDeckSlots);
+  const size_t poolIdx = std::min(revBufPoolNext, static_cast<size_t>(spotykach::kNumberDeckSlots - 1));
+  revBuf_              = revBufPool[poolIdx];
+  if (revBufPoolNext < spotykach::kNumberDeckSlots)
+  {
+    ++revBufPoolNext;
+  }
+
+  // Initialize reverse buffers
+  for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  {
+    revWritePos_[ch] = 0;
+    revReadPos_[ch] = kMaxRevBufSize - 1;
+    // zero the active portion of the buffer
+    std::fill_n(revBuf_[ch], kMaxRevBufSize, 0.0f);
+  }
+
+  // Initialize the smooth crossfade for enabling/disabling reverse (75 ms, block-rate updates)
+  reverseMixSmooth_ = Utils::SmoothValue(0.0f, 75.0f, (1000.0f * static_cast<float>(blockSize_) / static_cast<float>(sampleRate_)));
 }
 
 //////////
@@ -140,6 +168,8 @@ void Sporadic::setReverse (bool r)
   {
     setDelayNetworkParameters();
   }
+  // Ramp crossfade target (25 ms smoothing configured in init)
+  reverseMixSmooth_ = reverse_ ? 1.0f : 0.0f;
 }
 
 // void Sporadic::setSpoty (float s)
@@ -321,19 +351,61 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
     Deck::processGritLongHoldModulation();
   }
 
+  // Crossfade between normal input and reversed input using SmoothValue (0.0 = normal, 1.0 = reversed)
+  float revMix = reverseMixSmooth_.getSmoothVal();
+
   // Fill sculpted input (per-channel enable) into member scratch buffers
   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
     if (isChannelActive(ch))
     {
-      if (isGritPlaying())
+      // Always write incoming samples into the reverse circular buffer to keep it filled
+      if (revWritePos_[ch] + blockSize >= kMaxRevBufSize)
       {
-        inputSculpt_[ch].processBlockMono(in[ch], inputSculptBuf_[ch], blockSize);
+        size_t firstPart = kMaxRevBufSize - revWritePos_[ch];
+        size_t secondPart = blockSize - firstPart;
+        std::copy(in[ch], in[ch] + firstPart, &revBuf_[ch][revWritePos_[ch]]);
+        std::copy(in[ch] + firstPart, in[ch] + blockSize, &revBuf_[ch][0]);
+        revWritePos_[ch] = secondPart;
       }
       else
       {
-        // If the input sculpting is not active, copy the input to the scratch buffer
-        std::copy(in[ch], in[ch] + blockSize, inputSculptBuf_[ch]);
+        std::copy(in[ch], in[ch] + blockSize, &revBuf_[ch][revWritePos_[ch]]);
+        revWritePos_[ch] += blockSize;
+      }
+
+      // Produce a reversed block read from the circular buffer
+      if (revReadPos_[ch] < blockSize)
+      {
+        size_t firstPart = revReadPos_[ch] + 1;
+        size_t secondPart = blockSize - firstPart;
+        // Copy the end part
+        std::reverse_copy(&revBuf_[ch][0], &revBuf_[ch][firstPart], &revReadBuf_[ch][0]);
+        // Copy the start part
+        std::reverse_copy(&revBuf_[ch][kMaxRevBufSize - secondPart], &revBuf_[ch][kMaxRevBufSize], &revReadBuf_[ch][firstPart]);
+
+        // Update read position
+        revReadPos_[ch] = kMaxRevBufSize - secondPart;
+      }
+      else
+      {
+        std::reverse_copy(&revBuf_[ch][revReadPos_[ch] + 1 - blockSize], &revBuf_[ch][revReadPos_[ch] + 1], revReadBuf_[ch]);
+
+        // Update read position
+        revReadPos_[ch] -= blockSize;
+      }
+
+      Utils::audioBlockLerp(in[ch], revReadBuf_[ch], revMixBuf_[ch], revMix, blockSize);
+
+      // Now feed the mixed input to InputSculpt
+      if (isGritPlaying())
+      {
+        inputSculpt_[ch].processBlockMono(revMixBuf_[ch], inputSculptBuf_[ch], blockSize);
+      }
+      else
+      {
+        // If input sculpting is not active, copy the mixed input to the scratch buffer
+        std::copy(revMixBuf_[ch], revMixBuf_[ch] + blockSize, inputSculptBuf_[ch]);
       }
 
       // Mix in the feedback from the delay network

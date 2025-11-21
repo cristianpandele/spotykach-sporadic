@@ -18,6 +18,8 @@ class Sporadic : public Deck
     Sporadic ()  = delete;
     ~Sporadic () = default;
 
+    static constexpr size_t kMaxRevBufSize = kSampleRate * 4; // 4 seconds max reverse buffer
+
     void init () override;
     void updateAnalogControls (const AnalogControlFrame &c) override;
     void updateDigitalControls (const DigitalControlFrame &c) override;
@@ -54,6 +56,21 @@ class Sporadic : public Deck
     // Envelope ring (visual + mixing gains source). 32 slots per ring.
     static constexpr uint8_t kNumLeds = spotykach::Hardware::kNumLedsPerRing;
     float envelopeRing_[kNumLeds]{};
+
+    // Pre-allocated per-channel circular buffers for buffered reverse
+    using RevBufGroup = float (*)[kMaxRevBufSize];
+    RevBufGroup revBuf_ = nullptr;
+    // Temporary per-block reversed read buffer (block-sized)
+    float revReadBuf_[kNumberChannelsStereo][kBlockSize]{};
+    // Temporary per-block mixed input buffer (normal <-> reversed)
+    float revMixBuf_[kNumberChannelsStereo][kBlockSize]{};
+    // Write indices into the circular buffers
+    size_t revWritePos_[kNumberChannelsStereo]{};
+    // Read indices into the circular buffers
+    size_t revReadPos_[kNumberChannelsStereo]{};
+
+    // Smooth crossfade between normal and reversed input (0.0 = normal, 1.0 = reversed)
+    Utils::SmoothValue reverseMixSmooth_;
 
     // Deck and effect menu view
     DisplayState foldView_{};

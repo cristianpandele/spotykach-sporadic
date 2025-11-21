@@ -106,7 +106,7 @@ class Deck
 
     Deck (size_t sampleRate, size_t blockSize);
     Deck ()              = delete;
-    virtual ~Deck ()   = default;
+    virtual ~Deck ()     = default;
 
     virtual void init () = 0;
     virtual void setChannelConfig (ChannelConfig cfg);
