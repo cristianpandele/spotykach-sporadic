@@ -609,12 +609,11 @@ void Spotykach::processAudioSample (AudioHandle::InputBuffer  in,
       float loopOut = 0.0f;
       if (play_)
       {
-        if ((mode_ == (Deck::DeckMode) ECHO && !safeToPlay)
-          || (rIdx0 > kLooperAudioDataSamples - 2 && speed_ > 0))
-          {
-            // If not yet safe to play, do not output any looped audio
-            loopOut = 0.0f;
-          }
+        if ((state_ == ECHO && !safeToPlay) || (rIdx0 > kLooperAudioDataSamples - 2 && speed_ > 0))
+        {
+          // If not yet safe to play, do not output any looped audio
+          loopOut = 0.0f;
+        }
         else
         {
           // Normal playback

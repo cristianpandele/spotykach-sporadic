@@ -24,14 +24,6 @@ class Deck
       CH_CONFIG_LAST
     };
 
-    enum DeckMode
-    {
-      MODE_1,
-      MODE_2,
-      MODE_3,
-      MODE_LAST
-    };
-
     // Analog Control payload pushed on change (at most once per block) from AppImpl
     struct AnalogControlFrame
     {
@@ -110,7 +102,6 @@ class Deck
 
     virtual void init () = 0;
     virtual void setChannelConfig (ChannelConfig cfg);
-    virtual void setMode (DeckMode m);
 
     // Unified controls update
     virtual void updateAnalogControls (const AnalogControlFrame &c) = 0;
@@ -231,9 +222,6 @@ class Deck
 
     // Soft takeover notification flag consumed by digital plumbing
     bool takeoverTriggered_ = false;
-
-    // Current deck mode
-    DeckMode mode_ = MODE_1;
 
     // Reset the display state
     void resetDisplayRingLayers (DisplayState &state) { state.layerCount = 0; };

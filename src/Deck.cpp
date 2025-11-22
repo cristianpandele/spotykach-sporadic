@@ -97,17 +97,6 @@ void Deck::setChannelConfig (ChannelConfig mode)
   channelConfig_ = mode;
 }
 
-void Deck::setMode (DeckMode m)
-{
-  if (m < DeckMode::MODE_1 || m >= DeckMode::MODE_LAST)
-  {
-    Log::PrintLine("Invalid deck mode: %d", m);
-    return;
-  }
-  // Set the deck mode
-  mode_ = m;
-}
-
 void Deck::setSoftTakeoverControl (DualLayerSoftTakeover &state,
                                    bool                    usingAlternateLayer,
                                    float                   incomingValue,

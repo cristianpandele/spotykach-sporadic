@@ -71,15 +71,6 @@ class Spotykach : public Deck
       T end;
     };
 
-    // Override the DeckMode enum to define specific modes for Spotykach
-    enum DeckMode
-    {
-      REEL  = 0,
-      SLICE = 1,
-      DRIFT = 2,
-      MODE_LAST
-    };
-
     // Read and write pointers for the looper buffer
     float readIx_  = 0;
     float writeIx_ = 0;

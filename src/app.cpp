@@ -272,47 +272,52 @@ void AppImpl::loop ()
       // Set the flag to feed the envelope follower
       envelopeFeed = true;
 
-      for (size_t i = 0; i < kNumberDeckSlots; i++)
+      for (size_t side = 0; side < kNumberDeckSlots; side++)
       {
         /////////
         // Modulators
-        if (modTypeChanged[i])
+        if (modTypeChanged[side])
         {
-          modulator[i].setModType(currentModType[i]);
-          modTypeChanged[i] = false;
+          modulator[side].setModType(currentModType[side]);
+          modTypeChanged[side] = false;
         }
         // Piggy back on this timer (500 Hz) for very rough CV output demo
-        modCv[i] = modulator[i].process();
+        modCv[side] = modulator[side].process();
 
         /////////
         // Global routing changed
-        if (deckModeChanged[i])
+        if (modTargetChanged[side])
         {
-          decks[i]->setMode(currentDeckMode[i]);
-          deckModeChanged[i] = false;
+          // decks[side]->setMode(currentModTarget[side]);
+          modTargetChanged[side] = false;
+          // Update the mod target smoothing values
+          for (size_t modIdx = 0; modIdx < ModTarget::MOD_TARGET_LAST; modIdx++)
+          {
+            modTargetSmooth[modIdx] = (modIdx == currentModTarget[side]) ? 1.0f : 0.0f;
+          }
         }
 
         /////////
         // Control state changes
-        if (reverseStateChanged[i] || playStateChanged[i] || altPlayStateChanged[i] || spotyPlayStateChanged[i] ||
-            fluxStateChanged[i] || altFluxStateChanged[i] || gritStateChanged[i] || altGritStateChanged[i])
+        if (reverseStateChanged[side] || playStateChanged[side] || altPlayStateChanged[side] || spotyPlayStateChanged[side] ||
+            fluxStateChanged[side] || altFluxStateChanged[side] || gritStateChanged[side] || altGritStateChanged[side])
         {
-          updateDigitalControlFrame(digitalControlFrames[i], i);
-          pushDigitalDeckControls(digitalControlFrames[i], i);
+          updateDigitalControlFrame(digitalControlFrames[side], side);
+          pushDigitalDeckControls(digitalControlFrames[side], side);
           // Reset the change flags
-          reverseStateChanged[i]   = false;
-          playStateChanged[i]      = false;
-          altPlayStateChanged[i]   = false;
-          spotyPlayStateChanged[i] = false;
-          fluxStateChanged[i]      = false;
-          altFluxStateChanged[i]   = false;
-          gritStateChanged[i]      = false;
-          altGritStateChanged[i]   = false;
+          reverseStateChanged[side]   = false;
+          playStateChanged[side]      = false;
+          altPlayStateChanged[side]   = false;
+          spotyPlayStateChanged[side] = false;
+          fluxStateChanged[side]      = false;
+          altFluxStateChanged[side]   = false;
+          gritStateChanged[side]      = false;
+          altGritStateChanged[side]   = false;
         }
 
         /////////
         // LED Ring display updates
-        decks[i]->updateDisplayState();
+        decks[side]->updateDisplayState();
       }
 
       // View part of MVC
@@ -678,7 +683,10 @@ void AppImpl::handleAnalogControls ()
     if (!mixAltLatch[side])
     {
       // Add the mix CV values when Alt is not latched
-      mixControls[side] += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
+      // Smooth out the contribution from the CV based on the smoothing values for each target
+      mixControls[side] += modTargetSmooth[ModTarget::MIX].getSmoothVal() * hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
+      // gritControls[side] += modTargetSmooth[ModTarget::GRIT].getSmoothVal() * hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
+      // fluxControls[side] += modTargetSmooth[ModTarget::FLUX].getSmoothVal() * hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
     }
 
     // Read the position knobs and CVs
@@ -774,41 +782,41 @@ void AppImpl::handleDigitalControls ()
   }
 
   // Mode A switch (sr1 bits 6,7)
-  DeckMode newDeckMode[2];
+  ModTarget newModTarget[2];
   if (sr1.test(6))
   {
-    newDeckMode[0] = DeckMode::MODE_3;
+    newModTarget[0] = ModTarget::GRIT;
   }
   else if (sr1.test(7))
   {
-    newDeckMode[0] = DeckMode::MODE_1;
+    newModTarget[0] = ModTarget::MIX;
   }
   else
   {
-    newDeckMode[0] = DeckMode::MODE_2;
+    newModTarget[0] = ModTarget::FLUX;
   }
 
   // Mode B switch (sr2 bits 2,3)
   if (sr2.test(2))
   {
-    newDeckMode[1] = DeckMode::MODE_3;
+    newModTarget[1] = ModTarget::GRIT;
   }
   else if (sr2.test(3))
   {
-    newDeckMode[1] = DeckMode::MODE_1;
+    newModTarget[1] = ModTarget::MIX;
   }
   else
   {
-    newDeckMode[1] = DeckMode::MODE_2;
+    newModTarget[1] = ModTarget::FLUX;
   }
 
   for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
-    if (newDeckMode[i] != currentDeckMode[i])
+    if (newModTarget[i] != currentModTarget[i])
     {
-      deckModeChanged[i] = true;
-      currentDeckMode[i] = newDeckMode[i];
-      // Log::PrintLine("Deck mode changed for side %d to: %d", i, currentDeckMode[i]);
+      modTargetChanged[i] = true;
+      currentModTarget[i] = newModTarget[i];
+      // Log::PrintLine("Modulation target changed for side %d to: %d", i, currentModTarget[i]);
     }
   }
 
@@ -1019,23 +1027,6 @@ void AppImpl::handleDisplay ()
       }
     }
   }
-
-  // Mode A & B switches
-  // for (size_t side = 0; side < kNumberDeckSlots; side++)
-  // {
-  //   if (currentDeckMode[side] == DeckMode::MODE_3)
-  //   {
-  //     hw.leds.Set(Hardware::kLedGritIds[side], 0x00ff00, kMaxLedBrightness);
-  //   }
-  //   else if (currentDeckMode[side] == DeckMode::MODE_1)
-  //   {
-  //     hw.leds.Set(Hardware::kLedGritIds[side], 0x0000ff, kMaxLedBrightness);
-  //   }
-  //   else
-  //   {
-  //     hw.leds.Set(Hardware::kLedGritIds[side], 0xff0000, kMaxLedBrightness);
-  //   }
-  // }
 
   // Manual tempo tap switch
   if (sr2.test(6))
