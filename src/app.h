@@ -151,11 +151,8 @@ namespace spotykach_hwtest
       // Shape knob Grit latch
       bool shapeGritLatch[kNumberDeckSlots] = {false};
 
-      // Spotykach slider Spotykach latch
-      bool spotySpotyLatch = false;
-
       // Smooth Spotykach slider (updated at audio block rate)
-      SmoothValue spotyControl {SmoothValue(500.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue spotyControl {SmoothValue(150.0f, kSamplePeriodMs * kBlockSize)};
 
       // Smooth pitch for each side (updated at audio sample rate)
       SmoothValue pitchControls[kNumberDeckSlots]{SmoothValue(150.0f, kSamplePeriodMs),

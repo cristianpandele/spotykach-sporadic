@@ -604,12 +604,6 @@ void AppImpl::processUIQueue ()
           sizeGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
         }
 
-        if (event.asPotMoved.id == Hardware::CTRL_SPOTYKACH)
-        {
-          // Use Spotykach pad latch to modify Spotykach slider
-          spotySpotyLatch = Utils::isSpotykachPadPressed(padTouchStates);
-        }
-
         if (event.asPotMoved.id <= Hardware::kCtrlLastSideIds[side])
         {
           last_pot_moved[side] = event.asPotMoved.id;
@@ -666,19 +660,8 @@ void AppImpl::drawRainbowRoad ()
 
 void AppImpl::handleAnalogControls ()
 {
-  // If the Spotykach pad is pressed, set the deck mix
-  if (!spotySpotyLatch)
-  {
-    // Spotykach slider
-    spotyControl = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
-    // Add the Spotykach CV value when the Spotykach pad is not latched
-    spotyControl += hw.GetControlVoltageValue(Hardware::CV_SPOTYKACH);
-  }
-  else
-  {
-    // Set the deck mix level
-    deckMix_ = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
-  }
+  // Set the deck mix level
+  deckMix_ = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
 
   for (size_t side = 0; side < kNumberDeckSlots; side++)
   {
