@@ -27,6 +27,14 @@ namespace spotykach_hwtest
     BOTH
   };
 
+  enum ModTarget
+  {
+    MIX,
+    FLUX,
+    GRIT,
+    MOD_TARGET_LAST
+  };
+
   // Application class
   class Application
   {
@@ -183,10 +191,12 @@ namespace spotykach_hwtest
       // Modulation frequency alt latch for each side
       bool modFreqAltLatch[2] = {false};
 
-      // Mode switch changed flag and current deck mode for each side
-      using DeckMode = Deck::DeckMode;
-      bool     deckModeChanged[kNumberDeckSlots]{false};
-      DeckMode currentDeckMode[kNumberDeckSlots]{DeckMode::MODE_1, DeckMode::MODE_1};
+      // Mod target switch changed flag and current mod target for each side
+      bool        modTargetChanged[kNumberDeckSlots]{false};
+      SmoothValue modTargetSmooth[ModTarget::MOD_TARGET_LAST]{SmoothValue(75.0f, kSamplePeriodMs),
+                                                              SmoothValue(75.0f, kSamplePeriodMs),
+                                                              SmoothValue(75.0f, kSamplePeriodMs)};
+      ModTarget   currentModTarget[kNumberDeckSlots]{ModTarget::MIX, ModTarget::MIX};
 
       // Mod type switch flag and current mod type for each side
       bool    modTypeChanged[kNumberDeckSlots]{false};
