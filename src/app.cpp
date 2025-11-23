@@ -355,8 +355,8 @@ void AppImpl::processModulatorControls (size_t slot)
   // Process the modulation for the specified deck slot
   for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
-    modulator[i].setFrequency(modulationFreq[i].getSmoothVal(), modFreqAltLatch[i]);
-    modulator[i].setAmplitude(modulationAmount[i].getSmoothVal());
+    modulator[i].setFrequency(modulationFreqControls[i].getSmoothVal(), modFreqAltLatch[i]);
+    modulator[i].setAmplitude(modulationAmountControls[i].getSmoothVal());
   }
 }
 
@@ -697,7 +697,7 @@ void AppImpl::handleAnalogControls ()
     positionControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPosIds[side]);
     if (!positionGritLatch[side])
     {
-      if ((sizePosSwitch[side] == SizePosSwitchState::POSITION) || (sizePosSwitch[side] == SizePosSwitchState::BOTH))
+      if ((sizePosSwitches[side] == SizePosSwitchState::POSITION) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
       {
         // Add the position CV values when Grit is not latched
         positionControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
@@ -709,7 +709,7 @@ void AppImpl::handleAnalogControls ()
     if (!sizeGritLatch[side])
     {
       // Add the size CV values when Grit is not latched
-      if ((sizePosSwitch[side] == SizePosSwitchState::SIZE) || (sizePosSwitch[side] == SizePosSwitchState::BOTH))
+      if ((sizePosSwitches[side] == SizePosSwitchState::SIZE) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
       {
         sizeControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
       }
@@ -719,10 +719,10 @@ void AppImpl::handleAnalogControls ()
     shapeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlShapeIds[side]);
 
     // Read the modulation amount knobs
-    modulationAmount[side] = hw.GetAnalogControlValue(Hardware::kCtrlModAmtIds[side]);
+    modulationAmountControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlModAmtIds[side]);
 
     // Read the modulation frequency knobs
-    modulationFreq[side] = hw.GetAnalogControlValue(Hardware::kCtrlModFreqIds[side]);
+    modulationFreqControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlModFreqIds[side]);
   }
 }
 
@@ -760,29 +760,29 @@ void AppImpl::handleDigitalControls ()
   // Size/Pos A switch
   if (sr1.test(4))
   {
-    sizePosSwitch[0] = SizePosSwitchState::SIZE;
+    sizePosSwitches[0] = SizePosSwitchState::SIZE;
   }
   else if (sr1.test(5))
   {
-    sizePosSwitch[0] = SizePosSwitchState::POSITION;
+    sizePosSwitches[0] = SizePosSwitchState::POSITION;
   }
   else
   {
-    sizePosSwitch[0] = SizePosSwitchState::BOTH;
+    sizePosSwitches[0] = SizePosSwitchState::BOTH;
   }
 
   // Size/Pos B switch
   if (sr2.test(0))
   {
-    sizePosSwitch[1] = SizePosSwitchState::SIZE;
+    sizePosSwitches[1] = SizePosSwitchState::SIZE;
   }
   else if (sr2.test(1))
   {
-    sizePosSwitch[1] = SizePosSwitchState::POSITION;
+    sizePosSwitches[1] = SizePosSwitchState::POSITION;
   }
   else
   {
-    sizePosSwitch[1] = SizePosSwitchState::BOTH;
+    sizePosSwitches[1] = SizePosSwitchState::BOTH;
   }
 
   // Mode A switch (sr1 bits 6,7)
