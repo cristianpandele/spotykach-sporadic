@@ -1,9 +1,8 @@
-#include "common.h"
 #include "Deck.h"
 #include "app.h"
+#include "common.h"
 
-Deck::Deck(size_t sampleRate, size_t blockSize)
-  : sampleRate_(sampleRate), blockSize_(blockSize)
+Deck::Deck (size_t sampleRate, size_t blockSize) : sampleRate_(sampleRate), blockSize_(blockSize)
 {
   const float updateRate = sampleRate_ / static_cast<float>(blockSize_);
 
@@ -16,19 +15,19 @@ Deck::Deck(size_t sampleRate, size_t blockSize)
 
 using infrasonic::Log;
 
-bool Deck::prepareSoftTakeover(DualLayerSoftTakeover &state,
-                               bool                    usingAlternateLayer,
-                               float                   controlValue,
-                               float                   currentValue)
+bool Deck::prepareSoftTakeover (DualLayerSoftTakeover &state,
+                                bool                   usingAlternateLayer,
+                                float                  controlValue,
+                                float                  currentValue)
 {
   SoftTakeoverState &layer = usingAlternateLayer ? state.alternate : state.primary;
 
   if (!layer.initialized)
   {
-    layer.initialized = true;
-    layer.waiting     = false;
-    layer.lastControl = controlValue;
-    layer.targetValue = currentValue;
+    layer.initialized          = true;
+    layer.waiting              = false;
+    layer.lastControl          = controlValue;
+    layer.targetValue          = currentValue;
     state.hasActiveLayer       = true;
     state.activeLayerAlternate = usingAlternateLayer;
     return true;
@@ -39,9 +38,9 @@ bool Deck::prepareSoftTakeover(DualLayerSoftTakeover &state,
     state.hasActiveLayer       = true;
     state.activeLayerAlternate = usingAlternateLayer;
 
-    layer.targetValue = currentValue;
-    layer.lastControl = controlValue;
-    layer.waiting     = std::abs(controlValue - currentValue) > kParamChThreshold;
+    layer.targetValue          = currentValue;
+    layer.lastControl          = controlValue;
+    layer.waiting              = std::abs(controlValue - currentValue) > kParamChThreshold;
     return !layer.waiting;
   }
 
@@ -55,8 +54,8 @@ bool Deck::prepareSoftTakeover(DualLayerSoftTakeover &state,
   const float previousDelta = layer.lastControl - layer.targetValue;
   const float currentDelta  = controlValue - currentValue;
 
-  layer.lastControl = controlValue;
-  layer.targetValue = currentValue;
+  layer.lastControl         = controlValue;
+  layer.targetValue         = currentValue;
 
   if (std::abs(currentDelta) <= kParamChThreshold)
   {
@@ -73,16 +72,16 @@ bool Deck::prepareSoftTakeover(DualLayerSoftTakeover &state,
   return false;
 }
 
-void Deck::finalizeSoftTakeover(DualLayerSoftTakeover &state,
-                                bool                    usingAlternateLayer,
-                                float                   controlValue,
-                                float                   newValue)
+void Deck::finalizeSoftTakeover (DualLayerSoftTakeover &state,
+                                 bool                   usingAlternateLayer,
+                                 float                  controlValue,
+                                 float                  newValue)
 {
-  SoftTakeoverState &layer = usingAlternateLayer ? state.alternate : state.primary;
-  layer.initialized        = true;
-  layer.waiting            = false;
-  layer.lastControl        = controlValue;
-  layer.targetValue        = newValue;
+  SoftTakeoverState &layer   = usingAlternateLayer ? state.alternate : state.primary;
+  layer.initialized          = true;
+  layer.waiting              = false;
+  layer.lastControl          = controlValue;
+  layer.targetValue          = newValue;
   state.hasActiveLayer       = true;
   state.activeLayerAlternate = usingAlternateLayer;
 }
@@ -109,22 +108,22 @@ void Deck::setMode (DeckMode m)
 }
 
 void Deck::setSoftTakeoverControl (DualLayerSoftTakeover &state,
-                                   bool                    usingAlternateLayer,
-                                   float                   incomingValue,
-                                   float                  &primaryValue,
-                                   float                  &alternateValue,
-                                   bool                   &changed,
-                                   bool                   &changedAlt)
+                                   bool                   usingAlternateLayer,
+                                   float                  incomingValue,
+                                   float                 &primaryValue,
+                                   float                 &alternateValue,
+                                   bool                  &changed,
+                                   bool                  &changedAlt)
 {
-  changed    = false;
-  changedAlt = false;
+  changed                            = false;
+  changedAlt                         = false;
 
-  SoftTakeoverState &layer = usingAlternateLayer ? state.alternate : state.primary;
+  SoftTakeoverState &layer           = usingAlternateLayer ? state.alternate : state.primary;
   const bool         layerWasWaiting = layer.waiting;
   const bool         layerSwitched   = (!state.hasActiveLayer || state.activeLayerAlternate != usingAlternateLayer);
   const bool         takeoverPending = layerWasWaiting || layerSwitched;
 
-  float &activeValue = usingAlternateLayer ? alternateValue : primaryValue;
+  float &activeValue                 = usingAlternateLayer ? alternateValue : primaryValue;
 
   if (!prepareSoftTakeover(state, usingAlternateLayer, incomingValue, activeValue))
   {
@@ -181,7 +180,7 @@ void Deck::setMix (float m, bool altLatch)
 
 void Deck::setPosition (float position, bool gritLatch, bool &changed, bool &changedGrit)
 {
-  position = infrasonic::unitclamp(position);
+  position          = infrasonic::unitclamp(position);
 
   bool useGritLayer = gritLatch || getGritMenuOpen();
   if (useGritLayer && !positionSoftTakeover_.alternate.initialized)
@@ -214,20 +213,14 @@ void Deck::setPosition (float position, bool gritLatch, bool &changed, bool &cha
 
 void Deck::setSize (float size, bool gritLatch, bool &changed, bool &changedGrit)
 {
-  size = infrasonic::unitclamp(size);
+  size              = infrasonic::unitclamp(size);
   bool useGritLayer = gritLatch || getGritMenuOpen();
   if (useGritLayer && !sizeSoftTakeover_.alternate.initialized)
   {
     sizeGritControl_ = sizeControl_;
   }
 
-  setSoftTakeoverControl(sizeSoftTakeover_,
-                         useGritLayer,
-                         size,
-                         sizeControl_,
-                         sizeGritControl_,
-                         changed,
-                         changedGrit);
+  setSoftTakeoverControl(sizeSoftTakeover_, useGritLayer, size, sizeControl_, sizeGritControl_, changed, changedGrit);
 
   if (changedGrit)
   {
@@ -244,7 +237,7 @@ void Deck::setSize (float size, bool gritLatch, bool &changed, bool &changedGrit
 
 void Deck::setShape (float shape, bool gritLatch, bool &changed, bool &changedGrit)
 {
-  shape = infrasonic::unitclamp(shape);
+  shape             = infrasonic::unitclamp(shape);
   bool useGritLayer = gritLatch || getGritMenuOpen();
   if (useGritLayer && !shapeSoftTakeover_.alternate.initialized)
   {
@@ -274,7 +267,7 @@ void Deck::setShape (float shape, bool gritLatch, bool &changed, bool &changedGr
 
 void Deck::setPitch (float pitch, bool gritLatch, bool &changed, bool &changedGrit)
 {
-  pitch                   = infrasonic::unitclamp(pitch);
+  pitch             = infrasonic::unitclamp(pitch);
 
   bool useGritLayer = gritLatch || getGritMenuOpen();
   if (useGritLayer && !pitchSoftTakeover_.alternate.initialized)
@@ -318,12 +311,12 @@ bool Deck::getDisplayState (DisplayState &out) const
   return true;
 }
 
-void Deck::publishDisplay(const DisplayState &state)
+void Deck::publishDisplay (const DisplayState &state)
 {
-  uint8_t w         = dispWIdx_ ^ 1;  // toggle write index
+  uint8_t w         = dispWIdx_ ^ 1;    // toggle write index
   dispBuf_[w].state = state;
-  dispBuf_[w].cnt   = dispBuf_[dispWIdx_].cnt + 1; // increment generation count
-  dispWIdx_         = w; // update write index
+  dispBuf_[w].cnt   = dispBuf_[dispWIdx_].cnt + 1;    // increment generation count
+  dispWIdx_         = w;                              // update write index
 }
 
 // Helper to determine if a channel should be processed in the current channel configuration
@@ -333,21 +326,21 @@ bool Deck::isChannelActive (size_t ch) const
   switch (channelConfig_)
   {
     case ChannelConfig::MONO_LEFT:
-    {
-      return (ch == 0);
-    }
+      {
+        return (ch == 0);
+      }
     case ChannelConfig::MONO_RIGHT:
-    {
-      return (ch == 1);
-    }
+      {
+        return (ch == 1);
+      }
     case ChannelConfig::STEREO:
-    {
-      return ((ch == 0 || ch == 1));
-    }
+      {
+        return ((ch == 0 || ch == 1));
+      }
     default:
-    {
-      return false;
-    }
+      {
+        return false;
+      }
   }
 }
 
@@ -389,18 +382,18 @@ void Deck::handleGritTap (const bool grit, bool &doubleTap, bool &held, bool &lo
 
 void Deck::detectHeld (StopwatchTimer &timer, bool &heldTimerActive, bool &held, bool &longHeld)
 {
-  held = ((heldTimerActive) && timer.HasPassedMs(kHeldTimeoutMs));
+  held     = ((heldTimerActive) && timer.HasPassedMs(kHeldTimeoutMs));
   longHeld = ((heldTimerActive) && timer.HasPassedMs(kLongHeldTimeoutMs));
 }
 
 void Deck::handleTap (const bool      padPressed,
-                        StopwatchTimer &heldTimer,
-                        bool           &heldTimerActive,
-                        StopwatchTimer &doubleTapTimer,
-                        bool           &doubleTapTimerActive,
-                        bool           &held,
-                        bool           &longHeld,
-                        bool           &doubleTap)
+                      StopwatchTimer &heldTimer,
+                      bool           &heldTimerActive,
+                      StopwatchTimer &doubleTapTimer,
+                      bool           &doubleTapTimerActive,
+                      bool           &held,
+                      bool           &longHeld,
+                      bool           &doubleTap)
 {
   // If button released, stop timer and clear held
   if (!padPressed)
@@ -475,7 +468,7 @@ void Deck::updateEffectDisplayStates (DisplayState &view)
   if (isFluxDisplayed())
   {
     // updateFluxRingState(view);
-    view.layerCount = 0; // Clear any other layers if flux is displayed (TODO, remove this)
+    view.layerCount = 0;    // Clear any other layers if flux is displayed (TODO, remove this)
   }
 
   // Grit pad LEDs
@@ -541,86 +534,120 @@ void Deck::updateDigitalControlsEffects (const DigitalControlFrame &c)
 // Flux modulation
 void Deck::processFluxLongHoldModulation ()
 {
-  // if (fluxActive_ && fluxLongHeld_)
+  // if (fluxLongHoldModActive())
   // {
-  //   if (!fluxLongHeldPrev_)
-  //   {
-  //     // Initialize smoothers on first long-hold detection
-  //     fluxFreqSmoother_ = 10.0f;
-  //     fluxAmpSmoother_  = 500.0f < inputSculptCenterFreq_ ? 500.0f : inputSculptCenterFreq_;
-  //   }
-
   //   // Update LFO parameters
-  //   float fluxFreqCurrent = fluxFreqSmoother_.getSmoothVal();
-  //   float fluxAmpCurrent  = fluxAmpSmoother_.getSmoothVal();
+  //   float fluxFreqCurrent =
+  //     fluxFreqSmoother_.isSmoothing() ? fluxFreqSmoother_.getSmoothVal() : fluxFreqSmoother_.getTargetVal();
+  //   float fluxAmpCurrent =
+  //     fluxAmpSmoother_.isSmoothing() ? fluxAmpSmoother_.getSmoothVal() : fluxAmpSmoother_.getTargetVal();
+
   //   fluxOsc_.SetFreq(fluxFreqCurrent);
   //   fluxOsc_.SetAmp(fluxAmpCurrent);
-  //   float fluxLfo = fluxOsc_.Process();
 
   //   // Apply modulation to input sculpt frequencies
+  //   float curfluxLfoSample_ = fluxOsc_.Process();
   //   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   //   {
   //     if (isChannelActive(ch))
   //     {
-  //       {
-  //         float sign          = (ch == 0) ? 1.0f : -1.0f;
-  //         inputSculpt_[ch].setFreq(inputSculptCenterFreq_ + fluxLfo * sign);
-  //       }
+  //       float sign = (ch == 0) ? 1.0f : -1.0f;
+  //       float mod  = infrasonic::map(curfluxLfoSample_, -0.1f, 0.1f, -300.0f, 300.0f) * sign;
+  //       inputSculpt_[ch].setFreq(inputSculptCenterFreq_ + mod);
+  //       mod = infrasonic::map(curfluxLfoSample_, -0.1f, 0.1f, -0.2f, 0.2f) * sign;
+  //       inputSculpt_[ch].setOverdrive(pitchfluxControl_ + mod);
+  //       mod = infrasonic::map(curfluxLfoSample_, -0.1f, 0.1f, -0.07f, 0.07f) * sign;
+  //       inputSculpt_[ch].setWidth(sizefluxControl_ + mod);
   //     }
   //   }
-
-  //   fluxLongHeldPrev_ = fluxLongHeld_;
   // }
   // else
   // {
-  //   fluxLongHeldPrev_ = false;
-  //   // Reset input sculpt frequencies to base values
-  //   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  // // Either not held or grace period expired
+  // // Reset input sculpt frequencies to base values
+  // for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  // {
+  //   if (isChannelActive(ch))
   //   {
-  //     if (isChannelActive(ch))
-  //     {
-  //       inputSculpt_[ch].setFreq(inputSculptCenterFreq_);
-  //     }
+  //     inputSculpt_[ch].setFreq(inputSculptCenterFreq_);
   //   }
   // }
+  // // Reset smoothers
+  // fluxFreqSmoother_.setCurrentValForce(0.0f);
+  // fluxAmpSmoother_.setCurrentValForce(0.0f);
+  // }
+}
+
+bool Deck::gritLongHoldModActive ()
+{
+  if (gritActive_ && gritLongHeld_)
+  {
+    // Set smoothers on long-hold detection
+    gritFreqSmoother_ = 10.0f;
+    // gritAmpSmoother_  = 300.0f < inputSculptCenterFreq_ ? 300.0f : inputSculptCenterFreq_ / 2.0f;
+    gritAmpSmoother_ = 0.1f < positionGritControl_ ? 0.1f : positionGritControl_ / 2.0f;
+
+    // Update previous state
+    gritLongHeldPrev_ = gritLongHeld_;
+    return true;
+  }
+  else
+  {
+    if (!gritLongHeld_ && gritLongHeldPrev_)
+    {
+      // Start smoothers towards zero
+      gritFreqSmoother_ = 0.0f;
+      gritAmpSmoother_  = 0.0f;
+      if (gritLongHeldGraceCount_ < kLongHoldGraceCountMax)
+      {
+        // Continue smoothing for a few more cycles to avoid abrupt cut-off
+        gritLongHeldGraceCount_++;
+        return true;
+      }
+      else
+      {
+        // Grace period expired
+        gritLongHeldGraceCount_ = 0;
+      }
+    }
+  }
+  gritLongHeldPrev_ = false;
+  return false;
 }
 
 // Grit modulation
 void Deck::processGritLongHoldModulation ()
 {
-  if (gritActive_ && gritLongHeld_)
+  if (gritLongHoldModActive())
   {
-    if (!gritLongHeldPrev_)
-    {
-      // Initialize smoothers on first long-hold detection
-      gritFreqSmoother_ = 7.0f;
-      gritAmpSmoother_  = 300.0f < inputSculptCenterFreq_ ? 300.0f : inputSculptCenterFreq_ / 2.0f;
-    }
-
     // Update LFO parameters
     float gritFreqCurrent =
       gritFreqSmoother_.isSmoothing() ? gritFreqSmoother_.getSmoothVal() : gritFreqSmoother_.getTargetVal();
-    float gritAmpCurrent  = gritAmpSmoother_.isSmoothing() ? gritAmpSmoother_.getSmoothVal() : gritAmpSmoother_.getTargetVal();
+    float gritAmpCurrent =
+      gritAmpSmoother_.isSmoothing() ? gritAmpSmoother_.getSmoothVal() : gritAmpSmoother_.getTargetVal();
 
     gritOsc_.SetFreq(gritFreqCurrent);
     gritOsc_.SetAmp(gritAmpCurrent);
-    float gritLfo = gritOsc_.Process();
 
     // Apply modulation to input sculpt frequencies
+    float curGritLfoSample_ = gritOsc_.Process();
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
       {
         float sign = (ch == 0) ? 1.0f : -1.0f;
-        inputSculpt_[ch].setFreq(inputSculptCenterFreq_ + gritLfo * sign);
+        float mod  = infrasonic::map(curGritLfoSample_, -0.1f, 0.1f, -300.0f, 300.0f) * sign;
+        inputSculpt_[ch].setFreq(inputSculptCenterFreq_ + mod);
+        mod = infrasonic::map(curGritLfoSample_, -0.1f, 0.1f, -0.2f, 0.2f) * sign;
+        inputSculpt_[ch].setOverdrive(pitchGritControl_ + mod);
+        mod = infrasonic::map(curGritLfoSample_, -0.1f, 0.1f, -0.07f, 0.07f) * sign;
+        inputSculpt_[ch].setWidth(sizeGritControl_ + mod);
       }
     }
-
-    gritLongHeldPrev_ = gritLongHeld_;
   }
   else
   {
-    gritLongHeldPrev_ = false;
+    // Either not held or grace period expired
     // Reset input sculpt frequencies to base values
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
@@ -630,8 +657,8 @@ void Deck::processGritLongHoldModulation ()
       }
     }
     // Reset smoothers
-    gritFreqSmoother_ = SmoothValue(0.0f, kLongHoldRampSec * 1000.0f, (1000.0f * blockSize_ / sampleRate_));
-    gritAmpSmoother_  = SmoothValue(0.0f, kLongHoldRampSec * 1000.0f, (1000.0f * blockSize_ / sampleRate_));
+    gritFreqSmoother_.setCurrentValForce(0.0f);
+    gritAmpSmoother_.setCurrentValForce(0.0f);
   }
 }
 
@@ -713,7 +740,7 @@ void Deck::populateLedRing (Deck::RingSpan  &ringSpan,
   // Compute per-LED gradient values, using the brightness indicated in colorBright as maximum value
   if (gradient)
   {
-    float ledGradient[N] = {0.0f};
+    float       ledGradient[N] = {0.0f};
     const float minBrightness  = colorBright.brightness / 4.0f;
     const float maxBrightness  = colorBright.brightness;
     ledBrightnessGradientLog(spanSize, minBrightness, maxBrightness, ledGradient);
@@ -761,25 +788,25 @@ void Deck::ledBrightnessGradientFilter (
     switch (type)
     {
       case kLowPass:
-      {
-        // Falling ramp of brightness
-        t = 1.0f - static_cast<float>(i) / static_cast<float>(gradLen - 1);
-        break;
-      }
+        {
+          // Falling ramp of brightness
+          t = 1.0f - static_cast<float>(i) / static_cast<float>(gradLen - 1);
+          break;
+        }
       case kHighPass:
-      {
-        // Rising ramp of brightness
-        t = static_cast<float>(i) / static_cast<float>(gradLen - 1);
-        break;
-      }
+        {
+          // Rising ramp of brightness
+          t = static_cast<float>(i) / static_cast<float>(gradLen - 1);
+          break;
+        }
       case kBandPass:
-      {
-        // Symmetric triangle around midpoint (spanSize-1)/2 in linear LED index space.
-        float dist = fabsf((float)i - triCenter);
-        t          = 1.0f - (dist / triHalf);    // 1 at center, 0 at edges
-        t          = infrasonic::unitclamp(t);
-        break;
-      }
+        {
+          // Symmetric triangle around midpoint (spanSize-1)/2 in linear LED index space.
+          float dist = fabsf((float)i - triCenter);
+          t          = 1.0f - (dist / triHalf);    // 1 at center, 0 at edges
+          t          = infrasonic::unitclamp(t);
+          break;
+        }
     }
     // Map brightness values to log scale
     gradValues[i] = daisysp::fmap(t, minBrightness, maxBrightness, Mapping::LOG);
@@ -802,10 +829,10 @@ float Deck::calculateFilterHalfBandwidth (float centerFreq, float Q)
 
 void Deck::calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, uint8_t &start, uint8_t &end)
 {
-  uint8_t channel  = channelConfig_ == isChannelActive(1) ? 1 : 0;
-  float centerFreq = inputSculpt_[channel].getCenterFreq();
-  float Q          = inputSculpt_[channel].getQ();
-  float halfBW     = calculateFilterHalfBandwidth(centerFreq, Q);
+  uint8_t channel    = channelConfig_ == isChannelActive(1) ? 1 : 0;
+  float   centerFreq = inputSculpt_[channel].getCenterFreq();
+  float   Q          = inputSculpt_[channel].getQ();
+  float   halfBW     = calculateFilterHalfBandwidth(centerFreq, Q);
 
   // Convert additive bandwidth into a multiplicative ratio for log symmetry.
   // ratio r such that centerFreq / r = fLo and centerFreq * r = fHi.
@@ -814,33 +841,33 @@ void Deck::calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, 
   switch (type)
   {
     case kBandPass:
-    {
-      fLoLin = daisysp::fmax(gritFilterMinFreq, centerFreq - halfBW);
-      fHiLin = daisysp::fmin(gritFilterMaxFreq, centerFreq + halfBW);
-      break;
-    }
+      {
+        fLoLin = daisysp::fmax(gritFilterMinFreq, centerFreq - halfBW);
+        fHiLin = daisysp::fmin(gritFilterMaxFreq, centerFreq + halfBW);
+        break;
+      }
 
     case kLowPass:
-    {
-      fLoLin = gritFilterMinFreq;
-      fHiLin = daisysp::fmin(gritFilterMaxFreq, centerFreq + halfBW);
-      break;
-    }
+      {
+        fLoLin = gritFilterMinFreq;
+        fHiLin = daisysp::fmin(gritFilterMaxFreq, centerFreq + halfBW);
+        break;
+      }
 
     case kHighPass:
-    {
-      // Hacky way of approximating the high-pass filter's bandwidth
-      fLoLin = daisysp::fmax(gritFilterMinFreq, centerFreq - halfBW / 6.0f);
-      fHiLin = gritFilterMaxFreq;
-      break;
-    }
+      {
+        // Hacky way of approximating the high-pass filter's bandwidth
+        fLoLin = daisysp::fmax(gritFilterMinFreq, centerFreq - halfBW / 6.0f);
+        fHiLin = gritFilterMaxFreq;
+        break;
+      }
 
     default:
-    {
-      fLoLin = gritFilterMinFreq;
-      fHiLin = gritFilterMaxFreq;
-      break;
-    }
+      {
+        fLoLin = gritFilterMinFreq;
+        fHiLin = gritFilterMaxFreq;
+        break;
+      }
   }
 
   // Translate to ratios from center (avoid divide by zero)
@@ -901,9 +928,9 @@ LedRgbBrightness Deck::getGritLedColour ()
 void Deck::updateGritPadLedState (DisplayState &view)
 {
   // Set grit pad LED state and color
-  view.gritActive       = true;
+  view.gritActive            = true;
   LedRgbBrightness gritColor = getGritLedColour();
-  view.gritLedColors[0] = gritColor;
+  view.gritLedColors[0]      = gritColor;
   // If grit is not latched active, set the second phase to black
   view.gritLedColors[1] = getGritActive() ? gritColor : LedRgbBrightness{0x000000, kOffLedBrightness};
 }
@@ -1017,7 +1044,10 @@ void Deck::updateGritRingState (DisplayState &view)
   float spanStart;
   float spanEnd;
 
-  float shapeSpanStart[4] = {(float)squareSpanStart, (float)fallingSpanStart, (float)triangleSpanStart, (float)rampSpanStart};
+  float shapeSpanStart[4] = {(float)squareSpanStart,
+                             (float)fallingSpanStart,
+                             (float)triangleSpanStart,
+                             (float)rampSpanStart};
   float shapeSpanEnd[4]   = {(float)squareSpanEnd, (float)fallingSpanEnd, (float)triangleSpanEnd, (float)rampSpanEnd};
   // Interpolate between the 4 filter shape span starts and ends
   uint8_t channel = channelConfig_ == isChannelActive(1) ? 1 : 0;
@@ -1025,7 +1055,7 @@ void Deck::updateGritRingState (DisplayState &view)
   ledsFourShapeInterpolator(0, N, inputSculpt_[channel].getShape(), shapeSpanEnd, &spanEnd);
 
   // Purple span indicating the filter area
-  uint8_t          filterSpanSize = static_cast<uint8_t>(daisysp::fclamp(spanEnd - spanStart, 0, N - spanStart));
+  uint8_t filterSpanSize = static_cast<uint8_t>(daisysp::fclamp(spanEnd - spanStart, 0, N - spanStart));
   populateGritLedRing(ringSpan, N, spanStart, filterSpanSize);
   view.rings[view.layerCount++] = ringSpan;
 }

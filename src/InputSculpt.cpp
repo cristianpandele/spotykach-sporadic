@@ -30,7 +30,7 @@ void InputSculpt::setShape (float s)
 
 void InputSculpt::setOverdrive (float od)
 {
-  overdriveAmt_ = daisysp::fclamp(od, 0.0f, 1.0f);
+  overdriveAmt_ = infrasonic::unitclamp(od);
   overdriveAmt_ = daisysp::fmap(overdriveAmt_, kMinDriveAmt, kMaxDriveAmt);
   overdrive_.SetDrive(overdriveAmt_);
 }

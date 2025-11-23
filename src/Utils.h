@@ -108,6 +108,9 @@ class Utils
           return currentValue_;
         }
 
+        // Set the target value
+        void setCurrentValForce (float v) { currentValue_ = v; }
+
         // Get the target value
         float getTargetVal () const { return targetValue_; }
 

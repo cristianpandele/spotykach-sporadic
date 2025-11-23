@@ -34,6 +34,8 @@ void Sporadic::setPosition (float p, bool gritLatch)
   else if (positionChanged && !getGritMenuOpen())
   {
     position_ = positionControl_;
+    // Set the tree offset in the delay network
+    setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
     // Set fold window dirty flag to update visualization
     foldWindowDirty_ = true;
   }
@@ -52,6 +54,8 @@ void Sporadic::setSize (float s, bool gritLatch)
   else if (sizeChanged && !getGritMenuOpen())
   {
     size_ = sizeControl_;
+    // Set the mycelia mix in the delay network
+    setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
     // Set fold window dirty flag to update visualization
     foldWindowDirty_ = true;
   }

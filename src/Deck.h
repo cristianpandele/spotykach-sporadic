@@ -334,8 +334,15 @@ class Deck
     virtual bool isEffectPlaying () const { return (isFluxPlaying() || isGritPlaying()); }
 
     // Handle long-hold modulation (for each effect)
+    bool gritLongHoldModActive ();
     void processFluxLongHoldModulation ();
     void processGritLongHoldModulation ();
+
+    // LFOs for long-hold modulation
+    daisysp::Oscillator fluxOsc_;
+    float               curFluxLfoSample_ = 0.0f;
+    daisysp::Oscillator gritOsc_;
+    float               curGritLfoSample_ = 0.0f;
 
     // Utility functions
     bool isChannelActive (size_t ch) const;
@@ -422,17 +429,20 @@ class Deck
     // Long-hold modulation state
     using SmoothValue = Utils::SmoothValue;
 
-    static constexpr float kLongHoldRampSec = 500.0f;    // ramp time for freq/amp from min->max
+    static constexpr float   kLongHoldRampSec       = 500.0f;    // ramp time for freq/amp from min->max
+    static constexpr float   kLongHoldRampMs        = kLongHoldRampSec * 1000.0f;
+    static constexpr size_t  kLongHoldGraceCountMax = 800;
 
-    daisysp::Oscillator fluxOsc_;
-    SmoothValue         fluxFreqSmoother_ = SmoothValue(kLongHoldRampSec * 1000.0f, (1000.f * blockSize_ / sampleRate_));
-    SmoothValue         fluxAmpSmoother_  = SmoothValue(kLongHoldRampSec * 1000.0f, (1000.f * blockSize_ / sampleRate_));
-    bool                fluxLongHeldPrev_ = false;
+    SmoothValue fluxFreqSmoother_       = SmoothValue(kLongHoldRampMs, (1000.f * blockSize_ / sampleRate_));
+    SmoothValue fluxAmpSmoother_        = SmoothValue(kLongHoldRampMs, (1000.f * blockSize_ / sampleRate_));
+    bool        fluxLongHeldPrev_       = false;
+    uint8_t     fluxLongHeldGraceCount_ = 0;
 
-    daisysp::Oscillator gritOsc_;
-    SmoothValue         gritFreqSmoother_ = SmoothValue(kLongHoldRampSec * 1000.0f, (1000.f * blockSize_ / sampleRate_));
-    SmoothValue         gritAmpSmoother_  = SmoothValue(kLongHoldRampSec * 1000.0f, (1000.f * blockSize_ / sampleRate_));
-    bool                gritLongHeldPrev_ = false;
+    SmoothValue gritFreqSmoother_       = SmoothValue(kLongHoldRampMs, (1000.f * blockSize_ / sampleRate_));
+    SmoothValue gritAmpSmoother_        = SmoothValue(kLongHoldRampMs, (1000.f * blockSize_ / sampleRate_));
+    bool        gritLongHeldPrev_       = false;
+    uint8_t     gritLongHeldGraceCount_ = 0;
+
     // General tap/hold handler. Returns double-tap state; updates "held" and "longHeld"; stops timers if pressed == false.
     void handleTap (const bool      padPressed,
                     StopwatchTimer &heldTimer,
