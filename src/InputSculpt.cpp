@@ -6,6 +6,30 @@ void InputSculpt::init (float sampleRate)
   svf_.Init(sampleRate_);
   overdrive_.SetDrive(kMinDriveAmt);
   updateFilter(centerFreq_, q_);
+
+  initModulatedParams();
+}
+
+using ModEffectParamsIdx = ModulatedEffectParams::ModEffectParamsIdx;
+void InputSculpt::initModulatedParams ()
+{
+  // Set per-parameter modulation config (depth, polarity, mapping)
+  // Overdrive
+  modulatedParams.setParamConfig(
+    ModEffectParamsIdx::PITCH_IX,
+    {.depth = 0.4f, .polarity = ModulationSources::BIPOLAR, .mapping = daisysp::Mapping::LINEAR});
+  // Center Frequency
+  modulatedParams.setParamConfig(
+    ModEffectParamsIdx::POS_IX,
+    {.depth = 500.0f, .polarity = ModulationSources::BIPOLAR, .mapping = daisysp::Mapping::LINEAR});
+  // Size
+  modulatedParams.setParamConfig(
+    ModEffectParamsIdx::SIZE_IX,
+    {.depth = 0.3f, .polarity = ModulationSources::BIPOLAR, .mapping = daisysp::Mapping::LINEAR});
+  // Shape
+  modulatedParams.setParamConfig(
+    ModEffectParamsIdx::SHAPE_IX,
+    {.depth = 0.2f, .polarity = ModulationSources::BIPOLAR, .mapping = daisysp::Mapping::LINEAR});
 }
 
 void InputSculpt::setFreq (float f)

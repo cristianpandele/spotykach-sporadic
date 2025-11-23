@@ -2,6 +2,7 @@
 #include "common.h"
 #include "daisysp.h"
 #include "Effects/overdrive.h"
+#include "ModulatedParam.h"
 
 using namespace daisysp;
 
@@ -22,6 +23,9 @@ class InputSculpt
     static constexpr float kMaxFreq = 18000.0f;
 
     void init (float sampleRate);
+
+    // Initialize modulated effect parameters (call from InputSculpt::init())
+    void initModulatedParams();
 
     // Process one sample
     float processSample (float in);
@@ -48,6 +52,18 @@ class InputSculpt
     // Get overdrive amount
     float getOverdrive () const { return overdriveAmt_; }
 
+    // Read access to modulated effect parameters
+    float getModulatedParamSmoothValue (size_t ch, ModulatedEffectParams::ModEffectParamsIdx parameterIdx)
+    {
+      return modulatedParams.getModSmoothValue(ch, parameterIdx);
+    }
+
+    // Update modulation source levels
+    void updateModulationSources (const ModulationSources &sources, size_t index)
+    {
+      return modulatedParams.updateModulationSources(sources, index);
+    }
+
   private:
     float sampleRate_ = 48000.0f;
     // Filter parameters
@@ -58,6 +74,9 @@ class InputSculpt
     float kMinDriveGainComp = 0.02f;
     float kMaxDriveGainComp = 4.0f;
     float overdriveAmt_     = kMinDriveAmt;
+
+    // Modulated effect parameters
+    ModulatedEffectParams modulatedParams;
 
     daisysp::Svf       svf_;
     daisysp::Overdrive overdrive_;

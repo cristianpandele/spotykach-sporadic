@@ -78,6 +78,9 @@ class Sporadic : public Deck
     // Flag to indicate if the fold window has changed and gains need updating
     bool foldWindowDirty_ = false;
 
+    // Store the latest analog control frame for access in processAudio
+    AnalogControlFrame lastAnalogControlFrame_{};
+
     // Setters for mix, position and size (overloads point to Sporadic versions)
     void setPosition (float p, bool gritLatch = false);
     void setPosition (float p) override { setPosition(p, false); }

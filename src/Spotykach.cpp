@@ -281,11 +281,16 @@ void Spotykach::updateAnalogControls (const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame
   // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
-  setMix(c.mix, c.mixAlt);
-  setPitch(c.pitch, c.pitchGrit);
-  setPosition(c.position, c.positionGrit);
-  setSize(c.size, c.sizeGrit);
-  setShape(c.shape, c.shapeGrit);
+  if (c.mix)
+    setMix(c.mix->getEffectiveSmoothVal(), c.mix->altLatch);
+  if (c.pitch)
+    setPitch(c.pitch->getEffectiveSmoothVal(), c.pitch->gritLatch);
+  if (c.position)
+    setPosition(c.position->getEffectiveSmoothVal(), c.position->gritLatch);
+  if (c.size)
+    setSize(c.size->getEffectiveSmoothVal(), c.size->gritLatch);
+  if (c.shape)
+    setShape(c.shape->getEffectiveSmoothVal(), c.shape->gritLatch);
 }
 
 void Spotykach::updateDigitalControls (const DigitalControlFrame &c)

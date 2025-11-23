@@ -85,6 +85,9 @@ void AppImpl::init ()
   sporadic[0].init();
   sporadic[1].init();
 
+  // Initialize modulated parameter wrappers (attach to base SmoothValues)
+  initModulatedParams();
+
   // Initialize the soft takeover envelope generators
   for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
@@ -103,6 +106,25 @@ void AppImpl::init ()
 
   audio.Start(AudioCallback);
 }
+
+  // Attach ModulatedParam wrappers to their corresponding base SmoothValues.
+  void AppImpl::initModulatedParams()
+  {
+    // Per-side arrays
+    for (size_t side = 0; side < kNumberDeckSlots; ++side)
+    {
+      modulatedMix[side].attachBase(&mixControls[side]);
+      modulatedPitch[side].attachBase(&pitchControls[side]);
+      modulatedPosition[side].attachBase(&positionControls[side]);
+      modulatedSize[side].attachBase(&sizeControls[side]);
+      modulatedShape[side].attachBase(&shapeControls[side]);
+      modulatedModAmount[side].attachBase(&modulationAmountControls[side]);
+      modulatedModFreq[side].attachBase(&modulationFreqControls[side]);
+    }
+
+    // Single-value controls
+    modulatedSpoty.attachBase(&spotyControl);
+  }
 
 using ChannelConfig = Deck::ChannelConfig;
 
@@ -137,25 +159,17 @@ void AppImpl::updateAnalogControlFrame(Deck::AnalogControlFrame &frame, size_t s
     return; // Invalid slot
   }
 
-  // Update the control frame for the specified deck slot
-  frame = {
-    .mix          = mixControls[slot].isSmoothing() ? mixControls[slot].getSmoothVal() : mixControls[slot].getTargetVal(),
-    .mixAlt       = mixAltLatch[slot],
-    .pitch        = pitchControls[slot].isSmoothing() ? pitchControls[slot].getSmoothVal()
-                                                      : pitchControls[slot].getTargetVal(),
-    .pitchGrit    = pitchGritLatch[slot],
-    .position     = positionControls[slot].isSmoothing() ? positionControls[slot].getSmoothVal()
-                                                         : positionControls[slot].getTargetVal(),
-    .positionGrit = positionGritLatch[slot],
-    .size         = sizeControls[slot].isSmoothing() ? sizeControls[slot].getSmoothVal()
-                                                     : sizeControls[slot].getTargetVal(),
-    .sizeGrit     = sizeGritLatch[slot],
-    .shape        = shapeControls[slot].isSmoothing() ? shapeControls[slot].getSmoothVal()
-                                                      : shapeControls[slot].getTargetVal(),
-    .shapeGrit    = shapeGritLatch[slot],
-    .spoty        = spotyControl.isSmoothing() ? spotyControl.getSmoothVal()
-                                               : spotyControl.getTargetVal()
-  };
+  // Provide modulated parameter references for decks to use
+  frame.mix      = &modulatedMix[slot];
+  frame.pitch    = &modulatedPitch[slot];
+  frame.position = &modulatedPosition[slot];
+  frame.size     = &modulatedSize[slot];
+  frame.shape    = &modulatedShape[slot];
+  frame.spoty    = &modulatedSpoty;
+
+  // Populate effect modulation sources
+  frame.gritModulation = &gritModSources[slot];
+  frame.fluxModulation = &fluxModSources[slot];
 }
 
 void AppImpl::pushAnalogDeckControls(Deck::AnalogControlFrame &c, size_t slot)
@@ -288,7 +302,6 @@ void AppImpl::loop ()
         // Global routing changed
         if (modTargetChanged[side])
         {
-          // decks[side]->setMode(currentModTarget[side]);
           modTargetChanged[side] = false;
           // Update the mod target smoothing values
           for (size_t modIdx = 0; modIdx < ModTarget::MOD_TARGET_LAST; modIdx++)
@@ -416,7 +429,7 @@ void AppImpl::processAudioLogic (AudioHandle::InputBuffer in, AudioHandle::Outpu
   {
     const float *a = deckOutputs_[0][ch];
     const float *b = deckOutputs_[1][ch];
-    Utils::audioBlockLerp(a, b, out[ch], deckMix_.getSmoothVal(), blockSize);
+    Utils::audioBlockLerp(a, b, out[ch], deckMix_, blockSize);
   }
 }
 
@@ -432,12 +445,12 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     /////////
     // Apply the analog controls to the decks
 
-    if (mixControls[i].isSmoothing() || pitchControls[i].isSmoothing() || positionControls[i].isSmoothing() ||
-        sizeControls[i].isSmoothing() || shapeControls[i].isSmoothing() || spotyControl.isSmoothing())
-    {
-      updateAnalogControlFrame(analogControlFrames[i], i);
-      pushAnalogDeckControls(analogControlFrames[i], i);
-    }
+    // if (modulatedMix[i].isSmoothing() || modulatedPitch[i].isSmoothing() || modulatedPosition[i].isSmoothing() ||
+    //   modulatedSize[i].isSmoothing() || modulatedShape[i].isSmoothing() || modulatedSpoty.isSmoothing())
+    // {
+    updateAnalogControlFrame(analogControlFrames[i], i);
+    pushAnalogDeckControls(analogControlFrames[i], i);
+    // }
 
     /////////
     // Apply the analog controls to the modulators
@@ -466,9 +479,9 @@ void AppImpl::logDebugInfo ()
   // // Log::PrintLine(FLT_FMT(5), FLT_VAR(5, val));
   // // Log::PrintLine(FLT_FMT(5), FLT_VAR(5, positionControls[0].getSmoothVal()));
   // // Log::PrintLine(FLT_FMT(5), FLT_VAR(5, positionControls[0].getTargetVal()));
-  Log::PrintLine("Spotykach Slider            : " FLT_FMT(5), FLT_VAR(5, spotyControl.getSmoothVal()));
-  Log::PrintLine("Position A                  : " FLT_FMT(5), FLT_VAR(5, positionControls[0].getSmoothVal()));
-  Log::PrintLine("Size A                      : " FLT_FMT(5), FLT_VAR(5, sizeControls[0].getSmoothVal()));
+  Log::PrintLine("Spotykach Slider            : " FLT_FMT(5), FLT_VAR(5, modulatedSpoty.getEffectiveSmoothVal()));
+  Log::PrintLine("Position A                  : " FLT_FMT(5), FLT_VAR(5, modulatedPosition[0].getEffectiveSmoothVal()));
+  Log::PrintLine("Size A                      : " FLT_FMT(5), FLT_VAR(5, modulatedSize[0].getEffectiveSmoothVal()));
   // // Log::PrintLine("Read Index A   : " FLT_FMT(5), FLT_VAR(5, ((Spotykach *) decks[0])->getReadIx()));
   // // Log::PrintLine("Write Index A  : " FLT_FMT(5), FLT_VAR(5, ((Spotykach *) decks[0])->getWriteIx()));
   // // // Log::PrintLine("Read Window Start : " FLT_FMT(5), FLT_VAR(5, decks[0]->getReadWindowStart()));
@@ -518,7 +531,7 @@ void AppImpl::logDebugInfo ()
     Log::PrintLine("Processor %d Level: " FLT_FMT(5), i, FLT_VAR(5, scLevels[i]));
   }
 
-  if (spotyControl.isSmoothing())
+  if (modulatedSpoty.isSmoothing())
     Log::PrintLine("Spotykach Slider Smoothing  : true");
   else
     Log::PrintLine("Spotykach Slider Smoothing  : false");
@@ -582,31 +595,31 @@ void AppImpl::processUIQueue ()
         if (event.asPotMoved.id == Hardware::kCtrlSosIds[side])
         {
           // Use Alt pad latch to modify Mix
-          mixAltLatch[side]  = Utils::isAltPadPressed(padTouchStates);
+          modulatedMix[side].altLatch = Utils::isAltPadPressed(padTouchStates);
         }
 
         if (event.asPotMoved.id == Hardware::kCtrlPitchIds[side])
         {
           // Use Grit pad latch to modify Pitch (drives InputSculpt drive)
-          pitchGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+          modulatedPitch[side].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
         }
 
         if (event.asPotMoved.id == Hardware::kCtrlPosIds[side])
         {
           // Use Grit pad latch to modify Position (drives InputSculpt frequency)
-          positionGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+          modulatedPosition[side].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
         }
 
         if (event.asPotMoved.id == Hardware::kCtrlShapeIds[side])
         {
           // Use Grit pad latch to modify Shape (drives InputSculpt shape)
-          shapeGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+          modulatedShape[side].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
         }
 
         if (event.asPotMoved.id == Hardware::kCtrlSizeIds[side])
         {
           // Use Grit pad latch to modify Size (drives InputSculpt width)
-          sizeGritLatch[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+          modulatedSize[side].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
         }
 
         if (event.asPotMoved.id <= Hardware::kCtrlLastSideIds[side])
@@ -663,56 +676,62 @@ void AppImpl::drawRainbowRoad ()
   }
 }
 
+void AppImpl::applyCvModulation(ModulatedParam &modParam, Hardware::CvInputId cvId, bool latchFlag, ModTarget modTarget, float cvModSmoothLevel)
+{
+  if (latchFlag)
+  {
+    // Do not apply CV modulation when latched
+    return;
+  }
+
+  modParam.addCvModulation(hw.GetControlVoltageValue(cvId) * cvModSmoothLevel);
+}
+
 void AppImpl::handleAnalogControls ()
 {
   // Spotykach slider
   spotyControl = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
-  // Add the Spotykach CV value when the Spotykach pad is not latched
-  spotyControl += hw.GetControlVoltageValue(Hardware::CV_SPOTYKACH);
+  // Apply CV modulation to Spotykach slider
+  applyCvModulation(modulatedSpoty, Hardware::CV_SPOTYKACH);
   // Set the deck mix level
-  deckMix_ = spotyControl;
+  deckMix_ = modulatedSpoty.getEffectiveSmoothVal();
 
   for (size_t side = 0; side < kNumberDeckSlots; side++)
   {
     // Read and smooth pitch controls for both sides
     pitchControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPitchIds[side]);
-    if (!pitchGritLatch[side])
-    {
-      // Add the pitch CV value when Grit is not latched
-      pitchControls[side] += hw.GetControlVoltageValue(Hardware::kCvVOctIds[side]);
-    }
+    // Apply CV modulation to Pitch
+    applyCvModulation(modulatedPitch[side], Hardware::kCvVOctIds[side], modulatedPitch[side].gritLatch);
 
     // Read the mix controls for both sides
     mixControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSosIds[side]);
-    if (!mixAltLatch[side])
-    {
-      // Add the mix CV values when Alt is not latched
-      // Smooth out the contribution from the CV based on the smoothing values for each target
-      mixControls[side] += modTargetSmooth[ModTarget::MIX].getSmoothVal() * hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
-      // gritControls[side] += modTargetSmooth[ModTarget::GRIT].getSmoothVal() * hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
-      // fluxControls[side] += modTargetSmooth[ModTarget::FLUX].getSmoothVal() * hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
-    }
+    // Apply CV modulation to Mix
+    applyCvModulation(modulatedMix[side],
+                      Hardware::kCvSosInIds[side],
+                      modulatedMix[side].altLatch,
+                      ModTarget::MIX,
+                      modTargetSmooth[ModTarget::MIX].getSmoothVal());
+
+    // Apply CV modulation to Grit and Flux if selected as mod targets
+    fluxModSources[side].modLevel[ModSourceIndex::CV] =
+      hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]) * modTargetSmooth[ModTarget::FLUX].getSmoothVal();
+    gritModSources[side].modLevel[ModSourceIndex::CV] =
+      hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]) * modTargetSmooth[ModTarget::GRIT].getSmoothVal();
 
     // Read the position knobs and CVs
     positionControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPosIds[side]);
-    if (!positionGritLatch[side])
+    if ((sizePosSwitches[side] == SizePosSwitchState::POSITION) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
     {
-      if ((sizePosSwitches[side] == SizePosSwitchState::POSITION) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
-      {
-        // Add the position CV values when Grit is not latched
-        positionControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
-      }
+      // Add the position CV values when the Size/Pos switch is set to Position or Both
+      applyCvModulation(modulatedPosition[side], Hardware::kCvSizePosIds[side], modulatedPosition[side].gritLatch);
     }
 
     // Read the size knobs and CVs
     sizeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSizeIds[side]);
-    if (!sizeGritLatch[side])
+    if ((sizePosSwitches[side] == SizePosSwitchState::SIZE) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
     {
-      // Add the size CV values when Grit is not latched
-      if ((sizePosSwitches[side] == SizePosSwitchState::SIZE) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
-      {
-        sizeControls[side] += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
-      }
+      // Add the size CV values when the Size/Pos switch is set to Size or Both
+      applyCvModulation(modulatedSize[side], Hardware::kCvSizePosIds[side], modulatedSize[side].gritLatch);
     }
 
     // Read the shape knobs
@@ -1071,7 +1090,7 @@ void AppImpl::handleDisplay ()
   }
 
   // Spotykach Slider
-  float skval = daisysp::fmap(deckMix_.getSmoothVal(), -1.0f, 1.0f);
+  float skval = daisysp::fmap(deckMix_, -1.0f, 1.0f);
   hw.leds.Set(Hardware::LED_SPOTY_SLIDER_B,
               0xff0000,
               skval > 0.0f ? daisysp::fmap(skval, kMinLedBrightness, kMaxLedBrightness, Mapping::LOG) : kOffLedBrightness);

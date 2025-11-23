@@ -567,14 +567,14 @@ void Deck::processFluxLongHoldModulation ()
   // }
 }
 
+// Determine if the long hold modulation needs to be active
 bool Deck::gritLongHoldModActive ()
 {
   if (gritActive_ && gritLongHeld_)
   {
     // Set smoothers on long-hold detection
-    gritFreqSmoother_ = 10.0f;
-    // gritAmpSmoother_  = 300.0f < inputSculptCenterFreq_ ? 300.0f : inputSculptCenterFreq_ / 2.0f;
-    gritAmpSmoother_ = 0.1f < positionGritControl_ ? 0.1f : positionGritControl_ / 2.0f;
+    gritFreqSmoother_ = 10.0f;// 300.0f < inputSculptCenterFreq_ ? 300.0f : inputSculptCenterFreq_ / 2.0f;
+    gritAmpSmoother_ = 1.0f; // 0.1f < positionGritControl_ ? 0.1f : positionGritControl_ / 2.0f;
 
     // Update previous state
     gritLongHeldPrev_ = gritLongHeld_;
@@ -604,8 +604,37 @@ bool Deck::gritLongHoldModActive ()
   return false;
 }
 
+using ModEffectParamsIdx = ModulatedEffectParams::ModEffectParamsIdx;
+// Apply any effect modulations to the effect parameters
+void Deck::applyGritModulations (const AnalogControlFrame &c)
+{
+  for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
+  {
+    if (isChannelActive(ch))
+    {
+      for (size_t dstIdx = 0; dstIdx < ModulatedEffectParams::kMaxParams; ++dstIdx)
+      {
+        // Update the modulation source levels to all target effect parameters
+        inputSculpt_[ch].updateModulationSources(*c.gritModulation, dstIdx);
+      }
+
+      // Get modulated parameters
+      float modOverdrive  = inputSculpt_[ch].getModulatedParamSmoothValue(ch, ModEffectParamsIdx::PITCH_IX);
+      float modCenterFreq = inputSculpt_[ch].getModulatedParamSmoothValue(ch, ModEffectParamsIdx::POS_IX);
+      float modQ          = inputSculpt_[ch].getModulatedParamSmoothValue(ch, ModEffectParamsIdx::SIZE_IX);
+      float modShape      = inputSculpt_[ch].getModulatedParamSmoothValue(ch, ModEffectParamsIdx::SHAPE_IX);
+
+      // Apply LFO on top of modulated values
+      inputSculpt_[ch].setFreq(inputSculptCenterFreq_ + modCenterFreq);
+      inputSculpt_[ch].setOverdrive(pitchGritControl_ + modOverdrive);
+      inputSculpt_[ch].setWidth(sizeGritControl_ + modQ);
+      inputSculpt_[ch].setShape(shapeGritControl_ + modShape);
+    }
+  }
+}
+
 // Grit modulation
-void Deck::processGritLongHoldModulation ()
+void Deck::processGritLongHoldModulation (const AnalogControlFrame &c)
 {
   if (gritLongHoldModActive())
   {
@@ -618,33 +647,31 @@ void Deck::processGritLongHoldModulation ()
     gritOsc_.SetFreq(gritFreqCurrent);
     gritOsc_.SetAmp(gritAmpCurrent);
 
-    // Apply modulation to input sculpt frequencies
-    float curGritLfoSample_ = gritOsc_.Process();
+    // Apply modulation to input sculpt frequencies (convert to unipolar initially)
+    float curGritLfoSample = gritOsc_.Process();
+    curGritLfoSample       = infrasonic::map(curGritLfoSample, -1.0f, 1.0f, 0.0f, 1.0f);
+
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
       {
-        float sign = (ch == 0) ? 1.0f : -1.0f;
-        float mod  = infrasonic::map(curGritLfoSample_, -0.1f, 0.1f, -300.0f, 300.0f) * sign;
-        inputSculpt_[ch].setFreq(inputSculptCenterFreq_ + mod);
-        mod = infrasonic::map(curGritLfoSample_, -0.1f, 0.1f, -0.2f, 0.2f) * sign;
-        inputSculpt_[ch].setOverdrive(pitchGritControl_ + mod);
-        mod = infrasonic::map(curGritLfoSample_, -0.1f, 0.1f, -0.07f, 0.07f) * sign;
-        inputSculpt_[ch].setWidth(sizeGritControl_ + mod);
+        if (c.gritModulation)
+        {
+          // Set the long press grit modulation source settings here. Internally, InputSculpt will distribute that to each destination independently (different depths)
+          for (size_t dstIdx = 0; dstIdx < ModulatedEffectParams::kMaxParams; ++dstIdx)
+          {
+            c.gritModulation->modLevel[ModSourceIndex::LONG_PRESS]    = curGritLfoSample;
+            c.gritModulation->modDepth[ModSourceIndex::LONG_PRESS]    = 1.0f;
+            c.gritModulation->modPolarity[ModSourceIndex::LONG_PRESS] = Polarity::BIPOLAR;
+            c.gritModulation->modMapping[ModSourceIndex::LONG_PRESS]  = daisysp::Mapping::LINEAR;
+          }
+        }
       }
     }
   }
   else
   {
     // Either not held or grace period expired
-    // Reset input sculpt frequencies to base values
-    for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
-    {
-      if (isChannelActive(ch))
-      {
-        inputSculpt_[ch].setFreq(inputSculptCenterFreq_);
-      }
-    }
     // Reset smoothers
     gritFreqSmoother_.setCurrentValForce(0.0f);
     gritAmpSmoother_.setCurrentValForce(0.0f);

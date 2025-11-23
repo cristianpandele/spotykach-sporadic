@@ -222,14 +222,23 @@ void Sporadic::setDelayNetworkParameters()
 
 void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
 {
+  // Store the latest control frame for access in processAudio
+  lastAnalogControlFrame_ = c;
+
   // Update the analog deck parameters based on the control frame
   // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
-  setMix(c.mix, c.mixAlt);
-  setPitch(c.pitch, c.pitchGrit);
-  setPosition(c.position, c.positionGrit);
-  setSize(c.size, c.sizeGrit);
-  setShape(c.shape, c.shapeGrit);
-  // setSpoty(c.spoty);
+  // If the modulated parameter pointers are present, use their effective
+  // smoothed values. Fall back gracefully if any pointer is null.
+  if (c.mix)
+    setMix(c.mix->getEffectiveSmoothVal(), c.mix->altLatch);
+  if (c.pitch)
+    setPitch(c.pitch->getEffectiveSmoothVal(), c.pitch->gritLatch);
+  if (c.position)
+    setPosition(c.position->getEffectiveSmoothVal(), c.position->gritLatch);
+  if (c.size)
+    setSize(c.size->getEffectiveSmoothVal(), c.size->gritLatch);
+  if (c.shape)
+    setShape(c.shape->getEffectiveSmoothVal(), c.shape->gritLatch);
 }
 
 void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
@@ -344,11 +353,13 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
   if (isFluxPlaying())
   {
     Deck::processFluxLongHoldModulation();
+    // Deck::applyFluxModulation(lastAnalogControlFrame_);
   }
 
   if (isGritPlaying())
   {
-    Deck::processGritLongHoldModulation();
+    Deck::processGritLongHoldModulation(lastAnalogControlFrame_);
+    Deck::applyGritModulations(lastAnalogControlFrame_);
   }
 
   // Crossfade between normal input and reversed input using SmoothValue (0.0 = normal, 1.0 = reversed)
@@ -437,7 +448,7 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
       limiter[ch].ProcessBlock(out[ch], blockSize, 0.7f);
     }
   }
-}
+    }
 
 void Sporadic::updateDiffusionRingState (DisplayState &view)
 {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "InputSculpt.h"
+#include "ModulatedParam.h"
 #include "Utils.h"
 #include "common.h"
 #include "constants.h"
@@ -27,20 +28,23 @@ class Deck
     // Analog Control payload pushed on change (at most once per block) from AppImpl
     struct AnalogControlFrame
     {
-      float mix;
-      bool  mixAlt;       // latched Alt pad at move time for Mix knob
-      float pitch;
-      bool  pitchGrit;    // latched Grit pad at move time for Pitch knob
-      float position;
-      bool  positionGrit; // latched Grit pad at move time for Position knob
-      float size;
-      bool  sizeGrit;     // latched Grit pad at move time for Size knob
-      float shape;
-      bool  shapeGrit;    // latched Grit pad at move time for Shape knob
-      float spoty;
+      // Numeric parameter values are not sent; decks receive pointers to
+      // the concrete ModulatedParam objects and must read both effective
+      // values and latch flags from them.
+      ModulatedParam *mix = nullptr;
+      ModulatedParam *pitch = nullptr;
+      ModulatedParam *position = nullptr;
+      ModulatedParam *size = nullptr;
+      ModulatedParam *shape = nullptr;
+      ModulatedParam *spoty = nullptr;
+
+      // Modulation sources for effects (flux and grit)
+      // Points to AppImpl's modulation source arrays
+      ModulationSources *fluxModulation = nullptr;
+      ModulationSources *gritModulation = nullptr;
     };
 
-    // Digital control payload pushed  on change (at most once per loop iteration) from AppImpl
+    // Digital control payload pushed on change (at most once per loop iteration) from AppImpl
     struct DigitalControlFrame
     {
       // Simple pad presses
@@ -324,13 +328,17 @@ class Deck
     // Handle long-hold modulation (for each effect)
     bool gritLongHoldModActive ();
     void processFluxLongHoldModulation ();
-    void processGritLongHoldModulation ();
+    void processGritLongHoldModulation (const AnalogControlFrame &c);
+
+    // Apply modulation sources to the effect parameters
+    // void applyFluxModulations (const AnalogControlFrame &c);
+    void applyGritModulations (const AnalogControlFrame &c);
 
     // LFOs for long-hold modulation
     daisysp::Oscillator fluxOsc_;
     float               curFluxLfoSample_ = 0.0f;
     daisysp::Oscillator gritOsc_;
-    float               curGritLfoSample_ = 0.0f;
+    float               curGritLfoSample = 0.0f;
 
     // Utility functions
     bool isChannelActive (size_t ch) const;
