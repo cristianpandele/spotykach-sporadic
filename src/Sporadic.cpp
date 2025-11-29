@@ -44,7 +44,7 @@ void Sporadic::init ()
   }
 
   // Initialize the smooth crossfade for enabling/disabling reverse (75 ms, block-rate updates)
-  reverseMixSmooth_ = Utils::SmoothValue(0.0f, 75.0f, (1000.0f * static_cast<float>(blockSize_) / static_cast<float>(sampleRate_)));
+  reverseMixSmooth_ = Utils::SmoothValue(0.0f, kSmoothTime, (1000.0f * static_cast<float>(blockSize_) / static_cast<float>(sampleRate_)));
 }
 
 //////////

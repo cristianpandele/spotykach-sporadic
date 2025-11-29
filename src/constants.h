@@ -12,6 +12,9 @@ namespace spotykach
   constexpr float  kSamplePeriodMs = 1000.0f / kSampleRate;
   constexpr size_t kBlockSize      = 48;
 
+  // Constants for parameter smoothing
+  constexpr float kSmoothTime = 75.0f;
+
   // Constants for Sporadic
   constexpr size_t kMaxNumDelayProcs = 4;    // Maximum number of trees (output taps)
   constexpr size_t kMaxNutrientBands = 4;    // Maximum number of nutrient bands

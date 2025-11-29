@@ -146,55 +146,55 @@ namespace spotykach_hwtest
       SizePosSwitchState sizePosSwitches[kNumberDeckSlots]{SizePosSwitchState::SIZE, SizePosSwitchState::SIZE};
 
       // Mix controls for the two sides (updated at audio block rate)
-      SmoothValue mixControls[kNumberDeckSlots] = {SmoothValue(75.0f, kSamplePeriodMs *kBlockSize),
-                                                   SmoothValue(75.0f, kSamplePeriodMs *kBlockSize)};
+      SmoothValue mixControls[kNumberDeckSlots] = {SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
+                                                   SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize)};
 
       // Modulated wrappers for the controls
       ModulatedParam modulatedMix[kNumberDeckSlots];
 
       // Smooth Spotykach slider (updated at audio block rate)
-      SmoothValue spotyControl {SmoothValue(150.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue spotyControl {SmoothValue(2.0f * kSmoothTime, kSamplePeriodMs * kBlockSize)};
 
       // Modulated wrapper for spoty
       ModulatedParam modulatedSpoty;
 
       // Smooth pitch for each side (updated at audio block rate)
-      SmoothValue pitchControls[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-                                                  SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue pitchControls[kNumberDeckSlots]{SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+                                                  SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize)};
 
       // Modulated wrappers for pitch
       ModulatedParam modulatedPitch[kNumberDeckSlots];
 
       // Position knob for each side (updated at audio block rate)
-      SmoothValue positionControls[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-                                                     SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue positionControls[kNumberDeckSlots]{SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+                                                     SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize)};
 
       // Modulated wrappers for position
       ModulatedParam modulatedPosition[kNumberDeckSlots];
 
       // Size controls for each side (updated at audio block rate)
-      SmoothValue sizeControls[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-                                                 SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue sizeControls[kNumberDeckSlots]{SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+                                                 SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize)};
 
       // Modulated wrappers for size
       ModulatedParam modulatedSize[kNumberDeckSlots];
 
       // Shape controls for each side (updated at audio block rate)
-      SmoothValue shapeControls[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-                                                  SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue shapeControls[kNumberDeckSlots]{SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+                                                  SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize)};
 
       // Modulated wrappers for shape
       ModulatedParam modulatedShape[kNumberDeckSlots];
       // Modulation amount controls for each side (updated at audio block rate)
-      SmoothValue modulationAmountControls[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-                                                             SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue modulationAmountControls[kNumberDeckSlots]{SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+                                                             SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize)};
 
       // Modulated wrappers for modulation amount
       ModulatedParam modulatedModAmount[kNumberDeckSlots];
 
       // Modulation frequency controls for each side (updated at audio block rate)
-      SmoothValue modulationFreqControls[kNumberDeckSlots]{SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-                                                           SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue modulationFreqControls[kNumberDeckSlots]{SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+                                                           SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize)};
 
       // Modulated wrappers for modulation frequency
       ModulatedParam modulatedModFreq[kNumberDeckSlots];
@@ -207,9 +207,9 @@ namespace spotykach_hwtest
 
       // Mod target switch changed flag and current mod target for each side
       bool        modTargetChanged[kNumberDeckSlots]{false};
-      SmoothValue modTargetSmooth[ModTarget::MOD_TARGET_LAST]{SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-                                                              SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-                                                              SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+      SmoothValue modTargetSmooth[ModTarget::MOD_TARGET_LAST]{SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+                                                              SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+                                                              SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize)};
       ModTarget   currentModTarget[kNumberDeckSlots]{ModTarget::MIX, ModTarget::MIX};
 
       // Mod type switch flag and current mod type for each side

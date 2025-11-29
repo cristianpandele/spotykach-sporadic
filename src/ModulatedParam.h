@@ -173,10 +173,10 @@ class ModulatedEffectParams
     ParamConfig                paramConfigs_[kMaxParams];
     ModulationSources          modSources_[kMaxParams];
     mutable Utils::SmoothValue smoothers_[kMaxParams] = {
-      Utils::SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-      Utils::SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-      Utils::SmoothValue(75.0f, kSamplePeriodMs * kBlockSize),
-      Utils::SmoothValue(75.0f, kSamplePeriodMs * kBlockSize)};
+      Utils::SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+      Utils::SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+      Utils::SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
+      Utils::SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize)};
 };
 
 // Concrete modulated parameter entity.
@@ -184,7 +184,7 @@ class ModulatedParam
 {
   public:
     // Construct with smoothing params for the effective value (ms, updatePeriodMs)
-    ModulatedParam (float effectiveSmoothTimeMs = 75.0f, float effectiveUpdatePeriodMs = kSamplePeriodMs * kBlockSize)
+    ModulatedParam (float effectiveSmoothTimeMs = kSmoothTime, float effectiveUpdatePeriodMs = kSamplePeriodMs * kBlockSize)
       : base_(nullptr),
         effective_(0.0f, effectiveSmoothTimeMs, effectiveUpdatePeriodMs),
         effectiveSmoothTimeMs_(effectiveSmoothTimeMs),

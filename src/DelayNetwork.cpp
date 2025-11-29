@@ -12,7 +12,7 @@ void DelayNetwork::init (float sampleRate, size_t blockSize, int numBands, int n
   numProcs_   = std::max(1, numProcs);
   numProcs_   = std::min(numProcs_, kMaxNumDelayProcs);
   stretch_    = 1.0f;
-  perProcGains_.fill(Utils::SmoothValue(1.0f, 150.0f, kSamplePeriodMs * kBlockSize));
+  perProcGains_.fill(Utils::SmoothValue(1.0f, 2.0f * kSmoothTime, kSamplePeriodMs * kBlockSize));
   diffusion_.init(sampleRate_, numBands_);
   delayNodes_.init(sampleRate_, blockSize_, numBands_, numProcs_);
 }
