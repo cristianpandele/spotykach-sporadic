@@ -203,7 +203,67 @@ namespace spotykach_hwtest
       void initModulatedParams();
 
       // Modulation frequency alt latch for each side
-      bool modFreqAltLatch[2] = {false};
+      bool modFreqAltLatch[kNumberDeckSlots] = {false};
+
+      // Modulator parameter mapping: which modulator is connected to which ModulatedParam with what depth
+      // modParamMappings[side][paramIndex] = {connected, depth}
+      // where paramIndex corresponds to: mix, pitch, position, size, shape, etc.
+      struct ModulatorParamMapping
+      {
+        float                       depth    = 0.0f;                           // absolute depth (0..1)
+        ModulationSources::Polarity polarity = ModulationSources::UNIPOLAR;    // polarity for this mapping
+      };
+
+      // Support up to 7 modulated parameters: mix, pitch, position, size, shape, mod_amount, mod_freq
+      static constexpr size_t kNumModulatedParams = 7;
+      // Mod parameter ids (0..7)
+      enum ModParamId
+      {
+        modParamMixIdx = 0,
+        modParamPitchIdx,
+        modParamPosIdx,
+        modParamSizeIdx,
+        modParamShapeIdx,
+        modParamModAmountIdx,
+        modParamModFreqIdx,
+        modParamSpotyIdx,
+        kNumModParams // equals 8
+      };
+
+      // Mappings between modulators on each side and the modulated parameters on each side. Indexing:
+      // [modSide][targetSide][paramIdx]
+      ModulatorParamMapping modParamMappings[kNumberDeckSlots][kNumberDeckSlots][kNumModParams];
+
+      // Per-side pointer table for modulated params (for params 0..6 + spoty). Indexing: [targetSide][paramIdx]
+      ModulatedParam *modParamPtrs[kNumberDeckSlots][kNumModParams];
+
+      // LED mapping for each mod param — paired LEDs (A,B). For modParamSpotyIdx the second entry duplicates the same LED.
+      static constexpr Hardware::LedId kModParamMapLed[kNumberDeckSlots][kNumModParams] =
+        {
+          {
+            Hardware::LED_FLUX_A,
+            Hardware::LED_RING_A,
+            Hardware::LED_GRIT_A,
+            Hardware::LED_REV_A,
+            Hardware::LED_PLAY_A,
+            Hardware::LED_CYCLE_A,
+            Hardware::LED_ALT_A,
+            Hardware::LED_SPOTY_PAD
+          },
+          {
+            Hardware::LED_FLUX_B,
+            Hardware::LED_RING_B,
+            Hardware::LED_GRIT_B,
+            Hardware::LED_REV_B,
+            Hardware::LED_PLAY_B,
+            Hardware::LED_CYCLE_B,
+            Hardware::LED_ALT_B,
+            Hardware::LED_SPOTY_PAD
+          }
+        };
+
+      // Skip updating the base control while mapping is in progress for a specific param on a target side
+      bool skipParamUpdate[kNumberDeckSlots][kNumModParams] = {{false}};
 
       // Mod target switch changed flag and current mod target for each side
       bool        modTargetChanged[kNumberDeckSlots]{false};
@@ -275,7 +335,7 @@ namespace spotykach_hwtest
       // LED Phase for blinking LEDs
       uint8_t padLedPhase = 0;
 
-      uint16_t last_pot_moved[kNumberDeckSlots]{0};
+      Hardware::AnalogControlId lastPotMoved[kNumberDeckSlots]{Hardware::CTRL_SOS_A};
 
       // Flag for feeding the envelope follower with input signal
       bool    envelopeFeed = false;
@@ -306,8 +366,11 @@ namespace spotykach_hwtest
       void handleDigitalControls ();
       void handleDisplay ();
 
+      // Apply CV modulation to parameters
       void applyCvModulation (ModulatedParam &modParam, Hardware::CvInputId cvId, bool latchFlag = false, ModTarget modTarget = ModTarget::MOD_TARGET_LAST, float cvModSmoothLevel = 1.0f);
-      void testSDCard ();
+
+      // Apply soft modulation to parameters based on stored mappings
+      void applyModulatorSoftModulation();
 
       ///////////
       NOCOPY (AppImpl);

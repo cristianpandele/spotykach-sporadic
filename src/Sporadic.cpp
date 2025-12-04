@@ -353,7 +353,7 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
   if (isFluxPlaying())
   {
     Deck::processFluxLongHoldModulation();
-    // Deck::applyFluxModulation(lastAnalogControlFrame_);
+    // Deck::applyFluxModulations(lastAnalogControlFrame_);
   }
 
   if (isGritPlaying())

@@ -239,7 +239,7 @@ class ModulatedParam
       return effective_.getSmoothVal();
     }
 
-    // Helper function to add soft modulation to a modulated parameter
+    // Helper function to add CV modulation to a modulated parameter
     void addCvModulation (float value, Mapping mapping = Mapping::LINEAR)
     {
       // Polarity defaults to unipolar.
@@ -254,7 +254,7 @@ class ModulatedParam
         ModulationSources::mapWithPolarity(value, polarity, mapping) * depth;
     }
 
-    // Helper function to add CV modulation to a modulated parameter
+    // Helper function to add Soft modulation to a modulated parameter
     void addSoftModulation (ModSourceIndex index,
                             float          value,
                             float          depth    = 1.0f,

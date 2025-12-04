@@ -68,7 +68,7 @@ namespace spotykach
       static constexpr LedId kLedSpotyIds[kNumberDeckSlots] = {LED_SPOTY_SLIDER_A, LED_SPOTY_SLIDER_B};
 
       // Pots/sliders - these are on muxes
-      enum AnalogControlId : uint16_t
+      enum AnalogControlId : uint8_t
       {
         CTRL_SOS_A,
         CTRL_MOD_FREQ_A,

@@ -72,7 +72,7 @@ void AppImpl::init ()
   test_note_on = false;
 
   pot_monitor.Init(ui_queue, hw, 500, 0.005f, 0.002f);
-  std::fill(std::begin(last_pot_moved), std::end(last_pot_moved), 0);
+  std::fill(std::begin(lastPotMoved), std::end(lastPotMoved), Hardware::CTRL_SOS_A);
 
   hw.seed.usb_handle.SetReceiveCallback(UsbCallback, UsbHandle::FS_EXTERNAL);
 
@@ -107,12 +107,12 @@ void AppImpl::init ()
   audio.Start(AudioCallback);
 }
 
-  // Attach ModulatedParam wrappers to their corresponding base SmoothValues.
-  void AppImpl::initModulatedParams()
+void AppImpl::initModulatedParams()
+{
+  // Per-side arrays
+  for (size_t side = 0; side < kNumberDeckSlots; ++side)
   {
-    // Per-side arrays
-    for (size_t side = 0; side < kNumberDeckSlots; ++side)
-    {
+      // Attach ModulatedParam wrappers to their corresponding base SmoothValues.
       modulatedMix[side].attachBase(&mixControls[side]);
       modulatedPitch[side].attachBase(&pitchControls[side]);
       modulatedPosition[side].attachBase(&positionControls[side]);
@@ -120,9 +120,19 @@ void AppImpl::init ()
       modulatedShape[side].attachBase(&shapeControls[side]);
       modulatedModAmount[side].attachBase(&modulationAmountControls[side]);
       modulatedModFreq[side].attachBase(&modulationFreqControls[side]);
+      // Initialize pointer table for quick lookup (params 0..6 are per-side; 7 is spoty)
+      modParamPtrs[side][modParamMixIdx] = &modulatedMix[side];
+      modParamPtrs[side][modParamPitchIdx] = &modulatedPitch[side];
+      modParamPtrs[side][modParamPosIdx] = &modulatedPosition[side];
+      modParamPtrs[side][modParamSizeIdx] = &modulatedSize[side];
+      modParamPtrs[side][modParamShapeIdx] = &modulatedShape[side];
+      modParamPtrs[side][modParamModAmountIdx] = &modulatedModAmount[side];
+      modParamPtrs[side][modParamModFreqIdx] = &modulatedModFreq[side];
+      // Spoty is global (no per-side side), point to single instance
+      modParamPtrs[side][modParamSpotyIdx] = &modulatedSpoty;
     }
 
-    // Single-value controls
+    // Single-sided ModulatedParam controls
     modulatedSpoty.attachBase(&spotyControl);
   }
 
@@ -440,6 +450,9 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
   // Handle the analog controls that affect the audio processing
   handleAnalogControls();
 
+  // Apply modulator soft modulation to parameters based on stored mappings
+  applyModulatorSoftModulation();
+
   for (size_t i = 0; i < kNumberDeckSlots; i++)
   {
     /////////
@@ -584,47 +597,104 @@ void AppImpl::processUIQueue ()
     auto event = ui_queue.GetAndRemoveNextEvent();
     if (event.type == UiEventQueue::Event::EventType::potMoved)
     {
-      for (size_t side = 0; side < kNumberDeckSlots; side++)
+      uint16_t movedPot = event.asPotMoved.id;
+      for (size_t targetSide = 0; targetSide < kNumberDeckSlots; targetSide++)
       {
-        if (event.asPotMoved.id == Hardware::kCtrlModFreqIds[side])
+        // If the moved pot belongs to this side, evaluate mapping
+        if (!(movedPot <= Hardware::kCtrlLastSideIds[targetSide]))
+        {
+          continue;
+        }
+
+        if (movedPot == Hardware::kCtrlModFreqIds[targetSide])
         {
           // Use Alt pad latch to modify Modulation Frequency
-          modFreqAltLatch[side] = Utils::isAltPadPressed(padTouchStates);
+          modulatedModFreq[targetSide].altLatch = Utils::isAltPadPressed(padTouchStates);
         }
 
-        if (event.asPotMoved.id == Hardware::kCtrlSosIds[side])
+        if (movedPot == Hardware::kCtrlSosIds[targetSide])
         {
           // Use Alt pad latch to modify Mix
-          modulatedMix[side].altLatch = Utils::isAltPadPressed(padTouchStates);
+          modulatedMix[targetSide].altLatch = Utils::isAltPadPressed(padTouchStates);
         }
 
-        if (event.asPotMoved.id == Hardware::kCtrlPitchIds[side])
+        if (movedPot == Hardware::kCtrlPitchIds[targetSide])
         {
           // Use Grit pad latch to modify Pitch (drives InputSculpt drive)
-          modulatedPitch[side].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+          modulatedPitch[targetSide].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[targetSide]);
         }
 
-        if (event.asPotMoved.id == Hardware::kCtrlPosIds[side])
+        if (movedPot == Hardware::kCtrlPosIds[targetSide])
         {
           // Use Grit pad latch to modify Position (drives InputSculpt frequency)
-          modulatedPosition[side].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+          modulatedPosition[targetSide].gritLatch =
+            Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[targetSide]);
         }
 
-        if (event.asPotMoved.id == Hardware::kCtrlShapeIds[side])
+        if (movedPot == Hardware::kCtrlShapeIds[targetSide])
         {
           // Use Grit pad latch to modify Shape (drives InputSculpt shape)
-          modulatedShape[side].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+          modulatedShape[targetSide].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[targetSide]);
         }
 
-        if (event.asPotMoved.id == Hardware::kCtrlSizeIds[side])
+        if (movedPot == Hardware::kCtrlSizeIds[targetSide])
         {
           // Use Grit pad latch to modify Size (drives InputSculpt width)
-          modulatedSize[side].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
+          modulatedSize[targetSide].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[targetSide]);
         }
 
-        if (event.asPotMoved.id <= Hardware::kCtrlLastSideIds[side])
+        // Remember last moved pot for that side
+        lastPotMoved[targetSide] = static_cast<Hardware::AnalogControlId>(movedPot);
+
+        // Check every modulator side to see if its Mod pad is currently pressed.
+        for (size_t modSide = 0; modSide < kNumberDeckSlots; ++modSide)
         {
-          last_pot_moved[side] = event.asPotMoved.id;
+          if (!Utils::isTouchPadPressed(padTouchStates, kPadMapCycleIds[modSide]))
+          {
+            continue;
+          }
+
+          // Determine which parameter index the moved pot (on targetSide) represents
+          int paramIdx = -1;
+          if (movedPot == Hardware::kCtrlModFreqIds[targetSide])
+          {
+            paramIdx = modParamModFreqIdx;
+          }
+          else if (movedPot == Hardware::kCtrlSosIds[targetSide])
+          {
+            paramIdx = modParamMixIdx;
+          }
+          else if (movedPot == Hardware::kCtrlPitchIds[targetSide])
+          {
+            paramIdx = modParamPitchIdx;
+          }
+          else if (movedPot == Hardware::kCtrlPosIds[targetSide])
+          {
+            paramIdx = modParamPosIdx;
+          }
+          else if (movedPot == Hardware::kCtrlShapeIds[targetSide])
+          {
+            paramIdx = modParamShapeIdx;
+          }
+          else if (movedPot == Hardware::kCtrlSizeIds[targetSide])
+          {
+            paramIdx = modParamSizeIdx;
+          }
+
+          // Record the moved pot value as modulation depth
+          modParamMappings[modSide][targetSide][paramIdx].depth = hw.GetAnalogControlValue(lastPotMoved[targetSide]);
+          // If Alt was held during mapping, remember polarity as bipolar
+          if (Utils::isAltPadPressed(padTouchStates))
+          {
+            modParamMappings[modSide][targetSide][paramIdx].polarity = ModulationSources::Polarity::BIPOLAR;
+          }
+          else
+          {
+            modParamMappings[modSide][targetSide][paramIdx].polarity = ModulationSources::Polarity::UNIPOLAR;
+          }
+
+          // Prevent changing the underlying control value while we're mapping
+          skipParamUpdate[targetSide][paramIdx] = true;
         }
       }
     }
@@ -676,7 +746,50 @@ void AppImpl::drawRainbowRoad ()
   }
 }
 
-void AppImpl::applyCvModulation(ModulatedParam &modParam, Hardware::CvInputId cvId, bool latchFlag, ModTarget modTarget, float cvModSmoothLevel)
+void AppImpl::applyModulatorSoftModulation ()
+{
+    // For each modulator side and each param index, apply soft modulation to the mapping's target side.
+    for (size_t modSide = 0; modSide < kNumberDeckSlots; ++modSide)
+    {
+      for (size_t targetSide = 0; targetSide < kNumberDeckSlots; ++targetSide)
+      {
+        for (size_t paramIdx = 0; paramIdx < kNumModParams; ++paramIdx)
+        {
+          if (modParamMappings[modSide][targetSide][paramIdx].depth <
+              0.001f)
+          {
+            continue;
+          }
+
+          float depth    = modParamMappings[modSide][targetSide][paramIdx].depth;
+          auto  polarity = modParamMappings[modSide][targetSide][paramIdx].polarity;
+
+          // Which modulated param wrapper to call on the target side
+          ModulatedParam *targetParam = nullptr;
+          if (paramIdx >= 0 && paramIdx < (int)kNumModParams)
+          {
+            // For params 0..6 we use per-target side pointers; param 7 (modParamSpotyIdx) resolves
+            // to the single modulatedSpoty instance via the pointer table.
+            targetParam = modParamPtrs[targetSide][paramIdx];
+          }
+
+          if (targetParam != nullptr)
+          {
+            // For Spoty (single instance) we still call addSoftModulation — the targetSide
+            // argument is cast to ModSourceIndex to indicate which soft source to use.
+            targetParam->addSoftModulation(static_cast<ModSourceIndex>(modSide),
+                                           modCv[modSide],
+                                           depth,
+                                           Mapping::LINEAR,
+                                           polarity);
+          }
+        }
+      }
+    }
+  }
+
+void AppImpl::applyCvModulation (ModulatedParam &modParam, Hardware::CvInputId cvId, bool latchFlag, ModTarget modTarget, float cvModSmoothLevel)
+
 {
   if (latchFlag)
   {
@@ -699,12 +812,18 @@ void AppImpl::handleAnalogControls ()
   for (size_t side = 0; side < kNumberDeckSlots; side++)
   {
     // Read and smooth pitch controls for both sides
-    pitchControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPitchIds[side]);
+    if (!skipParamUpdate[side][modParamPitchIdx])
+    {
+      pitchControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPitchIds[side]);
+    }
     // Apply CV modulation to Pitch
     applyCvModulation(modulatedPitch[side], Hardware::kCvVOctIds[side], modulatedPitch[side].gritLatch);
 
     // Read the mix controls for both sides
-    mixControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSosIds[side]);
+    if (!skipParamUpdate[side][modParamMixIdx])
+    {
+      mixControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSosIds[side]);
+    }
     // Apply CV modulation to Mix
     applyCvModulation(modulatedMix[side],
                       Hardware::kCvSosInIds[side],
@@ -719,7 +838,10 @@ void AppImpl::handleAnalogControls ()
       hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]) * modTargetSmooth[ModTarget::GRIT].getSmoothVal();
 
     // Read the position knobs and CVs
-    positionControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPosIds[side]);
+    if (!skipParamUpdate[side][modParamPosIdx])
+    {
+      positionControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPosIds[side]);
+    }
     if ((sizePosSwitches[side] == SizePosSwitchState::POSITION) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
     {
       // Add the position CV values when the Size/Pos switch is set to Position or Both
@@ -727,7 +849,10 @@ void AppImpl::handleAnalogControls ()
     }
 
     // Read the size knobs and CVs
-    sizeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSizeIds[side]);
+    if (!skipParamUpdate[side][modParamSizeIdx])
+    {
+      sizeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSizeIds[side]);
+    }
     if ((sizePosSwitches[side] == SizePosSwitchState::SIZE) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
     {
       // Add the size CV values when the Size/Pos switch is set to Size or Both
@@ -735,13 +860,22 @@ void AppImpl::handleAnalogControls ()
     }
 
     // Read the shape knobs
-    shapeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlShapeIds[side]);
+    if (!skipParamUpdate[side][modParamShapeIdx])
+    {
+      shapeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlShapeIds[side]);
+    }
 
     // Read the modulation amount knobs
-    modulationAmountControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlModAmtIds[side]);
+    if (!skipParamUpdate[side][modParamModAmountIdx])
+    {
+      modulationAmountControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlModAmtIds[side]);
+    }
 
     // Read the modulation frequency knobs
-    modulationFreqControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlModFreqIds[side]);
+    if (!skipParamUpdate[side][modParamModFreqIdx])
+    {
+      modulationFreqControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlModFreqIds[side]);
+    }
   }
 }
 
@@ -953,6 +1087,15 @@ void AppImpl::handleDigitalControls ()
       currentGritState[side] = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[side]);
       // Log::PrintLine("Grit state changed for side %d to: %d", side, currentGritState[side]);
     }
+
+    if (Utils::hasTouchStateChangedToReleased(padTouchStates, padTouchStatesPrev, kPadMapCycleIds[side]))
+    {
+      for (size_t paramIdx = 0; paramIdx < kNumModParams; ++paramIdx)
+      {
+        // clear the skip flag for the parameter (so base control updates resume)
+        skipParamUpdate[side][paramIdx] = false;
+      }
+    }
   }
 
   // Update the previous touch states
@@ -1122,6 +1265,34 @@ void AppImpl::handleDisplay ()
     {
       LedRgbBrightness &curLed = displayStates[i].fluxLedColors[padLedPhase];
       hw.leds.Set(Hardware::kLedFluxIds[i], curLed.rgb, curLed.brightness);
+    }
+
+    // If a Mod pad (cycle) is pressed on either side, display modulation depths
+    for (size_t modSide = 0; modSide < kNumberDeckSlots; ++modSide)
+    {
+      if (Utils::isTouchPadPressed(padTouchStates, kPadMapCycleIds[modSide]))
+      {
+        for (size_t targetSide = 0; targetSide < kNumberDeckSlots; targetSide++)
+        {
+          // For each mod parameter, set the paired LEDs according to the mapping depth
+          for (size_t paramIdx = 0; paramIdx < (size_t)kNumModParams; ++paramIdx)
+          {
+            float depth = 0.0f;
+
+            // Show the depth of the mapping originating from this modSide
+            auto modMapping = &modParamMappings[modSide][targetSide][paramIdx];
+            depth = modMapping->depth;
+
+            // Map depth (0..1) to LED brightness
+            float brightness = daisysp::fmap(depth, kMinLedBrightness, kMaxLedBrightness, Mapping::LINEAR);
+
+            // For Spoty (last index) there is a single LED
+            hw.leds.Set(kModParamMapLed[targetSide][paramIdx], 0xffffff, brightness);
+          }
+        }
+        // Only allow one modulator source's destinations to be highlighted
+        break;
+      }
     }
 
     // Alternating phase for GRIT LEDs
