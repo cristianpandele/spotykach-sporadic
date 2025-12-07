@@ -530,6 +530,8 @@ void Deck::updateDigitalControlsEffects (const DigitalControlFrame &c)
   setPlay(c.play);
   setFlux(c.flux);
   setGrit(c.grit);
+  setMod(c.mod);
+
   // Hold Alt+Flux state
   if (c.altFlux)
   {

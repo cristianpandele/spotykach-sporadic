@@ -277,6 +277,7 @@ class ModulatedParam
     bool altLatch  = false;
     bool gritLatch = false;
     bool fluxLatch = false;
+    bool modLatch  = false;
 
   private:
     Utils::SmoothValue *base_ = nullptr;

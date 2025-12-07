@@ -244,6 +244,7 @@ void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
   setPlay(c.play);
   setFlux(c.flux);
   setGrit(c.grit);
+  setMod(c.mod);
 
   Deck::updateDigitalControlsEffects(c);
 }
@@ -259,6 +260,7 @@ void Sporadic::getDigitalControls (DigitalControlFrame &c)
   c.grit      = grit_;
   c.altGrit   = false;    // Alt+Grit is just a toggle
   c.takeover  = consumeTakeoverFlag();
+  c.mod       = false;
 }
 
 void Sporadic::updateDisplayState ()

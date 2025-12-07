@@ -59,6 +59,7 @@ class Deck
       bool  altGrit;      // latched Alt+Grit combo toggle (enters grit mode / overrides grit)
       // Soft takeover notification
       bool  takeover;     // asserted when a soft takeover just occurred
+      bool  mod;          // asserted when mod mapping soft takeover should apply
     };
 
     // Render-ready view the UI can draw without peeking internals
@@ -235,6 +236,9 @@ class Deck
     // Grit flag
     bool grit_ = false;
 
+    // Mod flag
+    bool mod_ = false;
+
     // Soft takeover notification flag consumed by digital plumbing
     bool takeoverTriggered_ = false;
 
@@ -306,6 +310,7 @@ class Deck
     virtual void setPlay (bool p) { play_ = p; }
     virtual void setFlux (bool f) { flux_ = f; }
     virtual void setGrit (bool g) { grit_ = g; }
+    virtual void setMod (bool m) { mod_ = m; }
 
     // Toggles for the effects
     virtual void toggleFluxMenu () { fluxMenuOpen_ = !fluxMenuOpen_; }

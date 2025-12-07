@@ -294,21 +294,23 @@ void Spotykach::updateDigitalControls (const DigitalControlFrame &c)
   setAltPlay(c.altPlay);
   setFlux(c.flux);
   setGrit(c.grit);
+  setMod(c.mod);
 
   Deck::updateDigitalControlsEffects(c);
 }
 
 void Spotykach::getDigitalControls(DigitalControlFrame &c)
 {
-  c.reverse = reverse_;
-  c.play = play_;
-  c.altPlay = record_;
-  c.spotyPlay = false;  // Reset Spotykach+Play state
-  c.flux = flux_;
-  c.altFlux = false; // Reset Alt+Flux state
-  c.grit = grit_;
-  c.altGrit = false; // Reset Alt+Grit state
-  c.takeover = consumeTakeoverFlag();
+  c.reverse   = reverse_;
+  c.play      = play_;
+  c.altPlay   = record_;
+  c.spotyPlay = false;    // Reset Spotykach+Play state
+  c.flux      = flux_;
+  c.altFlux   = false;    // Reset Alt+Flux state
+  c.grit      = grit_;
+  c.altGrit   = false;    // Reset Alt+Grit state
+  c.takeover  = consumeTakeoverFlag();
+  c.mod       = false;
 }
 
 void Spotykach::updateLooperDisplayState(DisplayState &view)

@@ -195,6 +195,17 @@ void AppImpl::updateDigitalControlFrame(Deck::DigitalControlFrame &frame, size_t
     return; // Invalid slot
   }
 
+  // Determine if any mod mapping takeover is active for this slot
+  bool modActive = false;
+  for (size_t p = 0; p < kNumModParams; ++p)
+  {
+    if (modParamModMapping[slot][p])
+    {
+      modActive = true;
+      break;
+    }
+  }
+
   // Update the control frame for the specified deck slot
   frame = {
     // Simple pad presses
@@ -208,7 +219,9 @@ void AppImpl::updateDigitalControlFrame(Deck::DigitalControlFrame &frame, size_t
     .altFlux   = currentAltFluxState[slot],
     .altGrit   = currentAltGritState[slot],
     // Soft takeover notification
-    .takeover  = false
+    .takeover  = false,
+    // Mod takeover flag: asserted when any mod mapping takeover is active for this slot
+    .mod       = modActive
   };
 }
 
@@ -693,8 +706,8 @@ void AppImpl::processUIQueue ()
             modParamMappings[modSide][targetSide][paramIdx].polarity = ModulationSources::Polarity::UNIPOLAR;
           }
 
-          // Prevent changing the underlying control value while we're mapping
-          skipParamUpdate[targetSide][paramIdx] = true;
+          // Mark this param as having an active mod mapping (triggers soft takeover)
+          modParamModMapping[targetSide][paramIdx] = true;
         }
       }
     }
@@ -812,7 +825,7 @@ void AppImpl::handleAnalogControls ()
   for (size_t side = 0; side < kNumberDeckSlots; side++)
   {
     // Read and smooth pitch controls for both sides
-    if (!skipParamUpdate[side][modParamPitchIdx])
+    if (!modParamModMapping[side][modParamPitchIdx])
     {
       pitchControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPitchIds[side]);
     }
@@ -820,7 +833,7 @@ void AppImpl::handleAnalogControls ()
     applyCvModulation(modulatedPitch[side], Hardware::kCvVOctIds[side], modulatedPitch[side].gritLatch);
 
     // Read the mix controls for both sides
-    if (!skipParamUpdate[side][modParamMixIdx])
+    if (!modParamModMapping[side][modParamMixIdx])
     {
       mixControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSosIds[side]);
     }
@@ -838,7 +851,7 @@ void AppImpl::handleAnalogControls ()
       hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]) * modTargetSmooth[ModTarget::GRIT].getSmoothVal();
 
     // Read the position knobs and CVs
-    if (!skipParamUpdate[side][modParamPosIdx])
+    if (!modParamModMapping[side][modParamPosIdx])
     {
       positionControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPosIds[side]);
     }
@@ -849,7 +862,7 @@ void AppImpl::handleAnalogControls ()
     }
 
     // Read the size knobs and CVs
-    if (!skipParamUpdate[side][modParamSizeIdx])
+    if (!modParamModMapping[side][modParamSizeIdx])
     {
       sizeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSizeIds[side]);
     }
@@ -860,19 +873,19 @@ void AppImpl::handleAnalogControls ()
     }
 
     // Read the shape knobs
-    if (!skipParamUpdate[side][modParamShapeIdx])
+    if (!modParamModMapping[side][modParamShapeIdx])
     {
       shapeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlShapeIds[side]);
     }
 
     // Read the modulation amount knobs
-    if (!skipParamUpdate[side][modParamModAmountIdx])
+    if (!modParamModMapping[side][modParamModAmountIdx])
     {
       modulationAmountControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlModAmtIds[side]);
     }
 
     // Read the modulation frequency knobs
-    if (!skipParamUpdate[side][modParamModFreqIdx])
+    if (!modParamModMapping[side][modParamModFreqIdx])
     {
       modulationFreqControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlModFreqIds[side]);
     }
@@ -1092,8 +1105,8 @@ void AppImpl::handleDigitalControls ()
     {
       for (size_t paramIdx = 0; paramIdx < kNumModParams; ++paramIdx)
       {
-        // clear the skip flag for the parameter (so base control updates resume)
-        skipParamUpdate[side][paramIdx] = false;
+        // clear the modulation mapping flag for all parameters (so base control updates resume)
+        modParamModMapping[side][paramIdx] = false;
       }
     }
   }

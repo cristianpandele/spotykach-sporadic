@@ -262,8 +262,9 @@ namespace spotykach_hwtest
           }
         };
 
-      // Skip updating the base control while mapping is in progress for a specific param on a target side
-      bool skipParamUpdate[kNumberDeckSlots][kNumModParams] = {{false}};
+      // Track which params have active mod mappings (require soft takeover)
+      // modParamModMapping[targetSide][paramIdx] = true when param is being modulated
+      bool modParamModMapping[kNumberDeckSlots][kNumModParams] = {{false}};
 
       // Mod target switch changed flag and current mod target for each side
       bool        modTargetChanged[kNumberDeckSlots]{false};
