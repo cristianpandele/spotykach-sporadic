@@ -37,7 +37,10 @@ namespace spotykach
   static constexpr float kMaxReleaseTime = 800.0f;
 
   // Constants for the delay line burst processing
-  static constexpr size_t kBurstSizeSamples = 4 * 4 / sizeof(float);    // Burst size is 4 words, divided by the sample size processed every step
+  static constexpr size_t kBytesPerWord = sizeof(uint32_t) / sizeof(uint8_t);
+  static constexpr size_t kBurstSizeWords = 4;    // LibDaisy burst size is 4 words
+
+  static constexpr size_t kBurstSizeSamples = kBurstSizeWords * kBytesPerWord / sizeof(float);    // Burst size is 4 words, divided by the sample size processed every step
 
   // Threshold for parameter change detection
   static constexpr float kParamChThreshold = 0.015f;
