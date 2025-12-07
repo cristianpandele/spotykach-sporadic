@@ -15,32 +15,34 @@ Deck::Deck (size_t sampleRate, size_t blockSize) : sampleRate_(sampleRate), bloc
 
 using infrasonic::Log;
 
-bool Deck::prepareSoftTakeover (DualLayerSoftTakeover &state,
-                                bool                   usingAlternateLayer,
+////////////////////
+// Takeover handling
+bool Deck::prepareSoftTakeover (MultiLayerSoftTakeover &state,
+                                uint8_t                layerIndex,
                                 float                  controlValue,
                                 float                  currentValue)
 {
-  SoftTakeoverState &layer = usingAlternateLayer ? state.alternate : state.primary;
+  SoftTakeoverState &layer = state.state[layerIndex];
 
   if (!layer.initialized)
   {
-    layer.initialized          = true;
-    layer.waiting              = false;
-    layer.lastControl          = controlValue;
-    layer.targetValue          = currentValue;
-    state.hasActiveLayer       = true;
-    state.activeLayerAlternate = usingAlternateLayer;
+    layer.initialized    = true;
+    layer.waiting        = false;
+    layer.lastControl    = controlValue;
+    layer.targetValue    = currentValue;
+    state.hasActiveLayer = true;
+    state.activeLayerIndex = layerIndex;
     return true;
   }
 
-  if (!state.hasActiveLayer || state.activeLayerAlternate != usingAlternateLayer)
+  if (!state.hasActiveLayer || state.activeLayerIndex != layerIndex)
   {
-    state.hasActiveLayer       = true;
-    state.activeLayerAlternate = usingAlternateLayer;
+    state.hasActiveLayer   = true;
+    state.activeLayerIndex = layerIndex;
 
-    layer.targetValue          = currentValue;
-    layer.lastControl          = controlValue;
-    layer.waiting              = std::abs(controlValue - currentValue) > kParamChThreshold;
+    layer.targetValue = currentValue;
+    layer.lastControl = controlValue;
+    layer.waiting     = std::abs(controlValue - currentValue) > kParamChThreshold;
     return !layer.waiting;
   }
 
@@ -54,8 +56,8 @@ bool Deck::prepareSoftTakeover (DualLayerSoftTakeover &state,
   const float previousDelta = layer.lastControl - layer.targetValue;
   const float currentDelta  = controlValue - currentValue;
 
-  layer.lastControl         = controlValue;
-  layer.targetValue         = currentValue;
+  layer.lastControl  = controlValue;
+  layer.targetValue  = currentValue;
 
   if (std::abs(currentDelta) <= kParamChThreshold)
   {
@@ -72,49 +74,40 @@ bool Deck::prepareSoftTakeover (DualLayerSoftTakeover &state,
   return false;
 }
 
-void Deck::finalizeSoftTakeover (DualLayerSoftTakeover &state,
-                                 bool                   usingAlternateLayer,
+void Deck::finalizeSoftTakeover (MultiLayerSoftTakeover &state,
+                                 uint8_t                layerIndex,
                                  float                  controlValue,
                                  float                  newValue)
 {
-  SoftTakeoverState &layer   = usingAlternateLayer ? state.alternate : state.primary;
-  layer.initialized          = true;
-  layer.waiting              = false;
-  layer.lastControl          = controlValue;
-  layer.targetValue          = newValue;
-  state.hasActiveLayer       = true;
-  state.activeLayerAlternate = usingAlternateLayer;
+  SoftTakeoverState &layer = state.state[layerIndex];
+  layer.initialized        = true;
+  layer.waiting            = false;
+  layer.lastControl        = controlValue;
+  layer.targetValue        = newValue;
+  state.hasActiveLayer     = true;
+  state.activeLayerIndex   = layerIndex;
 }
 
-void Deck::setChannelConfig (ChannelConfig mode)
-{
-  if (mode < ChannelConfig::OFF || mode >= ChannelConfig::CH_CONFIG_LAST)
-  {
-    Log::PrintLine("Invalid operating mode: %d", mode);
-    return;
-  }
-  channelConfig_ = mode;
-}
-
-void Deck::setSoftTakeoverControl (DualLayerSoftTakeover &state,
-                                   bool                   usingAlternateLayer,
-                                   float                  incomingValue,
-                                   float                 &primaryValue,
-                                   float                 &alternateValue,
-                                   bool                  &changed,
-                                   bool                  &changedAlt)
+void Deck::setSoftTakeoverControl (MultiLayerSoftTakeover &state,
+                                   uint8_t                 layerIndex,
+                                   float                   incomingValue,
+                                   float                  &primaryValue,
+                                   float                  &alternateValue,
+                                   bool                   &changed,
+                                   bool                   &changedAlt)
 {
   changed                            = false;
   changedAlt                         = false;
-
-  SoftTakeoverState &layer           = usingAlternateLayer ? state.alternate : state.primary;
+  SoftTakeoverState &layer           = state.state[layerIndex];
   const bool         layerWasWaiting = layer.waiting;
-  const bool         layerSwitched   = (!state.hasActiveLayer || state.activeLayerAlternate != usingAlternateLayer);
+  const bool         layerSwitched   = (!state.hasActiveLayer || state.activeLayerIndex != layerIndex);
   const bool         takeoverPending = layerWasWaiting || layerSwitched;
 
-  float &activeValue                 = usingAlternateLayer ? alternateValue : primaryValue;
+  // Determine whether this is the primary layer (0) or an alternate
+  const bool usingAlternate = (layerIndex != 0);
+  float &activeValue = usingAlternate ? alternateValue : primaryValue;
 
-  if (!prepareSoftTakeover(state, usingAlternateLayer, incomingValue, activeValue))
+  if (!prepareSoftTakeover(state, layerIndex, incomingValue, activeValue))
   {
     return;
   }
@@ -122,7 +115,7 @@ void Deck::setSoftTakeoverControl (DualLayerSoftTakeover &state,
   const float delta = std::abs(incomingValue - activeValue);
   if (delta <= kParamChThreshold)
   {
-    finalizeSoftTakeover(state, usingAlternateLayer, incomingValue, activeValue);
+    finalizeSoftTakeover(state, layerIndex, incomingValue, activeValue);
     if (takeoverPending)
     {
       takeoverTriggered_ = true;
@@ -131,9 +124,9 @@ void Deck::setSoftTakeoverControl (DualLayerSoftTakeover &state,
   }
 
   activeValue = incomingValue;
-  finalizeSoftTakeover(state, usingAlternateLayer, incomingValue, activeValue);
+  finalizeSoftTakeover(state, layerIndex, incomingValue, activeValue);
 
-  if (usingAlternateLayer)
+  if (usingAlternate)
   {
     changedAlt = true;
   }
@@ -150,12 +143,19 @@ void Deck::setMix (float m, bool altLatch)
   bool mixChanged    = false;
   bool mixChangedAlt = false;
 
-  if (altLatch && !mixSoftTakeover_.alternate.initialized)
+  if (altLatch && !mixSoftTakeover_.state[takeoverLayerAlt].initialized)
   {
     mixAltControl_ = feedback_;
   }
 
-  setSoftTakeoverControl(mixSoftTakeover_, altLatch, m, mixControl_, mixAltControl_, mixChanged, mixChangedAlt);
+  // layerIndex: 0 = primary, 3 = alt (mix alt)
+  setSoftTakeoverControl(mixSoftTakeover_,
+                         altLatch ? takeoverLayerAlt : takeoverLayerPrimary,
+                         m,
+                         mixControl_,
+                         mixAltControl_,
+                         mixChanged,
+                         mixChangedAlt);
 
   if (mixChangedAlt)
   {
@@ -172,13 +172,14 @@ void Deck::setPosition (float position, bool gritLatch, bool &changed, bool &cha
   position          = infrasonic::unitclamp(position);
 
   bool useGritLayer = gritLatch || getGritMenuOpen();
-  if (useGritLayer && !positionSoftTakeover_.alternate.initialized)
+  if (useGritLayer && !positionSoftTakeover_.state[takeoverLayerGrit].initialized)
   {
     positionGritControl_ = positionControl_;
   }
 
+  // layerIndex: 0 = primary, 1 = grit (position grit)
   setSoftTakeoverControl(positionSoftTakeover_,
-                         useGritLayer,
+                         useGritLayer ? takeoverLayerGrit : takeoverLayerPrimary,
                          position,
                          positionControl_,
                          positionGritControl_,
@@ -204,12 +205,19 @@ void Deck::setSize (float size, bool gritLatch, bool &changed, bool &changedGrit
 {
   size              = infrasonic::unitclamp(size);
   bool useGritLayer = gritLatch || getGritMenuOpen();
-  if (useGritLayer && !sizeSoftTakeover_.alternate.initialized)
+  if (useGritLayer && !sizeSoftTakeover_.state[takeoverLayerGrit].initialized)
   {
     sizeGritControl_ = sizeControl_;
   }
 
-  setSoftTakeoverControl(sizeSoftTakeover_, useGritLayer, size, sizeControl_, sizeGritControl_, changed, changedGrit);
+  // layerIndex: 0 = primary, 1 = grit (size grit)
+  setSoftTakeoverControl(sizeSoftTakeover_,
+                         useGritLayer ? takeoverLayerGrit : takeoverLayerPrimary,
+                         size,
+                         sizeControl_,
+                         sizeGritControl_,
+                         changed,
+                         changedGrit);
 
   if (changedGrit)
   {
@@ -228,13 +236,14 @@ void Deck::setShape (float shape, bool gritLatch, bool &changed, bool &changedGr
 {
   shape             = infrasonic::unitclamp(shape);
   bool useGritLayer = gritLatch || getGritMenuOpen();
-  if (useGritLayer && !shapeSoftTakeover_.alternate.initialized)
+  if (useGritLayer && !shapeSoftTakeover_.state[takeoverLayerGrit].initialized)
   {
     shapeGritControl_ = shapeControl_;
   }
 
+  // layerIndex: 0 = primary, 1 = grit (shape grit)
   setSoftTakeoverControl(shapeSoftTakeover_,
-                         useGritLayer,
+                         useGritLayer ? takeoverLayerGrit : takeoverLayerPrimary,
                          shape,
                          shapeControl_,
                          shapeGritControl_,
@@ -259,13 +268,14 @@ void Deck::setPitch (float pitch, bool gritLatch, bool &changed, bool &changedGr
   pitch             = infrasonic::unitclamp(pitch);
 
   bool useGritLayer = gritLatch || getGritMenuOpen();
-  if (useGritLayer && !pitchSoftTakeover_.alternate.initialized)
+  if (useGritLayer && !pitchSoftTakeover_.state[takeoverLayerGrit].initialized)
   {
     pitchGritControl_ = pitchControl_;
   }
 
+  // layerIndex: 0 = primary, 1 = grit (pitch grit)
   setSoftTakeoverControl(pitchSoftTakeover_,
-                         useGritLayer,
+                         useGritLayer ? takeoverLayerGrit : takeoverLayerPrimary,
                          pitch,
                          pitchControl_,
                          pitchGritControl_,

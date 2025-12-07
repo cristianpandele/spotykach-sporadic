@@ -129,23 +129,34 @@ class Deck
       float targetValue = 0.0f;
     };
 
-    struct DualLayerSoftTakeover
+    // Multi-layer soft takeover supporting multiple alternate layers
+    // Layers: 0 = primary, 1 = grit, 2 = flux, 3 = alt, 4 = mod
+    enum SoftTakeoverLayers
     {
-      SoftTakeoverState primary;
-      SoftTakeoverState alternate;
-      bool              hasActiveLayer       = false;
-      bool              activeLayerAlternate = false;
+      takeoverLayerPrimary,
+      takeoverLayerGrit,
+      takeoverLayerFlux,
+      takeoverLayerAlt,
+      takeoverLayerMod,
+      kNumTakeoverLayers
     };
 
-    bool prepareSoftTakeover(DualLayerSoftTakeover &state,
-                             bool                    usingAlternateLayer,
-                             float                   controlValue,
-                             float                   currentValue);
+    struct MultiLayerSoftTakeover
+    {
+      SoftTakeoverState state[kNumTakeoverLayers];
+      bool              hasActiveLayer = false;
+      uint8_t           activeLayerIndex = 0; // which layer is currently active
+    };
 
-    void finalizeSoftTakeover(DualLayerSoftTakeover &state,
-                              bool                    usingAlternateLayer,
-                              float                   controlValue,
-                              float                   newValue);
+    bool prepareSoftTakeover(MultiLayerSoftTakeover &state,
+                 uint8_t                 layerIndex,
+                 float                   controlValue,
+                 float                   currentValue);
+
+    void finalizeSoftTakeover(MultiLayerSoftTakeover &state,
+                  uint8_t                 layerIndex,
+                  float                   controlValue,
+                  float                   newValue);
 
     bool consumeTakeoverFlag ()
     {
@@ -195,14 +206,14 @@ class Deck
     float spotyControl_ = 0.0f;
     float spoty_        = 0.0f;
 
-    // Soft takeover states for the controls
-    DualLayerSoftTakeover positionSoftTakeover_{};
-    DualLayerSoftTakeover sizeSoftTakeover_{};
-    DualLayerSoftTakeover shapeSoftTakeover_{};
-    DualLayerSoftTakeover pitchSoftTakeover_{};
-    DualLayerSoftTakeover mixSoftTakeover_{};
+    // Soft takeover states for the controls (multi-layer)
+    MultiLayerSoftTakeover positionSoftTakeover_{};
+    MultiLayerSoftTakeover sizeSoftTakeover_{};
+    MultiLayerSoftTakeover shapeSoftTakeover_{};
+    MultiLayerSoftTakeover pitchSoftTakeover_{};
+    MultiLayerSoftTakeover mixSoftTakeover_{};
 
-    // Grit layer controls
+    // Alternate layer controls
     float mixAltControl_       = 0.0f;
     float positionGritControl_ = 0.0f;
     float sizeGritControl_     = 0.0f;
@@ -266,25 +277,29 @@ class Deck
       bool x##ChangedWhileGritMenuOpen = x##Changed && getGritMenuOpen();
 
     // Helper for implementing soft takeover/catch between primary and alternate layers
-    void setSoftTakeoverControl (DualLayerSoftTakeover &state,
-                                 bool                    usingAlternateLayer,
-                                 float                   incomingValue,
-                                 float                  &primaryValue,
-                                 float                  &alternateValue,
-                                 bool                   &changed,
-                                 bool                   &changedAlt);
+    void setSoftTakeoverControl (MultiLayerSoftTakeover &state,
+                   uint8_t                 layerIndex,
+                   float                   incomingValue,
+                   float                  &primaryValue,
+                   float                  &alternateValue,
+                   bool                   &changed,
+                   bool                   &changedAlt);
 
     // Setters for deck parameters
     void         setMix (float m) { mix_ = infrasonic::unitclamp(m); }
     void         setMix (float m, bool altLatch = false);
     void         setFeedback (float fb) { feedback_ = std::clamp(fb, 0.0f, 0.99f); }
     virtual void setPitch (float p) { pitch_ = infrasonic::unitclamp(p); }
+    virtual void setPitch (float p, bool gritLatch = false) = 0;
     void         setPitch (float p, bool gritLatch, bool &pitchChanged, bool &pitchChangedGrit);
     virtual void setPosition (float p) { position_ = infrasonic::unitclamp(p); }
+    virtual void setPosition (float p, bool gritLatch = false) = 0;
     void         setPosition (float p, bool gritLatch, bool &positionChanged, bool &positionChangedGrit);
     virtual void setSize (float s) { size_ = infrasonic::unitclamp(s); }
+    virtual void setSize (float s, bool gritLatch = false) = 0;
     void         setSize (float s, bool gritLatch, bool &sizeChanged, bool &sizeChangedGrit);
     virtual void setShape (float s) { shape_ = infrasonic::unitclamp(s); }
+    virtual void setShape (float s, bool gritLatch = false) = 0;
     void         setShape (float s, bool gritLatch, bool &shapeChanged, bool &shapeChangedGrit);
     virtual void setSpoty (float s) { spoty_ = infrasonic::unitclamp(s); }
     virtual void setReverse (bool r) { reverse_ = r; }
