@@ -136,6 +136,18 @@ void Deck::setSoftTakeoverControl (MultiLayerSoftTakeover &state,
   }
 }
 
+////////////////////////
+// Handle config and controls
+void Deck::setChannelConfig (ChannelConfig mode)
+{
+  if (mode < ChannelConfig::OFF || mode >= ChannelConfig::CH_CONFIG_LAST)
+  {
+    Log::PrintLine("Invalid operating mode: %d", mode);
+    return;
+  }
+  channelConfig_ = mode;
+}
+
 void Deck::setMix (float m, bool altLatch)
 {
   m                  = infrasonic::unitclamp(m);
@@ -292,6 +304,34 @@ void Deck::setPitch (float pitch, bool gritLatch, bool &changed, bool &changedGr
         inputSculpt_[ch].setOverdrive(pitchGritControl_);
       }
     }
+  }
+}
+
+void Deck::updateAnalogControls (const AnalogControlFrame &c)
+{
+  // Update the analog deck parameters based on the control frame
+  // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
+  // If the modulated parameter pointers are present, use their effective
+  // smoothed values. Fall back gracefully if any pointer is null.
+  if (c.mix)
+  {
+    setMix(c.mix->getEffectiveSmoothVal(), c.mix->altLatch);
+  }
+  if (c.pitch)
+  {
+    setPitch(c.pitch->getEffectiveSmoothVal(), c.pitch->gritLatch);
+  }
+  if (c.position)
+  {
+    setPosition(c.position->getEffectiveSmoothVal(), c.position->gritLatch);
+  }
+  if (c.size)
+  {
+    setSize(c.size->getEffectiveSmoothVal(), c.size->gritLatch);
+  }
+  if (c.shape)
+  {
+    setShape(c.shape->getEffectiveSmoothVal(), c.shape->gritLatch);
   }
 }
 
@@ -688,7 +728,7 @@ void Deck::processGritLongHoldModulation (const AnalogControlFrame &c)
   }
 }
 
-///////////
+////////////////////////
 // Display handling functions
 // Interpolate between 4 values based on a 0..1 blend factor
 void Deck::ledsFourShapeInterpolator (float minValue, float maxValue, float blend, float *values, float *gradValues)
@@ -791,7 +831,7 @@ void Deck::populateLedRing (Deck::RingSpan  &ringSpan,
   std::copy(std::begin(ledColor), std::end(ledColor), std::begin(ringSpan.led));
 }
 
-///////////
+////////////////////////
 // Grit display handling functions
 
 // LED brightness gradient for a particular filter type

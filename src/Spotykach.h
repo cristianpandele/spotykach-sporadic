@@ -19,7 +19,6 @@ class Spotykach : public Deck
 
     void init ();
 
-    void updateAnalogControls (const AnalogControlFrame &c) override;
     void updateDigitalControls (const DigitalControlFrame &c) override;
     void getDigitalControls(DigitalControlFrame &c) override;
 

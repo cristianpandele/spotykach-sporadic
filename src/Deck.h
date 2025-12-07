@@ -108,7 +108,7 @@ class Deck
     virtual void setChannelConfig (ChannelConfig cfg);
 
     // Unified controls update
-    virtual void updateAnalogControls (const AnalogControlFrame &c) = 0;
+    virtual void updateAnalogControls (const AnalogControlFrame &c);
     virtual void updateDigitalControls (const DigitalControlFrame &c) = 0;
     // Digital controls fetch
     virtual void getDigitalControls (DigitalControlFrame &c) = 0;

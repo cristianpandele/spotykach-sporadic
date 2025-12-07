@@ -225,20 +225,7 @@ void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
   // Store the latest control frame for access in processAudio
   lastAnalogControlFrame_ = c;
 
-  // Update the analog deck parameters based on the control frame
-  // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
-  // If the modulated parameter pointers are present, use their effective
-  // smoothed values. Fall back gracefully if any pointer is null.
-  if (c.mix)
-    setMix(c.mix->getEffectiveSmoothVal(), c.mix->altLatch);
-  if (c.pitch)
-    setPitch(c.pitch->getEffectiveSmoothVal(), c.pitch->gritLatch);
-  if (c.position)
-    setPosition(c.position->getEffectiveSmoothVal(), c.position->gritLatch);
-  if (c.size)
-    setSize(c.size->getEffectiveSmoothVal(), c.size->gritLatch);
-  if (c.shape)
-    setShape(c.shape->getEffectiveSmoothVal(), c.shape->gritLatch);
+  Deck::updateAnalogControls(c);
 }
 
 void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
