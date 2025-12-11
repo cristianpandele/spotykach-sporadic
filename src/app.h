@@ -268,9 +268,10 @@ namespace spotykach_hwtest
 
       // Mod target switch changed flag and current mod target for each side
       bool        modTargetChanged[kNumberDeckSlots]{false};
-      SmoothValue modTargetSmooth[ModTarget::MOD_TARGET_LAST]{SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
-                                                              SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
-                                                              SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize)};
+      SmoothValue modTargetSmooth[kNumberDeckSlots][ModTarget::MOD_TARGET_LAST]{{
+          SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
+          SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
+          SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize)}};
       ModTarget   currentModTarget[kNumberDeckSlots]{ModTarget::MIX, ModTarget::MIX};
 
       // Mod type switch flag and current mod type for each side

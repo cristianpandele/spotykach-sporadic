@@ -329,7 +329,7 @@ void AppImpl::loop ()
           // Update the mod target smoothing values
           for (size_t modIdx = 0; modIdx < ModTarget::MOD_TARGET_LAST; modIdx++)
           {
-            modTargetSmooth[modIdx] = (modIdx == currentModTarget[side]) ? 1.0f : 0.0f;
+            modTargetSmooth[side][modIdx] = (modIdx == currentModTarget[side]) ? 1.0f : 0.0f;
           }
         }
 
@@ -840,15 +840,13 @@ void AppImpl::handleAnalogControls ()
     // Apply CV modulation to Mix
     applyCvModulation(modulatedMix[side],
                       Hardware::kCvSosInIds[side],
-                      modulatedMix[side].altLatch,
-                      ModTarget::MIX,
-                      modTargetSmooth[ModTarget::MIX].getSmoothVal());
+                      modTargetSmooth[side][ModTarget::MIX].getSmoothVal());
 
     // Apply CV modulation to Grit and Flux if selected as mod targets
     fluxModSources[side].modLevel[ModSourceIndex::CV] =
-      hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]) * modTargetSmooth[ModTarget::FLUX].getSmoothVal();
+      hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]) * modTargetSmooth[side][ModTarget::FLUX].getSmoothVal();
     gritModSources[side].modLevel[ModSourceIndex::CV] =
-      hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]) * modTargetSmooth[ModTarget::GRIT].getSmoothVal();
+      hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]) * modTargetSmooth[side][ModTarget::GRIT].getSmoothVal();
 
     // Read the position knobs and CVs
     if (!modParamModMapping[side][modParamPosIdx])
