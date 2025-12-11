@@ -10,41 +10,64 @@ class Utils
 {
   public:
     // Function to test if a touchpad state has changed
-    static bool hasTouchStateChanged(const std::bitset<16> &current, const std::bitset<16> &previous, size_t index)
+    static bool hasTouchStateChanged (const std::bitset<16> &current, const std::bitset<16> &previous, size_t index)
     {
       // Check if the state at the given index has changed
       return current.test(index) != previous.test(index);
     }
 
     // Function to test if a touchpad state has changed to pressed
-    static bool hasTouchStateChangedToPressed(const std::bitset<16> &current, const std::bitset<16> &previous, size_t index)
+    static bool
+      hasTouchStateChangedToPressed (const std::bitset<16> &current, const std::bitset<16> &previous, size_t index)
     {
       // Check if the state at the given index has changed
       return current.test(index) && !previous.test(index);
     }
 
     // Function to test if a touchpad state has changed to released
-    static bool hasTouchStateChangedToReleased(const std::bitset<16> &current, const std::bitset<16> &previous, size_t index)
+    static bool
+      hasTouchStateChangedToReleased (const std::bitset<16> &current, const std::bitset<16> &previous, size_t index)
     {
       // Check if the state at the given index has changed
       return !current.test(index) && previous.test(index);
     }
 
     // Function to test if the Alt pad is pressed
-    static bool isAltPadPressed(const std::bitset<16> &current)
+    static bool isAltPadPressed (const std::bitset<16> &current)
     {
       // Check if the Alt pad (index 11) is pressed
       return isTouchPadPressed(current, 11);
     }
 
+    // Function to test if the mod pad is pressed
+    static bool isModPadPressed (size_t side, const std::bitset<16> &current)
+    {
+      // Check if the Mod pad (index 4, 5) is pressed
+      return isTouchPadPressed(current, 4 + side);
+    }
+
+    // Function to test if the Grit pad is pressed
+    static bool isGritPadPressed (size_t side, const std::bitset<16> &current)
+    {
+      // Check if the Grit pad (index 2, 7) is pressed
+      return isTouchPadPressed(current, 2 + 5 * side);
+    }
+
+    // Function to test if the Flux pad is pressed
+    static bool isFluxPadPressed (size_t side, const std::bitset<16> &current)
+    {
+      // Check if the Flux pad (index 3, 6) is pressed
+      return isTouchPadPressed(current, 3 * (1 + side));
+    }
+
     // Function to test if the Spotykach pad is pressed
-    static bool isSpotykachPadPressed(const std::bitset<16> &current)
+    static bool isSpotykachPadPressed (const std::bitset<16> &current)
     {
       // Check if the Spotykach pad (index 10) is pressed
       return isTouchPadPressed(current, 10);
     }
 
-    static bool isTouchPadPressed(const std::bitset<16> &current, size_t index)
+    static bool isTouchPadPressed (const std::bitset<16> &current, size_t index)
     {
       // Check if the Touch pad is pressed
       return current.test(index);
