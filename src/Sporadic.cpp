@@ -1,12 +1,12 @@
-#include "app.h"
 #include "Sporadic.h"
+#include "app.h"
 #include <cmath>
 
 namespace
 {
   // Reverse configuration
-  DSY_SDRAM_BSS float     revBufPool[spotykach::kNumberDeckSlots][kNumberChannelsStereo][Sporadic::kMaxRevBufSize]{};
-  size_t                  revBufPoolNext = 0;
+  DSY_SDRAM_BSS float revBufPool[spotykach::kNumberDeckSlots][kNumberChannelsStereo][Sporadic::kMaxRevBufSize]{};
+  size_t              revBufPoolNext = 0;
 }    // namespace
 
 void Sporadic::init ()
@@ -38,13 +38,14 @@ void Sporadic::init ()
   for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
   {
     revWritePos_[ch] = 0;
-    revReadPos_[ch] = kMaxRevBufSize - 1;
+    revReadPos_[ch]  = kMaxRevBufSize - 1;
     // zero the active portion of the buffer
     std::fill_n(revBuf_[ch], kMaxRevBufSize, 0.0f);
   }
 
   // Initialize the smooth crossfade for enabling/disabling reverse (75 ms, block-rate updates)
-  reverseMixSmooth_ = Utils::SmoothValue(0.0f, kSmoothTime, (1000.0f * static_cast<float>(blockSize_) / static_cast<float>(sampleRate_)));
+  reverseMixSmooth_ =
+    Utils::SmoothValue(0.0f, kSmoothTime, (1000.0f * static_cast<float>(blockSize_) / static_cast<float>(sampleRate_)));
 }
 
 //////////
@@ -95,7 +96,7 @@ void Sporadic::setPitch (
   {
     // Set the tree size of the edge trees
     float edgeTreeSize = 0.0f;
-    edgeTreeSize = daisysp::fmap(pitchControl_, 0.6f, 1.0f);
+    edgeTreeSize       = daisysp::fmap(pitch_/*pitchControl_*/, 0.8f, 1.0f);
 
     for (auto &et : edgeTree_)
     {
@@ -109,7 +110,7 @@ void Sporadic::setPitch (
 void Sporadic::setPlay (bool p)
 {
   bool playChanged = (p != play_);
-  play_ = p;
+  play_            = p;
 
   if (playChanged)
   {
@@ -161,7 +162,7 @@ void Sporadic::getSidechainLevels (size_t ch, std::vector<float> &scLevels) cons
 }
 #endif
 
-void Sporadic::setDelayNetworkParameters()
+void Sporadic::setDelayNetworkParameters ()
 {
   delayNetwork_.setParameters({.play        = play_,
                                .reverse     = reverse_,
@@ -174,7 +175,7 @@ void Sporadic::setDelayNetworkParameters()
                                .myceliaMix  = size_});
 }
 
-void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
+void Sporadic::updateAnalogControls (const AnalogControlFrame &c)
 {
   // Store the latest control frame for access in processAudio
   lastAnalogControlFrame_ = c;
@@ -316,7 +317,7 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
       // Always write incoming samples into the reverse circular buffer to keep it filled
       if (revWritePos_[ch] + blockSize >= kMaxRevBufSize)
       {
-        size_t firstPart = kMaxRevBufSize - revWritePos_[ch];
+        size_t firstPart  = kMaxRevBufSize - revWritePos_[ch];
         size_t secondPart = blockSize - firstPart;
         std::copy(in[ch], in[ch] + firstPart, &revBuf_[ch][revWritePos_[ch]]);
         std::copy(in[ch] + firstPart, in[ch] + blockSize, &revBuf_[ch][0]);
@@ -331,19 +332,23 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
       // Produce a reversed block read from the circular buffer
       if (revReadPos_[ch] < blockSize)
       {
-        size_t firstPart = revReadPos_[ch] + 1;
+        size_t firstPart  = revReadPos_[ch] + 1;
         size_t secondPart = blockSize - firstPart;
         // Copy the end part
         std::reverse_copy(&revBuf_[ch][0], &revBuf_[ch][firstPart], &revReadBuf_[ch][0]);
         // Copy the start part
-        std::reverse_copy(&revBuf_[ch][kMaxRevBufSize - secondPart], &revBuf_[ch][kMaxRevBufSize], &revReadBuf_[ch][firstPart]);
+        std::reverse_copy(&revBuf_[ch][kMaxRevBufSize - secondPart],
+                          &revBuf_[ch][kMaxRevBufSize],
+                          &revReadBuf_[ch][firstPart]);
 
         // Update read position
         revReadPos_[ch] = kMaxRevBufSize - secondPart;
       }
       else
       {
-        std::reverse_copy(&revBuf_[ch][revReadPos_[ch] + 1 - blockSize], &revBuf_[ch][revReadPos_[ch] + 1], revReadBuf_[ch]);
+        std::reverse_copy(&revBuf_[ch][revReadPos_[ch] + 1 - blockSize],
+                          &revBuf_[ch][revReadPos_[ch] + 1],
+                          revReadBuf_[ch]);
 
         // Update read position
         revReadPos_[ch] -= blockSize;
@@ -391,7 +396,7 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
       limiter[ch].ProcessBlock(out[ch], blockSize, 0.7f);
     }
   }
-    }
+}
 
 void Sporadic::updateDiffusionRingState (DisplayState &view)
 {
@@ -483,7 +488,7 @@ void Sporadic::updateTreeRingState (DisplayState &view)
   }
 }
 
-void Sporadic::updateFoldWindowState(DisplayState &view)
+void Sporadic::updateFoldWindowState (DisplayState &view)
 {
   constexpr uint8_t N = spotykach::Hardware::kNumLedsPerRing;
   Deck::RingSpan    ringSpan;
@@ -499,11 +504,11 @@ void Sporadic::updateFoldWindowState(DisplayState &view)
   {
     constexpr uint8_t kMinWinLen = 5;
     // Fold window start in LED slots (at at latest N - kMinWinLen)
-    start            = std::round(daisysp::fmap(position_, 0.0f, N - kMinWinLen));
+    start = std::round(daisysp::fmap(position_, 0.0f, N - kMinWinLen));
     // Fold window length in LED slots (at least kMinWinLen)
-    uint8_t winLen   = std::round(daisysp::fmap(size_, kMinWinLen, N + 1));
-    winLen           = daisysp::fclamp(winLen, 0, N - start);
-    ledColor         = {0x00ff00, kMaxLedBrightness};    // Green
+    uint8_t winLen = std::round(daisysp::fmap(size_, kMinWinLen, N + 1));
+    winLen         = daisysp::fclamp(winLen, 0, N - start);
+    ledColor       = {0x00ff00, kMaxLedBrightness};    // Green
 
     // Populate the LED Ring
     populateLedRing(ringSpan, N, ledColor, start, winLen, true);

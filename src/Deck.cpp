@@ -487,21 +487,21 @@ bool Deck::isChannelActive (size_t ch) const
   switch (channelConfig_)
   {
     case ChannelConfig::MONO_LEFT:
-      {
-        return (ch == 0);
-      }
+    {
+      return (ch == 0);
+    }
     case ChannelConfig::MONO_RIGHT:
-      {
-        return (ch == 1);
-      }
+    {
+      return (ch == 1);
+    }
     case ChannelConfig::STEREO:
-      {
-        return ((ch == 0 || ch == 1));
-      }
+    {
+      return ((ch == 0 || ch == 1));
+    }
     default:
-      {
-        return false;
-      }
+    {
+      return false;
+    }
   }
 }
 
@@ -977,25 +977,25 @@ void Deck::ledBrightnessGradientFilter (
     switch (type)
     {
       case kLowPass:
-        {
-          // Falling ramp of brightness
-          t = 1.0f - static_cast<float>(i) / static_cast<float>(gradLen - 1);
-          break;
-        }
+      {
+        // Falling ramp of brightness
+        t = 1.0f - static_cast<float>(i) / static_cast<float>(gradLen - 1);
+        break;
+      }
       case kHighPass:
-        {
-          // Rising ramp of brightness
-          t = static_cast<float>(i) / static_cast<float>(gradLen - 1);
-          break;
-        }
+      {
+        // Rising ramp of brightness
+        t = static_cast<float>(i) / static_cast<float>(gradLen - 1);
+        break;
+      }
       case kBandPass:
-        {
-          // Symmetric triangle around midpoint (spanSize-1)/2 in linear LED index space.
-          float dist = fabsf((float)i - triCenter);
-          t          = 1.0f - (dist / triHalf);    // 1 at center, 0 at edges
-          t          = infrasonic::unitclamp(t);
-          break;
-        }
+      {
+        // Symmetric triangle around midpoint (spanSize-1)/2 in linear LED index space.
+        float dist = fabsf((float)i - triCenter);
+        t          = 1.0f - (dist / triHalf);    // 1 at center, 0 at edges
+        t          = infrasonic::unitclamp(t);
+        break;
+      }
     }
     // Map brightness values to log scale
     gradValues[i] = daisysp::fmap(t, minBrightness, maxBrightness, Mapping::LOG);
@@ -1030,33 +1030,33 @@ void Deck::calculateFilterRingSpanSize (FilterType type, const uint8_t numLeds, 
   switch (type)
   {
     case kBandPass:
-      {
-        fLoLin = daisysp::fmax(gritFilterMinFreq, centerFreq - halfBW);
-        fHiLin = daisysp::fmin(gritFilterMaxFreq, centerFreq + halfBW);
-        break;
-      }
+    {
+      fLoLin = daisysp::fmax(gritFilterMinFreq, centerFreq - halfBW);
+      fHiLin = daisysp::fmin(gritFilterMaxFreq, centerFreq + halfBW);
+      break;
+    }
 
     case kLowPass:
-      {
-        fLoLin = gritFilterMinFreq;
-        fHiLin = daisysp::fmin(gritFilterMaxFreq, centerFreq + halfBW);
-        break;
-      }
+    {
+      fLoLin = gritFilterMinFreq;
+      fHiLin = daisysp::fmin(gritFilterMaxFreq, centerFreq + halfBW);
+      break;
+    }
 
     case kHighPass:
-      {
-        // Hacky way of approximating the high-pass filter's bandwidth
-        fLoLin = daisysp::fmax(gritFilterMinFreq, centerFreq - halfBW / 6.0f);
-        fHiLin = gritFilterMaxFreq;
-        break;
-      }
+    {
+      // Hacky way of approximating the high-pass filter's bandwidth
+      fLoLin = daisysp::fmax(gritFilterMinFreq, centerFreq - halfBW / 6.0f);
+      fHiLin = gritFilterMaxFreq;
+      break;
+    }
 
     default:
-      {
-        fLoLin = gritFilterMinFreq;
-        fHiLin = gritFilterMaxFreq;
-        break;
-      }
+    {
+      fLoLin = gritFilterMinFreq;
+      fHiLin = gritFilterMaxFreq;
+      break;
+    }
   }
 
   // Translate to ratios from center (avoid divide by zero)
