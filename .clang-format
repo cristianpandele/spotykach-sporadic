@@ -91,7 +91,7 @@ IncludeIsMainRegex: '(Test)?$'
 IncludeIsMainSourceRegex: ''
 IndentAccessModifiers: true
 IndentCaseLabels: true
-IndentCaseBlocks: true
+IndentCaseBlocks: false
 IndentGotoLabels: false
 IndentPPDirectives: BeforeHash
 IndentExternBlock: AfterExternBlock

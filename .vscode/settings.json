@@ -105,5 +105,9 @@
     ],
     "editor.tabSize": 2,
     "cortex-debug.variableUseNaturalFormat": true,
-    "C_Cpp.default.compilerPath": "/usr/local/bin/arm-none-eabi-g++"
+    "C_Cpp.default.compilerPath": "/usr/local/bin/arm-none-eabi-g++",
+    "C_Cpp.codeAnalysis.exclude": {
+
+        "spotykach-sporadic/lib": true
+    },
 }
