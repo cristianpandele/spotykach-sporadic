@@ -26,13 +26,14 @@ bool Deck::prepareSoftTakeover (MultiLayerSoftTakeover &state,
 
   if (!layer.initialized)
   {
-    layer.initialized    = true;
-    layer.waiting        = false;
-    layer.lastControl    = controlValue;
-    layer.targetValue    = currentValue;
-    state.hasActiveLayer = true;
+    layer.initialized = true;
+    layer.lastControl = controlValue;
+    layer.targetValue = currentValue;
+    // On first initialization, honor soft-takeover threshold: require the
+    // physical control to 'catch up' if it's far from the current value.
+    layer.waiting = std::abs(controlValue - currentValue) > kParamChThreshold;
     state.activeLayerIndex = layerIndex;
-    return true;
+    return !layer.waiting;
   }
 
   if (!state.hasActiveLayer || state.activeLayerIndex != layerIndex)
