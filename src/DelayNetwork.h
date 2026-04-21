@@ -66,10 +66,10 @@ class DelayNetwork
     bool   play_           = false;
     bool   reverse_        = false;
     float  centerFreq_     = 1000.0f;
-    float  stretch_        = 1.0f;
+    float  stretch_        = 0.5f;
     float  treeOffset_     = 0.0f;    // Normalized offset applied to tree positions
-    float  myceliaMix_     = 1.0f;    // Blend factor for inter-node routing
-    float  treeDensity_    = 1.0f;    // [0,1]
+    float  myceliaMix_     = 0.5f;    // Blend factor for inter-node routing
+    float  treeDensity_    = 0.5f;    // [0,1]
     size_t numActiveTrees_ = kMaxNumDelayProcs;
 
     DiffusionControl diffusion_;

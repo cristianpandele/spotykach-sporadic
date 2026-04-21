@@ -373,7 +373,7 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
         inputSculptBuf_[ch][n] += feedback_ * feedbackMixBuf_[ch][n];
       }
 
-      if (pitchControl_ < 0.5f)
+      if (pitch_ < 0.5f)
       {
         // Skip the edge tree processing if the pitch is in the lower half
         std::copy(inputSculptBuf_[ch], inputSculptBuf_[ch] + blockSize, modulatedInputBuf_[ch]);

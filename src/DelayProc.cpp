@@ -92,7 +92,8 @@ void DelayProc::processBurst (const float in[kBurstSizeSamples], float out[kBurs
     out[i] = compressor.Apply(read_samples[i]);
 
     // Prepare write sample with feedback
-    write_samples[i] = (read_samples[i] - out[i]) * feedback_ + in[i];
+    float adaptedFb  = daisysp::fmax(feedback_ * (1.0f - inputLevel), 0.2f);
+    write_samples[i] = (read_samples[i] - out[i]) * adaptedFb + in[i];
   }
 
   // Update output envelope follower

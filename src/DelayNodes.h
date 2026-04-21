@@ -68,12 +68,12 @@ class DelayNodes
     size_t numBands_      = kMaxNutrientBands;
     size_t numProcs_      = kMaxNumDelayProcs;
     bool   reverse_       = false;   // Whether the delay network is in reverse mode
-    float  stretch_       = 1.0f;    // Overall stretch factor for delay times
-    float  entanglement_  = 0.25f;   // [0,1] strength of interconnection dynamics
-    float  feedback_      = 1.0f;    // Feedback level for all delay processors
-    float  myceliaMix_    = 0.0f;    // Blend factor for inter-node routing
+    float  stretch_       = 0.5f;    // Overall stretch factor for delay times
+    float  entanglement_  = 0.5f;   // [0,1] strength of interconnection dynamics
+    float  feedback_      = 0.75f;    // Feedback level for all delay processors
+    float  myceliaMix_    = 0.5f;    // Blend factor for inter-node routing
     float  treeOffset_    = 0.0f;    // Normalized offset applied to tree positions
-    float  treeDensity_   = 1.0f;    // Normalized tree density (0..1)
+    float  treeDensity_   = 0.5f;    // Normalized tree density (0..1)
 
     static constexpr float  kNodeInterconnectionUpdateIntervalMs = 2000.0f;    // Update routing every 2 seconds
 

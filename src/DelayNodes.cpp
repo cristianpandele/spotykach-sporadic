@@ -269,7 +269,7 @@ void DelayNodes::updateNodeInterconnections ()
       for (size_t dst = 0; dst < kMaxNumDelayProcs; ++dst)
       {
         float &connectionStrength = interNodeConnections_[src][dst];
-        connectionStrength /= (sum + 0.005f);    // +0.005f to avoid being at the edge of feedback instability
+        connectionStrength /= (sum + 0.05f);    // +0.05f to avoid being at the edge of feedback instability
       }
     }
   }
