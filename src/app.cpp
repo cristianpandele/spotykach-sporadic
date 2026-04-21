@@ -195,17 +195,6 @@ void AppImpl::updateDigitalControlFrame(Deck::DigitalControlFrame &frame, size_t
     return; // Invalid slot
   }
 
-  // Determine if any mod mapping takeover is active for this slot
-  bool modActive = false;
-  for (size_t p = 0; p < kNumModParams; ++p)
-  {
-    if (modParamModMapping[slot][p])
-    {
-      modActive = true;
-      break;
-    }
-  }
-
   // Update the control frame for the specified deck slot
   frame = {
     // Simple pad presses
@@ -823,15 +812,8 @@ void AppImpl::applyModulatorSoftModulation ()
     }
   }
 
-void AppImpl::applyCvModulation (ModulatedParam &modParam, Hardware::CvInputId cvId, bool latchFlag, ModTarget modTarget, float cvModSmoothLevel)
-
+void AppImpl::applyCvModulation (ModulatedParam &modParam, Hardware::CvInputId cvId, float cvModSmoothLevel)
 {
-  if (latchFlag)
-  {
-    // Do not apply CV modulation when latched
-    return;
-  }
-
   modParam.addCvModulation(hw.GetControlVoltageValue(cvId) * cvModSmoothLevel);
 }
 
@@ -852,7 +834,7 @@ void AppImpl::handleAnalogControls ()
       pitchControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPitchIds[side]);
     }
     // Apply CV modulation to Pitch
-    applyCvModulation(modulatedPitch[side], Hardware::kCvVOctIds[side], modulatedPitch[side].gritLatch);
+    applyCvModulation(modulatedPitch[side], Hardware::kCvVOctIds[side]);
 
     // Read the mix controls for both sides
     if (!modParamModMapping[side][modParamMixIdx])
@@ -878,7 +860,7 @@ void AppImpl::handleAnalogControls ()
     if ((sizePosSwitches[side] == SizePosSwitchState::POSITION) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
     {
       // Add the position CV values when the Size/Pos switch is set to Position or Both
-      applyCvModulation(modulatedPosition[side], Hardware::kCvSizePosIds[side], modulatedPosition[side].gritLatch);
+      applyCvModulation(modulatedPosition[side], Hardware::kCvSizePosIds[side]);
     }
 
     // Read the size knobs and CVs
@@ -889,7 +871,7 @@ void AppImpl::handleAnalogControls ()
     if ((sizePosSwitches[side] == SizePosSwitchState::SIZE) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
     {
       // Add the size CV values when the Size/Pos switch is set to Size or Both
-      applyCvModulation(modulatedSize[side], Hardware::kCvSizePosIds[side], modulatedSize[side].gritLatch);
+      applyCvModulation(modulatedSize[side], Hardware::kCvSizePosIds[side]);
     }
 
     // Read the shape knobs
@@ -1303,7 +1285,7 @@ void AppImpl::handleDisplay ()
     // If a Mod pad (cycle) is pressed on either side, display modulation depths
     for (size_t modSide = 0; modSide < kNumberDeckSlots; ++modSide)
     {
-      if (Utils::isTouchPadPressed(padTouchStates, kPadMapCycleIds[modSide]))
+      if (Utils::isModPadPressed(modSide, padTouchStates))
       {
         for (size_t targetSide = 0; targetSide < kNumberDeckSlots; targetSide++)
         {

@@ -123,12 +123,16 @@ void Deck::setSoftTakeoverControl (MultiLayerSoftTakeover &state,
     if (takeoverPending)
     {
       takeoverTriggered_ = true;
+      // Takeover was pending and just satisfied (crossed threshold)
+      // Don't propagate an update, just mark the transition
+      return;
     }
-    return;
+    // If takeover wasn't pending, we're the active layer and should continue
+    // to propagate updates even for small deltas
   }
 
   activeValue = incomingValue;
-  finalizeSoftTakeover(state, layerIndex, incomingValue, activeValue);
+  finalizeSoftTakeover(state, layerIndex, activeValue, incomingValue);
 
   // Set the appropriate changed flag based on layer index
   switch (layerIndex)
@@ -799,9 +803,9 @@ void Deck::applyGritModulations (const AnalogControlFrame &c)
 
       // Apply LFO on top of modulated values
       inputSculpt_[ch].setFreq(inputSculptCenterFreq_ + modCenterFreq);
-      inputSculpt_[ch].setOverdrive(pitchGritControl_ + modOverdrive);
-      inputSculpt_[ch].setWidth(sizeGritControl_ + modQ);
-      inputSculpt_[ch].setShape(shapeGritControl_ + modShape);
+      inputSculpt_[ch].setOverdrive(pitchSoftTakeover_.state[takeoverLayerGrit].targetValue + modOverdrive);
+      inputSculpt_[ch].setWidth(sizeSoftTakeover_.state[takeoverLayerGrit].targetValue + modQ);
+      inputSculpt_[ch].setShape(shapeSoftTakeover_.state[takeoverLayerGrit].targetValue + modShape);
     }
   }
 }
