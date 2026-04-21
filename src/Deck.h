@@ -184,42 +184,29 @@ class Deck
     float inputSculptCenterFreq_ = 0.0f;
 
     // Mix control
-    float mixControl_ = 0.5f;
     float mix_        = 0.5f;
 
     // V.Oct pitch control
-    float pitchControl_ = 0.0f;
     float pitch_        = 0.0f;
 
     // Position control
-    float positionControl_ = 0.0f;
     float position_        = 0.0f;
 
     // Size control
-    float sizeControl_ = 0.0f;
     float size_        = 0.0f;
 
     // Shape control
-    float shapeControl_ = 0.0f;
     float shape_        = 0.0f;
 
     // Spotykach slider control
-    float spotyControl_ = 0.0f;
     float spoty_        = 0.0f;
 
     // Soft takeover states for the controls (multi-layer)
+    MultiLayerSoftTakeover mixSoftTakeover_{};
     MultiLayerSoftTakeover positionSoftTakeover_{};
     MultiLayerSoftTakeover sizeSoftTakeover_{};
     MultiLayerSoftTakeover shapeSoftTakeover_{};
     MultiLayerSoftTakeover pitchSoftTakeover_{};
-    MultiLayerSoftTakeover mixSoftTakeover_{};
-
-    // Alternate layer controls
-    float mixAltControl_       = 0.0f;
-    float positionGritControl_ = 0.0f;
-    float sizeGritControl_     = 0.0f;
-    float shapeGritControl_    = 0.0f;
-    float pitchGritControl_    = 0.0f;
 
     // Feedback level
     float feedback_ = 0.0f;
@@ -235,9 +222,6 @@ class Deck
 
     // Grit flag
     bool grit_ = false;
-
-    // Mod flag
-    bool mod_ = false;
 
     // Soft takeover notification flag consumed by digital plumbing
     bool takeoverTriggered_ = false;
@@ -275,42 +259,45 @@ class Deck
     // Update the digital controls for effects based on the control frame
     void updateDigitalControlsEffects (const DigitalControlFrame &c);
 
-    #define MAKE_GRIT_CHANGE_STATUS(x, xControl, gritLatch)                                                                \
-      bool x##Changed                  = std::abs(x - xControl) > kParamChThreshold;                                       \
-      bool x##ChangedWhileGritLatched  = x##Changed && gritLatch;                                                          \
-      bool x##ChangedWhileGritMenuOpen = x##Changed && getGritMenuOpen();
-
-    // Helper for implementing soft takeover/catch between primary and alternate layers
+    // Helper for implementing soft takeover/catch between multiple layers
+    // Returns which layers changed via output bools: changed (primary), changedAlt, changedGrit, changedFlux, changedMod
+    // Caller decides which parameter variable to update based on priority
     void setSoftTakeoverControl (MultiLayerSoftTakeover &state,
-                   uint8_t                 layerIndex,
-                   float                   incomingValue,
-                   float                  &primaryValue,
-                   float                  &alternateValue,
-                   bool                   &changed,
-                   bool                   &changedAlt);
+                                 uint8_t                 layerIndex,
+                                 float                   incomingValue,
+                                 bool                   &changed,
+                                 bool                   &changedAlt,
+                                 bool                   &changedGrit,
+                                 bool                   &changedFlux,
+                                 bool                   &changedMod);
 
     // Setters for deck parameters
     void         setMix (float m) { mix_ = infrasonic::unitclamp(m); }
-    void         setMix (float m, bool altLatch = false);
+    void         setMix (ModulatedParam &param);
     void         setFeedback (float fb) { feedback_ = std::clamp(fb, 0.0f, 0.99f); }
     virtual void setPitch (float p) { pitch_ = infrasonic::unitclamp(p); }
-    virtual void setPitch (float p, bool gritLatch = false) = 0;
-    void         setPitch (float p, bool gritLatch, bool &pitchChanged, bool &pitchChangedGrit);
+
+    void setPitch (ModulatedParam &param, bool &changed, bool &changedGrit, bool &changedFlux, bool &changedAlt,
+                                              bool &changedMod);
     virtual void setPosition (float p) { position_ = infrasonic::unitclamp(p); }
-    virtual void setPosition (float p, bool gritLatch = false) = 0;
-    void         setPosition (float p, bool gritLatch, bool &positionChanged, bool &positionChangedGrit);
-    virtual void setSize (float s) { size_ = infrasonic::unitclamp(s); }
-    virtual void setSize (float s, bool gritLatch = false) = 0;
-    void         setSize (float s, bool gritLatch, bool &sizeChanged, bool &sizeChangedGrit);
-    virtual void setShape (float s) { shape_ = infrasonic::unitclamp(s); }
-    virtual void setShape (float s, bool gritLatch = false) = 0;
-    void         setShape (float s, bool gritLatch, bool &shapeChanged, bool &shapeChangedGrit);
+
+    void setPosition (ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool
+                                                 &changedFlux, bool &changedMod);
+    virtual void setSize (float s) { size_ = infrasonic::unitclamp(s);
+    }
+
+    void setSize (ModulatedParam &param, bool &changed, bool &changedGrit, bool &changedFlux, bool &changedAlt,
+                                             bool &changedMod);
+    virtual void setShape (float s) { shape_ = infrasonic::unitclamp(s);
+    }
+
+    void setShape (ModulatedParam &param, bool &changed, bool &changedGrit, bool &changedFlux, bool &changedAlt,
+                                              bool &changedMod);
     virtual void setSpoty (float s) { spoty_ = infrasonic::unitclamp(s); }
     virtual void setReverse (bool r) { reverse_ = r; }
     virtual void setPlay (bool p) { play_ = p; }
     virtual void setFlux (bool f) { flux_ = f; }
     virtual void setGrit (bool g) { grit_ = g; }
-    virtual void setMod (bool m) { mod_ = m; }
 
     // Toggles for the effects
     virtual void toggleFluxMenu () { fluxMenuOpen_ = !fluxMenuOpen_; }

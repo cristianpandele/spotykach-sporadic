@@ -85,69 +85,70 @@ void Spotykach::configureEnvelopeLength (float windowLenSamples)
 
 //////////
 // Handle parameter changes
-void Spotykach::setPosition (float p, bool gritLatch)
+void Spotykach::setPosition (
+  ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod)
 {
-  bool positionChanged;
-  bool positionChangedGrit;
-  Deck::setPosition(p, gritLatch, positionChanged, positionChangedGrit);
+  Deck::setPosition(param,
+                    changed,
+                    changedAlt,
+                    changedGrit,
+                    changedFlux,
+                    changedMod);
 
-  if (positionChangedGrit)
-  {
-    return;
-  }
-  else if (positionChanged && !getGritMenuOpen())
-  {
-    position_ = positionControl_;
-  }
+  // if (changedGrit || changedMod)
+  // {
+  //   return;
+  // }
+  // else if (changed && !getGritMenuOpen())
+  // {
+  //   // position_ = positionControl_;
+  // }
 }
 
-void Spotykach::setSize (float s, bool gritLatch)
+void Spotykach::setSize (
+  ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod)
 {
-  bool sizeChanged;
-  bool sizeChangedGrit;
-  Deck::setSize(s, gritLatch, sizeChanged, sizeChangedGrit);
+  Deck::setSize(param, changed, changedAlt, changedGrit, changedFlux, changedMod);
 
-  if (sizeChangedGrit)
+  if (changedGrit || changedMod)
   {
     return;
   }
-  else if (sizeChanged  && !getGritMenuOpen())
+  else if (changed && !getGritMenuOpen())
   {
     // Ensure size is just a hair above 0 at all times
-    size_ = daisysp::fmap(sizeControl_, 0.05f, 1.0f);
+    size_ = daisysp::fmap(size_/*sizeControl_*/, 0.05f, 1.0f);
   }
 }
 
-void Spotykach::setShape (float s, bool gritLatch)
+void Spotykach::setShape (
+  ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod)
 {
-  bool shapeChanged;
-  bool shapeChangedGrit;
-  Deck::setShape(s, gritLatch, shapeChanged, shapeChangedGrit);
+  Deck::setShape(param, changed, changedAlt, changedGrit, changedFlux, changedMod);
 
-  if (shapeChangedGrit)
-  {
-    return;
-  }
-  else if (shapeChanged && !getGritMenuOpen())
-  {
-    shape_ = shapeControl_;
-  }
+  // if (changedGrit || changedMod)
+  // {
+  //   return;
+  // }
+  // else if (changed && !getGritMenuOpen())
+  // {
+  //   shape_ = shapeControl_;
+  // }
 }
 
-void Spotykach::setPitch (float p, bool gritLatch)
+void Spotykach::setPitch (
+  ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod)
 {
-  bool pitchChanged;
-  bool pitchChangedGrit;
-  Deck::setPitch(p, gritLatch, pitchChanged, pitchChangedGrit);
+  Deck::setPitch(param, changed, changedAlt, changedGrit, changedFlux, changedMod);
 
-  if (pitchChangedGrit)
+  if (changedGrit || changedMod)
   {
     return;
   }
-  else if (pitchChanged && !getGritMenuOpen())
+  else if (changed && !getGritMenuOpen())
   {
     // Map the pitch to 0..4
-    speed_ = daisysp::fmap(pitchControl_, 0.0f, 4.0f);
+    speed_ = daisysp::fmap(pitch_/*pitchControl_*/, 0.0f, 4.0f);
 
     if (reverse_)
     {
@@ -294,7 +295,6 @@ void Spotykach::updateDigitalControls (const DigitalControlFrame &c)
   setAltPlay(c.altPlay);
   setFlux(c.flux);
   setGrit(c.grit);
-  setMod(c.mod);
 
   Deck::updateDigitalControlsEffects(c);
 }

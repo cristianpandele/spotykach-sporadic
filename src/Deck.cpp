@@ -92,21 +92,24 @@ void Deck::finalizeSoftTakeover (MultiLayerSoftTakeover &state,
 void Deck::setSoftTakeoverControl (MultiLayerSoftTakeover &state,
                                    uint8_t                 layerIndex,
                                    float                   incomingValue,
-                                   float                  &primaryValue,
-                                   float                  &alternateValue,
                                    bool                   &changed,
-                                   bool                   &changedAlt)
+                                   bool                   &changedAlt,
+                                   bool                   &changedGrit,
+                                   bool                   &changedFlux,
+                                   bool                   &changedMod)
 {
   changed                            = false;
+  changedGrit                        = false;
+  changedFlux                        = false;
   changedAlt                         = false;
+  changedMod                         = false;
   SoftTakeoverState &layer           = state.state[layerIndex];
   const bool         layerWasWaiting = layer.waiting;
   const bool         layerSwitched   = (!state.hasActiveLayer || state.activeLayerIndex != layerIndex);
   const bool         takeoverPending = layerWasWaiting || layerSwitched;
 
-  // Determine whether this is the primary layer (0) or an alternate
-  const bool usingAlternate = (layerIndex != 0);
-  float &activeValue = usingAlternate ? alternateValue : primaryValue;
+  // Determine which is the active value based on layer index
+  float &activeValue = state.state[layerIndex].targetValue;
 
   if (!prepareSoftTakeover(state, layerIndex, incomingValue, activeValue))
   {
@@ -127,13 +130,36 @@ void Deck::setSoftTakeoverControl (MultiLayerSoftTakeover &state,
   activeValue = incomingValue;
   finalizeSoftTakeover(state, layerIndex, incomingValue, activeValue);
 
-  if (usingAlternate)
+  // Set the appropriate changed flag based on layer index
+  switch (layerIndex)
   {
-    changedAlt = true;
-  }
-  else
-  {
-    changed = true;
+    case takeoverLayerPrimary:
+    {
+      changed = true;
+      break;
+    }
+    case takeoverLayerGrit:
+    {
+      changedGrit = true;
+      break;
+    }
+    case takeoverLayerFlux:
+    {
+      changedFlux = true;
+      break;
+    }
+    case takeoverLayerAlt:
+    {
+      changedAlt = true;
+      break;
+    }
+    case takeoverLayerMod:
+    {
+      changedMod = true;
+      break;
+    }
+    default:
+      break;
   }
 }
 
@@ -149,61 +175,87 @@ void Deck::setChannelConfig (ChannelConfig mode)
   channelConfig_ = mode;
 }
 
-void Deck::setMix (float m, bool altLatch)
+void Deck::setMix (ModulatedParam &param)
 {
-  m                  = infrasonic::unitclamp(m);
+  float m          = infrasonic::unitclamp(param.getEffectiveSmoothVal());
 
-  bool mixChanged    = false;
-  bool mixChangedAlt = false;
+  bool changed     = false;
+  bool changedGrit = false;
+  bool changedFlux = false;
+  bool changedAlt  = false;
+  bool changedMod  = false;
 
-  if (altLatch && !mixSoftTakeover_.state[takeoverLayerAlt].initialized)
+  // Determine which layer: modLatch takes mod layer, altLatch takes alt layer, else primary
+  uint8_t layerIndex = takeoverLayerPrimary;
+  if (param.modLatch)
   {
-    mixAltControl_ = feedback_;
+    layerIndex = takeoverLayerMod;
+  }
+  else if (param.altLatch)
+  {
+    layerIndex = takeoverLayerAlt;
   }
 
-  // layerIndex: 0 = primary, 3 = alt (mix alt)
-  setSoftTakeoverControl(mixSoftTakeover_,
-                         altLatch ? takeoverLayerAlt : takeoverLayerPrimary,
-                         m,
-                         mixControl_,
-                         mixAltControl_,
-                         mixChanged,
-                         mixChangedAlt);
+  setSoftTakeoverControl(mixSoftTakeover_, layerIndex, m, changed, changedAlt, changedGrit, changedFlux, changedMod);
 
-  if (mixChangedAlt)
+  // Priority order: alt > primary
+  if (changedAlt)
   {
-    setFeedback(mixAltControl_);
+    // Alt layer active and primary changed - update alt feedback
+    setFeedback(mixSoftTakeover_.state[takeoverLayerAlt].targetValue);
   }
-  else if (mixChanged)
+  else if (changed)
   {
-    mix_ = mixControl_;
+    // Primary layer changed - update mix
+    mix_ = mixSoftTakeover_.state[takeoverLayerPrimary].targetValue;
   }
 }
 
-void Deck::setPosition (float position, bool gritLatch, bool &changed, bool &changedGrit)
+void Deck::setPosition (ModulatedParam &param,
+                        bool           &changed,
+                        bool           &changedAlt,
+                        bool           &changedGrit,
+                        bool           &changedFlux,
+                        bool           &changedMod)
 {
-  position          = infrasonic::unitclamp(position);
+  float position = infrasonic::unitclamp(param.getEffectiveSmoothVal());
 
-  bool useGritLayer = gritLatch || getGritMenuOpen();
-  if (useGritLayer && !positionSoftTakeover_.state[takeoverLayerGrit].initialized)
+  changed     = false;
+  changedAlt  = false;
+  changedGrit = false;
+  changedFlux = false;
+  changedMod  = false;
+
+  // Determine which layer: modLatch takes mod layer, gritLatch or menu takes grit layer, else primary
+  uint8_t layerIndex = takeoverLayerPrimary;
+  if (param.modLatch)
   {
-    positionGritControl_ = positionControl_;
+    layerIndex = takeoverLayerMod;
+  }
+  else if (param.gritLatch || getGritMenuOpen())
+  {
+    layerIndex = takeoverLayerGrit;
   }
 
-  // layerIndex: 0 = primary, 1 = grit (position grit)
   setSoftTakeoverControl(positionSoftTakeover_,
-                         useGritLayer ? takeoverLayerGrit : takeoverLayerPrimary,
+                         layerIndex,
                          position,
-                         positionControl_,
-                         positionGritControl_,
                          changed,
-                         changedGrit);
+                         changedAlt,
+                         changedGrit,
+                         changedFlux,
+                         changedMod);
+
+  // Priority order: grit > primary
+  // Update only the relevant state based on which layer changed
   if (changedGrit)
   {
-    inputSculptCenterFreq_ =
-      daisysp::fmap(positionGritControl_, InputSculpt::kMinFreq, InputSculpt::kMaxFreq, Mapping::LOG);
+    // Grit layer changed - update input sculpt frequency
+    inputSculptCenterFreq_ = daisysp::fmap(positionSoftTakeover_.state[takeoverLayerGrit].targetValue,
+                                           InputSculpt::kMinFreq,
+                                           InputSculpt::kMaxFreq,
+                                           Mapping::LOG);
 
-    // If grit latched, set input sculpt frequency instead of position
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
@@ -212,127 +264,196 @@ void Deck::setPosition (float position, bool gritLatch, bool &changed, bool &cha
       }
     }
   }
+  // else if (changed && !getGritMenuOpen())
+  // {
+  //   // Primary layer changed - update position
+  //   // position_ = position;
+  // }
+  position_ = positionSoftTakeover_.state[takeoverLayerPrimary].targetValue;
 }
 
-void Deck::setSize (float size, bool gritLatch, bool &changed, bool &changedGrit)
+void Deck::setSize (
+  ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod)
 {
-  size              = infrasonic::unitclamp(size);
-  bool useGritLayer = gritLatch || getGritMenuOpen();
-  if (useGritLayer && !sizeSoftTakeover_.state[takeoverLayerGrit].initialized)
+  float size = infrasonic::unitclamp(param.getEffectiveSmoothVal());
+
+  changed     = false;
+  changedAlt  = false;
+  changedGrit = false;
+  changedFlux = false;
+  changedMod  = false;
+
+  // Determine which layer: modLatch takes mod layer, gritLatch or menu takes grit layer, else primary
+  uint8_t layerIndex = takeoverLayerPrimary;
+  if (param.modLatch)
   {
-    sizeGritControl_ = sizeControl_;
+    layerIndex = takeoverLayerMod;
+  }
+  else if (param.gritLatch || getGritMenuOpen())
+  {
+    layerIndex = takeoverLayerGrit;
   }
 
-  // layerIndex: 0 = primary, 1 = grit (size grit)
   setSoftTakeoverControl(sizeSoftTakeover_,
-                         useGritLayer ? takeoverLayerGrit : takeoverLayerPrimary,
+                         layerIndex,
                          size,
-                         sizeControl_,
-                         sizeGritControl_,
                          changed,
-                         changedGrit);
+                         changedAlt,
+                         changedGrit,
+                         changedFlux,
+                         changedMod);
 
+  // Priority order: grit > primary
+  // Update only the relevant state based on which layer changed
   if (changedGrit)
   {
-    // If grit latched, set input sculpt width instead of size
+    // Grit layer changed - update input sculpt width
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
       {
-        inputSculpt_[ch].setWidth(sizeGritControl_);
+        inputSculpt_[ch].setWidth(sizeSoftTakeover_.state[takeoverLayerGrit].targetValue);
       }
     }
   }
+  else if (changed && !getGritMenuOpen())
+  {
+    // Primary layer changed - update size
+    size_ = sizeSoftTakeover_.state[takeoverLayerPrimary].targetValue;
+  }
 }
 
-void Deck::setShape (float shape, bool gritLatch, bool &changed, bool &changedGrit)
+void Deck::setShape (
+  ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod)
 {
-  shape             = infrasonic::unitclamp(shape);
-  bool useGritLayer = gritLatch || getGritMenuOpen();
-  if (useGritLayer && !shapeSoftTakeover_.state[takeoverLayerGrit].initialized)
+  float shape = infrasonic::unitclamp(param.getEffectiveSmoothVal());
+
+  changed     = false;
+  changedAlt  = false;
+  changedGrit = false;
+  changedFlux = false;
+  changedMod  = false;
+
+  // Determine which layer: modLatch takes mod layer, gritLatch or menu takes grit layer, else primary
+  uint8_t layerIndex = takeoverLayerPrimary;
+  if (param.modLatch)
   {
-    shapeGritControl_ = shapeControl_;
+    layerIndex = takeoverLayerMod;
+  }
+  else if (param.gritLatch || getGritMenuOpen())
+  {
+    layerIndex = takeoverLayerGrit;
   }
 
-  // layerIndex: 0 = primary, 1 = grit (shape grit)
   setSoftTakeoverControl(shapeSoftTakeover_,
-                         useGritLayer ? takeoverLayerGrit : takeoverLayerPrimary,
+                         layerIndex,
                          shape,
-                         shapeControl_,
-                         shapeGritControl_,
                          changed,
-                         changedGrit);
+                         changedAlt,
+                         changedGrit,
+                         changedFlux,
+                         changedMod);
 
-  if (changedGrit)
+  // Priority order: grit > primary
+  // Update only the relevant state based on which layer changed
+if (changedGrit)
   {
-    // If grit latched, set input sculpt shape instead of shape
+    // Grit layer changed - update input sculpt shape
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
       {
-        inputSculpt_[ch].setShape(shapeGritControl_);
+        inputSculpt_[ch].setShape(shapeSoftTakeover_.state[takeoverLayerGrit].targetValue);
       }
     }
+  }
+  else if (changed && !getGritMenuOpen())
+  {
+    // Primary layer changed - update shape
+    shape_ = shapeSoftTakeover_.state[takeoverLayerPrimary].targetValue;
   }
 }
 
-void Deck::setPitch (float pitch, bool gritLatch, bool &changed, bool &changedGrit)
+void Deck::setPitch (ModulatedParam &param, bool &changed, bool &changedGrit, bool &changedFlux, bool &changedAlt, bool &changedMod)
 {
-  pitch             = infrasonic::unitclamp(pitch);
+  float pitch = infrasonic::unitclamp(param.getEffectiveSmoothVal());
 
-  bool useGritLayer = gritLatch || getGritMenuOpen();
-  if (useGritLayer && !pitchSoftTakeover_.state[takeoverLayerGrit].initialized)
+  changed     = false;
+  changedGrit = false;
+  changedFlux = false;
+  changedAlt  = false;
+  changedMod  = false;
+
+  // Determine which layer: modLatch takes mod layer, gritLatch or menu takes grit layer, else primary
+  uint8_t layerIndex = takeoverLayerPrimary;
+  if (param.modLatch)
   {
-    pitchGritControl_ = pitchControl_;
+    layerIndex = takeoverLayerMod;
+  }
+  else if (param.gritLatch || getGritMenuOpen())
+  {
+    layerIndex = takeoverLayerGrit;
   }
 
-  // layerIndex: 0 = primary, 1 = grit (pitch grit)
   setSoftTakeoverControl(pitchSoftTakeover_,
-                         useGritLayer ? takeoverLayerGrit : takeoverLayerPrimary,
+                         layerIndex,
                          pitch,
-                         pitchControl_,
-                         pitchGritControl_,
                          changed,
-                         changedGrit);
+                         changedAlt,
+                         changedGrit,
+                         changedFlux,
+                         changedMod);
 
+  // Priority order: grit > primary
+  // Update only the relevant state based on which layer changed
   if (changedGrit)
   {
-    // If grit latched, set drive instead of pitch
+    // Grit layer changed - update input sculpt overdrive
     for (size_t ch = 0; ch < kNumberChannelsStereo; ++ch)
     {
       if (isChannelActive(ch))
       {
-        inputSculpt_[ch].setOverdrive(pitchGritControl_);
+        inputSculpt_[ch].setOverdrive(pitchSoftTakeover_.state[takeoverLayerGrit].targetValue);
       }
     }
+  }
+  else if (changed && !getGritMenuOpen())
+  {
+    // Primary layer changed - update pitch
+    pitch_ = pitchSoftTakeover_.state[takeoverLayerPrimary].targetValue;
   }
 }
 
 void Deck::updateAnalogControls (const AnalogControlFrame &c)
 {
   // Update the analog deck parameters based on the control frame
-  // Use grit modifiers (pad latch or grit menu) to route to InputSculpt
-  // If the modulated parameter pointers are present, use their effective
-  // smoothed values. Fall back gracefully if any pointer is null.
+  // Pass ModulatedParam objects directly to setters
+  // Setters will unpack smooth values and all latch flags internally
+  bool changed     = false;
+  bool changedAlt  = false;
+  bool changedGrit = false;
+  bool changedFlux = false;
+  bool changedMod  = false;
+
   if (c.mix)
   {
-    setMix(c.mix->getEffectiveSmoothVal(), c.mix->altLatch);
+    setMix(*c.mix);
   }
   if (c.pitch)
   {
-    setPitch(c.pitch->getEffectiveSmoothVal(), c.pitch->gritLatch);
+    setPitch(*c.pitch, changed, changedAlt, changedGrit, changedFlux, changedMod);
   }
   if (c.position)
   {
-    setPosition(c.position->getEffectiveSmoothVal(), c.position->gritLatch);
+    setPosition(*c.position, changed, changedAlt, changedGrit, changedFlux, changedMod);
   }
   if (c.size)
   {
-    setSize(c.size->getEffectiveSmoothVal(), c.size->gritLatch);
+    setSize(*c.size, changed, changedAlt, changedGrit, changedFlux, changedMod);
   }
   if (c.shape)
   {
-    setShape(c.shape->getEffectiveSmoothVal(), c.shape->gritLatch);
+    setShape(*c.shape, changed, changedAlt, changedGrit, changedFlux, changedMod);
   }
 }
 
@@ -531,7 +652,6 @@ void Deck::updateDigitalControlsEffects (const DigitalControlFrame &c)
   setPlay(c.play);
   setFlux(c.flux);
   setGrit(c.grit);
-  setMod(c.mod);
 
   // Hold Alt+Flux state
   if (c.altFlux)

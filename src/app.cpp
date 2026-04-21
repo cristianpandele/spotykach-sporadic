@@ -219,9 +219,7 @@ void AppImpl::updateDigitalControlFrame(Deck::DigitalControlFrame &frame, size_t
     .altFlux   = currentAltFluxState[slot],
     .altGrit   = currentAltGritState[slot],
     // Soft takeover notification
-    .takeover  = false,
-    // Mod takeover flag: asserted when any mod mapping takeover is active for this slot
-    .mod       = modActive
+    .takeover  = false
   };
 }
 
@@ -629,31 +627,57 @@ void AppImpl::processUIQueue ()
         {
           // Use Alt pad latch to modify Mix
           modulatedMix[targetSide].altLatch = Utils::isAltPadPressed(padTouchStates);
+          // Use Mod pad latch to modify Mix
+          modulatedMix[targetSide].modLatch = Utils::isModPadPressed(targetSide, padTouchStates);
         }
 
         if (movedPot == Hardware::kCtrlPitchIds[targetSide])
         {
-          // Use Grit pad latch to modify Pitch (drives InputSculpt drive)
-          modulatedPitch[targetSide].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[targetSide]);
+          // Use Alt pad latch to modify Pitch
+          modulatedPitch[targetSide].altLatch = Utils::isAltPadPressed(padTouchStates);
+          // Use Mod pad latch to modify Pitch
+          modulatedPitch[targetSide].modLatch = Utils::isModPadPressed(targetSide, padTouchStates);
+          // Use Grit pad latch to modify Pitch
+          modulatedPitch[targetSide].gritLatch = Utils::isGritPadPressed(targetSide, padTouchStates);
+          // Use Flux pad latch to modify Pitch
+          modulatedPitch[targetSide].fluxLatch = Utils::isFluxPadPressed(targetSide, padTouchStates);
         }
 
         if (movedPot == Hardware::kCtrlPosIds[targetSide])
         {
-          // Use Grit pad latch to modify Position (drives InputSculpt frequency)
-          modulatedPosition[targetSide].gritLatch =
-            Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[targetSide]);
+          // Use Alt pad latch to modify Position
+          modulatedPosition[targetSide].altLatch = Utils::isAltPadPressed(padTouchStates);
+          // Use Mod pad latch to modify Position
+          modulatedPosition[targetSide].modLatch =
+            Utils::isModPadPressed(0, padTouchStates) || Utils::isModPadPressed(1, padTouchStates);
+          // Use Grit pad latch to modify Position
+          modulatedPosition[targetSide].gritLatch = Utils::isGritPadPressed(targetSide, padTouchStates);
+          // Use Flux pad latch to modify Position
+          modulatedPosition[targetSide].fluxLatch = Utils::isFluxPadPressed(targetSide, padTouchStates);
         }
 
         if (movedPot == Hardware::kCtrlShapeIds[targetSide])
         {
-          // Use Grit pad latch to modify Shape (drives InputSculpt shape)
-          modulatedShape[targetSide].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[targetSide]);
+          // Use Alt pad latch to modify Shape
+          modulatedShape[targetSide].altLatch = Utils::isAltPadPressed(padTouchStates);
+          // Use Mod pad latch to modify Shape
+          modulatedShape[targetSide].modLatch = Utils::isModPadPressed(targetSide, padTouchStates);
+          // Use Grit pad latch to modify Shape
+          modulatedShape[targetSide].gritLatch = Utils::isGritPadPressed(targetSide, padTouchStates);
+          // Use Flux pad latch to modify Shape
+          modulatedShape[targetSide].fluxLatch = Utils::isFluxPadPressed(targetSide, padTouchStates);
         }
 
         if (movedPot == Hardware::kCtrlSizeIds[targetSide])
         {
-          // Use Grit pad latch to modify Size (drives InputSculpt width)
-          modulatedSize[targetSide].gritLatch = Utils::isTouchPadPressed(padTouchStates, kPadMapGritIds[targetSide]);
+          // Use Alt pad latch to modify Size
+          modulatedSize[targetSide].altLatch = Utils::isAltPadPressed(padTouchStates);
+          // Use Mod pad latch to modify Size
+          modulatedSize[targetSide].modLatch = Utils::isModPadPressed(targetSide, padTouchStates);
+          // Use Grit pad latch to modify Size
+          modulatedSize[targetSide].gritLatch = Utils::isGritPadPressed(targetSide, padTouchStates);
+          // Use Flux pad latch to modify Size
+          modulatedSize[targetSide].fluxLatch = Utils::isFluxPadPressed(targetSide, padTouchStates);
         }
 
         // Remember last moved pot for that side
@@ -706,8 +730,6 @@ void AppImpl::processUIQueue ()
             modParamMappings[modSide][targetSide][paramIdx].polarity = ModulationSources::Polarity::UNIPOLAR;
           }
 
-          // Mark this param as having an active mod mapping (triggers soft takeover)
-          modParamModMapping[targetSide][paramIdx] = true;
         }
       }
     }

@@ -49,20 +49,20 @@ void Sporadic::init ()
 
 //////////
 // Handle parameter changes
-void Sporadic::setPosition (float p, bool gritLatch)
+void Sporadic::setPosition (
+  ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod)
 {
-  bool positionChanged;
-  bool positionChangedGrit;
-  Deck::setPosition(p, gritLatch, positionChanged, positionChangedGrit);
+  Deck::setPosition(param, changed, changedAlt, changedGrit, changedFlux, changedMod);
 
-  if (positionChangedGrit)
+  if (changedGrit || changedMod)
   {
     // Set the dispersion center frequency in the delay network
     setDelayNetworkParameters();
   }
-  else if (positionChanged && !getGritMenuOpen())
+  else if (changed && !getGritMenuOpen())
   {
-    position_ = positionControl_;
+    // position_ = positionControl_;
+    position_ = positionSoftTakeover_.state[takeoverLayerPrimary].targetValue;
     // Set the tree offset in the delay network
     setDelayNetworkParameters();
     // Set fold window dirty flag to update visualization
@@ -70,62 +70,29 @@ void Sporadic::setPosition (float p, bool gritLatch)
   }
 }
 
-void Sporadic::setSize (float s, bool gritLatch)
+void Sporadic::setSize (
+  ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod)
 {
-  bool sizeChanged;
-  bool sizeChangedGrit;
-  Deck::setSize(s, gritLatch, sizeChanged, sizeChangedGrit);
-
-  if (sizeChangedGrit)
-  {
-    return;
-  }
-  else if (sizeChanged && !getGritMenuOpen())
-  {
-    size_ = sizeControl_;
-    // Set the mycelia mix in the delay network
-    setDelayNetworkParameters();
-    // Set fold window dirty flag to update visualization
-    foldWindowDirty_ = true;
-  }
+  Deck::setSize(param, changed, changedAlt, changedGrit, changedFlux, changedMod);
 }
 
-void Sporadic::setShape (float s, bool gritLatch)
+void Sporadic::setShape (
+  ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod)
 {
-  bool shapeChanged;
-  bool shapeChangedGrit;
-  Deck::setShape(s, gritLatch, shapeChanged, shapeChangedGrit);
-
-  if (shapeChangedGrit)
-  {
-    return;
-  }
-  else if (shapeChanged && !getGritMenuOpen())
-  {
-    shape_ = shapeControl_;
-    // Set the tree density in the delay network
-    setDelayNetworkParameters();
-    // Set fold window dirty flag to update visualization
-    foldWindowDirty_ = true;
-  }
+  Deck::setShape(param, changed, changedAlt, changedGrit, changedFlux, changedMod);
 }
 
-void Sporadic::setPitch (float p, bool gritLatch)
+void Sporadic::setPitch (
+  ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod)
 {
-  bool pitchChanged;
-  bool pitchChangedGrit;
-  Deck::setPitch(p, gritLatch, pitchChanged, pitchChangedGrit);
+  Deck::setPitch(param, changed, changedAlt, changedGrit, changedFlux, changedMod);
 
-  if (pitchChangedGrit)
+  if (changedGrit || changedMod)
   {
     return;
   }
-  if (pitchChanged && !getGritMenuOpen())
+  if (changed && !getGritMenuOpen())
   {
-    pitch_ = pitchControl_;
-    // Set the stretch factor in the delay network
-    setDelayNetworkParameters();
-
     // Set the tree size of the edge trees
     float edgeTreeSize = 0.0f;
     edgeTreeSize = daisysp::fmap(pitchControl_, 0.6f, 1.0f);
@@ -172,19 +139,6 @@ void Sporadic::setReverse (bool r)
   reverseMixSmooth_ = reverse_ ? 1.0f : 0.0f;
 }
 
-// void Sporadic::setSpoty (float s)
-// {
-//   s = infrasonic::unitclamp(s);
-//   bool spotyChanged = (std::abs(s - spotyControl_) > kParamChThreshold);
-//   spotyControl_ = spotyChanged ? s : spotyControl_;
-
-//   if (spotyChanged)
-//   {
-//     spoty_ = spotyControl_;
-//     setDelayNetworkParameters(play_, reverse_, inputSculptCenterFreq_, spoty_);
-//   }
-// }
-
 void Sporadic::getBandFrequencies (std::vector<float> &frequencies) const
 {
   delayNetwork_.getBandFrequencies(frequencies);
@@ -226,6 +180,7 @@ void Sporadic::updateAnalogControls(const AnalogControlFrame &c)
   lastAnalogControlFrame_ = c;
 
   Deck::updateAnalogControls(c);
+  setDelayNetworkParameters();
 }
 
 void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
@@ -244,7 +199,6 @@ void Sporadic::updateDigitalControls (const DigitalControlFrame &c)
   setPlay(c.play);
   setFlux(c.flux);
   setGrit(c.grit);
-  setMod(c.mod);
 
   Deck::updateDigitalControlsEffects(c);
 }

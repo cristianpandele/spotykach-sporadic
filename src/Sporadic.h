@@ -82,19 +82,23 @@ class Sporadic : public Deck
     AnalogControlFrame lastAnalogControlFrame_{};
 
     // Setters for mix, position and size (overloads point to Sporadic versions)
-    void setPosition (float p, bool gritLatch = false);
-    void setPosition (float p) override { setPosition(p, false); }
-    void setSize (float s, bool gritLatch = false);
-    void setSize (float s) override { setSize(s, false); }
-    void setShape (float s, bool gritLatch = false);
-    void setShape (float s) override { setShape(s, false); }
-    void setPitch (float p, bool gritLatch = false);
-    void setPitch (float p) override { setPitch(p, false); }
+    void setPosition (ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod);
+    void setPosition (float p) override { position_ = infrasonic::unitclamp(p); }
+
+    void setSize (
+      ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod);
+    void setSize (float s) override { size_ = infrasonic::unitclamp(s); }
+
+    void setShape (
+      ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod);
+    void setShape (float s) override { shape_ = infrasonic::unitclamp(s); }
+
+    void setPitch (ModulatedParam &param, bool &changed, bool &changedAlt, bool &changedGrit, bool &changedFlux, bool &changedMod);
+    void setPitch (float p) override { pitch_ = infrasonic::unitclamp(p); }
 
     void setPlay (bool p) override;
     void setReverse (bool r) override;
     void setSpotyPlay (bool s);
-    // void setSpoty (float s) override;
 
     // Prepare and set delay network parameters
     void setDelayNetworkParameters ();

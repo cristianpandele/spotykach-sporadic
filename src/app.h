@@ -267,11 +267,15 @@ namespace spotykach_hwtest
       bool modParamModMapping[kNumberDeckSlots][kNumModParams] = {{false}};
 
       // Mod target switch changed flag and current mod target for each side
-      bool        modTargetChanged[kNumberDeckSlots]{false};
-      SmoothValue modTargetSmooth[kNumberDeckSlots][ModTarget::MOD_TARGET_LAST]{{
-          SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
-          SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
-          SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize)}};
+      bool        modTargetChanged[kNumberDeckSlots]{true, true};
+      SmoothValue modTargetSmooth[kNumberDeckSlots][ModTarget::MOD_TARGET_LAST]{
+        {SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
+         SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
+         SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize)},
+        {SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
+         SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
+         SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize)},
+      };
       ModTarget   currentModTarget[kNumberDeckSlots]{ModTarget::MIX, ModTarget::MIX};
 
       // Mod type switch flag and current mod type for each side
@@ -369,7 +373,7 @@ namespace spotykach_hwtest
       void handleDisplay ();
 
       // Apply CV modulation to parameters
-      void applyCvModulation (ModulatedParam &modParam, Hardware::CvInputId cvId, bool latchFlag = false, ModTarget modTarget = ModTarget::MOD_TARGET_LAST, float cvModSmoothLevel = 1.0f);
+      void applyCvModulation (ModulatedParam &modParam, Hardware::CvInputId cvId, float cvModSmoothLevel = 1.0f);
 
       // Apply soft modulation to parameters based on stored mappings
       void applyModulatorSoftModulation();
