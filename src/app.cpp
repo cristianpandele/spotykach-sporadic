@@ -495,6 +495,14 @@ void AppImpl::logDebugInfo ()
   Log::PrintLine("Spotykach Slider            : " FLT_FMT(5), FLT_VAR(5, modulatedSpoty.getEffectiveSmoothVal()));
   Log::PrintLine("Position A                  : " FLT_FMT(5), FLT_VAR(5, modulatedPosition[0].getEffectiveSmoothVal()));
   Log::PrintLine("Size A                      : " FLT_FMT(5), FLT_VAR(5, modulatedSize[0].getEffectiveSmoothVal()));
+  if (modulatedPosition[1].gritLatch == true)
+    Log::PrintLine("Position B grit latched            : true");
+  if (modulatedSize[1].gritLatch == true)
+    Log::PrintLine("Size B grit latched            : true");
+  if (modulatedShape[1].gritLatch == true)
+    Log::PrintLine("Shape B grit latched            : true");
+  if (modulatedPitch[1].gritLatch == true)
+    Log::PrintLine("Pitch B grit latched            : true");
   // // Log::PrintLine("Read Index A   : " FLT_FMT(5), FLT_VAR(5, ((Spotykach *) decks[0])->getReadIx()));
   // // Log::PrintLine("Write Index A  : " FLT_FMT(5), FLT_VAR(5, ((Spotykach *) decks[0])->getWriteIx()));
   // // // Log::PrintLine("Read Window Start : " FLT_FMT(5), FLT_VAR(5, decks[0]->getReadWindowStart()));
@@ -507,12 +515,12 @@ void AppImpl::logDebugInfo ()
   // Log::PrintLine("Env A Release Coeff : " FLT_FMT(5), FLT_VAR(5, modulator[0].getReleaseCoefficient()));
   Log::PrintLine("Env A Value                 : " FLT_FMT(5), FLT_VAR(5, modulator[0].process()));
 
-  // std::vector<float> bandFreqs;
-  // sporadic.getBandFrequencies(bandFreqs);
-  // for (size_t i = 0; i < bandFreqs.size(); ++i)
-  // {
-  //   Log::PrintLine("Band %d Frequency: " FLT_FMT(5), i, FLT_VAR(5, bandFreqs[i]));
-  // }
+  std::vector<float> bandFreqs;
+  sporadic[0].getBandFrequencies(bandFreqs);
+  for (size_t i = 0; i < bandFreqs.size(); ++i)
+  {
+    Log::PrintLine("Band %d Frequency: " FLT_FMT(5), i, FLT_VAR(5, bandFreqs[i]));
+  }
 
   std::vector<float> treePositions;
   sporadic[0].getTreePositions(treePositions);
