@@ -247,9 +247,6 @@ void Sporadic::updateDisplayState ()
       // Sporadic LED ring visualization
       updateRingState(foldView_);
 
-      // Provide the fold window to DelayNetwork for internal gain staging
-      delayNetwork_.setFoldWindow(envelopeRing_, spotykach::Hardware::kNumLedsPerRing);
-
       // Overlay dark red LEDs indicating the tree positions
       updateTreeRingState(foldView_);
 
