@@ -144,7 +144,7 @@ void DelayNetwork::processBlockMono (const float *in, const uint8_t ch, float *o
 
   // Mix only the active processors' outputs into the channel buffer
   std::fill(out, out + blockSize, 0.0f);
-  for (size_t p = 0; p < numProcs_; ++p)
+  for (size_t p = 0; p < numActiveTrees_; ++p)
   {
     const float *procBuf = treeOutputs[p];
     const float  gain    = perProcGains_[p].getSmoothVal();
