@@ -7,7 +7,7 @@
 namespace
 {
   DSY_SDRAM_BSS DelayProc delayProcPool[spotykach::kNumberDeckSlots][kNumberChannelsStereo][kMaxNumDelayProcs];
-  size_t         delayProcPoolNext = 0;
+  size_t                  delayProcPoolNext = 0;
 }    // namespace
 
 DelayNodes::DelayNodes ()
@@ -72,9 +72,9 @@ void DelayNodes::setDelayProcsParameters ()
 void DelayNodes::setInitialConnections ()
 {
   // Initialize all to 0.
-  for (size_t r = 0; r < kMaxNumDelayProcs; ++r)
+  for (auto &interNodeConnection : interNodeConnections_)
   {
-    std::fill(std::begin(interNodeConnections_[r]), std::end(interNodeConnections_[r]), 0.0f);
+    std::fill(std::begin(interNodeConnection), std::end(interNodeConnection), 0.0f);
   }
   // Simple forward chain: p -> p+1 gets weight 1.0f
   for (size_t p = 0; p < kMaxNumDelayProcs - 1; ++p)
@@ -83,7 +83,7 @@ void DelayNodes::setInitialConnections ()
   }
 }
 
-void DelayNodes::setTreeDensity(float density)
+void DelayNodes::setTreeDensity (float density)
 {
   // Clamp to [0,1]
   treeDensity_ = infrasonic::unitclamp(density);
@@ -92,8 +92,8 @@ void DelayNodes::setTreeDensity(float density)
   // Map to [0, numProcs_]
   newActiveTrees = daisysp::fmap(treeDensity_, 0.0f, static_cast<float>(numProcs_ + 1));
 
-  newActiveTrees  = std::round<size_t>(newActiveTrees);
-  newActiveTrees  = std::max(static_cast<size_t>(1), static_cast<size_t>(newActiveTrees));
+  newActiveTrees = std::round<size_t>(newActiveTrees);
+  newActiveTrees = std::max(static_cast<size_t>(1), static_cast<size_t>(newActiveTrees));
 
   if (newActiveTrees == numActiveTrees_)
   {
@@ -122,7 +122,7 @@ void DelayNodes::setMyceliaMix (float mix)
   myceliaMix_ = std::clamp(mix, 0.0f, 1.0f);
 }
 
-void DelayNodes::updateTreePositions(bool uniform)
+void DelayNodes::updateTreePositions (bool uniform)
 {
   // Ensure last tree is at 1.0
   treePositions_[numActiveTrees_ - 1] = 1.0f;    // single tree at end of chain
@@ -131,14 +131,6 @@ void DelayNodes::updateTreePositions(bool uniform)
   for (size_t i = numActiveTrees_; i < kMaxNumDelayProcs; ++i)
   {
     treePositions_[i] = 0.0f;
-  }
-
-  if (uniform)
-  {
-    for (size_t i = 0; i < numActiveTrees_ - 1; ++i)
-    {
-
-    }
   }
 
   const float step = 1.0f / static_cast<float>(numActiveTrees_);
@@ -237,9 +229,9 @@ void DelayNodes::updateNodeInterconnections ()
         }
         // Potential creation of new connection
         // Probability diminishes with distance between nodes
-        size_t distance   = std::abs(static_cast<int>(dst) - static_cast<int>(src));
-        float maxDist    = static_cast<float>(std::max<size_t>(1, numProcs_ - 1));
-        float proximity  = 1.0f - (static_cast<float>(distance) / maxDist);    // 1 near neighbors, 0 far
+        size_t distance  = std::abs(static_cast<int>(dst) - static_cast<int>(src));
+        auto   maxDist   = static_cast<float>(std::max<size_t>(1, numProcs_ - 1));
+        float  proximity = 1.0f - (static_cast<float>(distance) / maxDist);    // 1 near neighbors, 0 far
 
         // Random chance to create a new connection
         float rnd        = daisy::Random::GetFloat(0.0f, 1.0f);
@@ -256,19 +248,17 @@ void DelayNodes::updateNodeInterconnections ()
   }
 
   // Normalize per source so that the sum of outgoing weights is just a bit under 1.0f
-  for (size_t src = 0; src < kMaxNumDelayProcs; ++src)
+  for (auto &interNodeConnection : interNodeConnections_)
   {
     float sum = 0.0f;
-    for (size_t dst = 0; dst < kMaxNumDelayProcs; ++dst)
+    for (float &connectionStrength : interNodeConnection)
     {
-      float &connectionStrength = interNodeConnections_[src][dst];
       sum += connectionStrength;
     }
     if (sum > 0.0f)
     {
-      for (size_t dst = 0; dst < kMaxNumDelayProcs; ++dst)
+      for (float &connectionStrength : interNodeConnection)
       {
-        float &connectionStrength = interNodeConnections_[src][dst];
         connectionStrength /= (sum + 0.05f);    // +0.05f to avoid being at the edge of feedback instability
       }
     }
@@ -280,19 +270,19 @@ void DelayNodes::updateNodeInterconnections ()
   for (size_t dst = 0; dst < kMaxNumDelayProcs; ++dst)
   {
     float sum = 0.0f;
-    for (size_t src = 0; src < kMaxNumDelayProcs; ++src)
+    for (auto &interNodeConnection : interNodeConnections_)
     {
-      sum += interNodeConnections_[src][dst];
+      sum += interNodeConnection[dst];
     }
 
     float age = delayProcs_[0][dst].getAge();
-    if ((sum > 1.0f) ||     // Normalize only if sum > 1.0f (to prevent excessive feedback)
-        (age > 0.5f))       // or if the pair is old enough and nodes start decaying
+    if ((sum > 1.0f) ||    // Normalize only if sum > 1.0f (to prevent excessive feedback)
+        (age > 0.5f))      // or if the pair is old enough and nodes start decaying
     {
-      float inv = 1.0f / (sum + 0.075f); // +0.075f to avoid being at the edge of feedback instability
-      for (size_t src = 0; src < kMaxNumDelayProcs; ++src)
+      float inv = 1.0f / (sum + 0.075f);    // +0.075f to avoid being at the edge of feedback instability
+      for (auto &interNodeConnection : interNodeConnections_)
       {
-        interNodeConnections_[src][dst] *= inv;
+        interNodeConnection[dst] *= inv;
       }
     }
   }
@@ -465,4 +455,3 @@ void DelayNodes::processBlockMono (float **inBand, float **treeOutputs, size_t c
     }
   }
 }
-

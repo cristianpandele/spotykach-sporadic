@@ -20,7 +20,7 @@ void Sporadic::init ()
     edgeTree_[ch].init(sampleRate_);
 
     // Initialize the limiter
-    limiter[ch].Init();
+    limiter_[ch].Init();
   }
   // Initialize the delay network
   delayNetwork_.init(sampleRate_, blockSize_, kMaxNutrientBands, kMaxNumDelayProcs);
@@ -393,7 +393,7 @@ void Sporadic::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuf
       std::copy(feedbackMixBuf_[ch], feedbackMixBuf_[ch] + blockSize, out[ch]);
 
       // Apply limiter to output
-      limiter[ch].ProcessBlock(out[ch], blockSize, 0.7f);
+      limiter_[ch].ProcessBlock(out[ch], blockSize, 0.7f);
     }
   }
 }

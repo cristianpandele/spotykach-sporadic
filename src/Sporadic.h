@@ -51,7 +51,7 @@ class Sporadic : public Deck
     float feedbackMixBuf_[kNumberChannelsStereo][kBlockSize]{};
 
     // Limiters for final output
-    Limiter limiter[kNumberChannelsStereo];
+    Limiter limiter_[kNumberChannelsStereo];
 
     // Envelope ring (visual + mixing gains source). 32 slots per ring.
     static constexpr uint8_t kNumLeds = spotykach::Hardware::kNumLedsPerRing;

@@ -3,8 +3,8 @@
 #include "Modulation.h"
 #include "app.h"
 #include "constants.h"
-#include "daisysp.h"
 #include "daisy.h"
+#include "daisysp.h"
 #include <cmath>
 #include <cstddef>
 
@@ -48,9 +48,9 @@ template <typename T, size_t max_size, size_t burst_size> class BurstDelayLine
     */
     inline void SetDelay (float delay)
     {
-      int32_t int_delay = static_cast<int32_t>(delay);
-      frac_             = delay - static_cast<float>(int_delay);
-      delay_            = static_cast<size_t>(int_delay) < max_size ? int_delay : max_size - 1;
+      auto int_delay = static_cast<int32_t>(delay);
+      frac_          = delay - static_cast<float>(int_delay);
+      delay_         = static_cast<size_t>(int_delay) < max_size ? int_delay : max_size - 1;
     }
 
     /** writes the sample of type T to the delay line, and advances the write ptr
@@ -77,36 +77,36 @@ template <typename T, size_t max_size, size_t burst_size> class BurstDelayLine
      */
     inline const T ReadHermite (float delay, T samples[burst_size]) const
     {
-      int32_t delay_integral   = static_cast<int32_t>(delay);
-      float   delay_fractional = delay - static_cast<float>(delay_integral);
+      auto  delay_integral   = static_cast<int32_t>(delay);
+      float delay_fractional = delay - static_cast<float>(delay_integral);
 
-      int32_t     t            = (write_ptr_ + delay_integral + max_size);
-      const T     xm1          = line_[(t - 1) % max_size];
-      const T     x0           = line_[(t) % max_size];
-      const T     x1           = line_[(t + 1) % max_size];
-      const T     x2           = line_[(t + 2) % max_size];
-      const float c            = (x1 - xm1) * 0.5f;
-      const float v            = x0 - x1;
-      const float w            = c + v;
-      const float a            = w + v + (x2 - x0) * 0.5f;
-      const float b_neg        = w + a;
-      const float f            = delay_fractional;
+      int32_t     t          = (write_ptr_ + delay_integral + max_size);
+      const T     xm1        = line_[(t - 1) % max_size];
+      const T     x0         = line_[(t) % max_size];
+      const T     x1         = line_[(t + 1) % max_size];
+      const T     x2         = line_[(t + 2) % max_size];
+      const float c          = (x1 - xm1) * 0.5f;
+      const float v          = x0 - x1;
+      const float w          = c + v;
+      const float a          = w + v + (x2 - x0) * 0.5f;
+      const float b_neg      = w + a;
+      const float f          = delay_fractional;
       return (((a * f) - b_neg) * f + c) * f + x0;
     }
 
     // Read 4 samples with Hermite interpolation (optimized for burst reads)
     inline void ReadHermiteBurst (float delay, float output[burst_size]) const
     {
-      int32_t delay_integral   = static_cast<int32_t>(delay);
-      float   delay_fractional = delay - static_cast<float>(delay_integral);
+      auto  delay_integral   = static_cast<int32_t>(delay);
+      float delay_fractional = delay - static_cast<float>(delay_integral);
 
       // Read 4 consecutive samples from SDRAM in a burst
       int32_t base_t = (write_ptr_ + delay_integral + max_size);
 
       // We need 7 consecutive samples for Hermite interpolation of 4 outputs
       // (4 samples for each output, overlapping: xm1, x0, x1, x2 for each)
-      constexpr size_t num_samples_needed = burst_size + 4 - 1;  // 7 samples
-      float samples[num_samples_needed];
+      constexpr size_t num_samples_needed = burst_size + 4 - 1;    // 7 samples
+      float            samples[num_samples_needed];
 
       // Calculate starting index with proper wrapping
       size_t start_idx = (base_t - 1 + max_size) % max_size;
@@ -151,56 +151,57 @@ template <typename T, size_t max_size, size_t burst_size> class BurstDelayLine
 
 struct DelayProc
 {
-  static constexpr size_t kSecInMin   = 60;
-  static constexpr size_t kMinBpm     = 30;
-  static constexpr size_t kDefaultBpm = 120;
-  static constexpr size_t kMaxBpm     = 300;
-  static constexpr size_t kMaxDelaySamples = kSampleRate *
-                                             (static_cast<float>(kSecInMin) / static_cast<float>(kDefaultBpm)) *
-                                             kMaxStretch;    // 16 seconds at 120 BPM (at 48kHz)
+    static constexpr size_t kSecInMin        = 60;
+    static constexpr size_t kMinBpm          = 30;
+    static constexpr size_t kDefaultBpm      = 120;
+    static constexpr size_t kMaxBpm          = 300;
+    static constexpr size_t kMaxDelaySamples = kSampleRate *
+                                               (static_cast<float>(kSecInMin) / static_cast<float>(kDefaultBpm)) *
+                                               kMaxStretch;    // 16 seconds at 120 BPM (at 48kHz)
 
-  static constexpr float kGrowthRate         = 5e-8f;  // This gives us approximately 10 minutes to age out completely
-  static constexpr float kMetabolicThreshold = 1e-3f;
+    static constexpr float kGrowthRate       = 5e-8f;    // This gives us approximately 10 minutes to age out completely
+    static constexpr float kMetabolicThreshold = 1e-3f;
 
-  BurstDelayLine<float, kMaxDelaySamples, kBurstSizeSamples> delay;
-  EnvelopeFollower                                           inputEnvFollower;     // Used for input level tracking
-  EnvelopeFollower                                           outputEnvFollower;    // Used for output level tracking
-  daisysp::Compressor compressor;    // Used for feedback-path sidechain compression
+    BurstDelayLine<float, kMaxDelaySamples, kBurstSizeSamples> delay;
+    EnvelopeFollower                                           inputEnvFollower;     // Used for input level tracking
+    EnvelopeFollower                                           outputEnvFollower;    // Used for output level tracking
+    daisysp::Compressor compressor;    // Used for feedback-path sidechain compression
 
-  float sampleRate_;
-  float feedback_;
-  float baseDelayMs_;
-  float stretch_;
-  float targetDelay_;
-  float currentDelay_;
+    float sampleRate_;
+    float feedback_;
+    float baseDelayMs_;
+    float stretch_;
+    float targetDelay_;
+    float currentDelay_;
 
-  // Whether the delay processors aging is in reverse mode
-  bool reverse_;
+    // Whether the delay processors aging is in reverse mode
+    bool reverse_;
 
-  // Envelope followers: track input and output levels for dynamic processing
-  float inputLevel;
-  float outputLevel;
-  // Placeholder parameters for envelope followers (attack/release in ms, level type)
-  float envAttackMs_;
-  float envReleaseMs_;
+    // Envelope followers: track input and output levels for dynamic processing
+    float inputLevel;
+    float outputLevel;
+    // Placeholder parameters for envelope followers (attack/release in ms, level type)
+    float envAttackMs_;
+    float envReleaseMs_;
 
-  // Sidechain and age tracking
-  float sidechainLevel_;
-  float currentAge_;
+    // Sidechain and age tracking
+    float sidechainLevel_;
+    float currentAge_;
 
-  // Trivial default constructor; call init() before use
-  DelayProc () = default;
+    // Trivial default constructor; call init() before use
+    DelayProc () = default;
 
-  void init (float sr, size_t maxDelaySamples);
-  void setParameters (bool reverse, float dMs, float fb);
-  void updateCurrentDelay ();
-  void setSidechainLevel (float sc);
-  float process (float in);  // Process single sample
-  void processBurst (const float in[kBurstSizeSamples], float out[kBurstSizeSamples]);  // Process 4 samples in burst mode
+    void  init (float sr, size_t maxDelaySamples);
+    void  setParameters (bool reverse, float dMs, float fb);
+    void  updateCurrentDelay ();
+    void  setSidechainLevel (float sc);
+    float process (float in);    // Process single sample
+    void  processBurst (const float in[kBurstSizeSamples],
+                        float       out[kBurstSizeSamples]);    // Process 4 samples in burst mode
 
-  // Trivial accessors
-  float getAge () const { return currentAge_; }
+    // Trivial accessors
+    float getAge () const { return currentAge_; }
 
-  ///////////
-  NOCOPY (DelayProc);
+    ///////////
+    NOCOPY (DelayProc);
 };

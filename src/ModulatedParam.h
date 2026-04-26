@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Utils.h"
-#include <daisysp.h>
 #include "common.h"
 #include "constants.h"
+#include <daisysp.h>
 
 using namespace spotykach;
-using Mapping        = daisysp::Mapping;
+using Mapping = daisysp::Mapping;
 
 enum ModTarget
 {
@@ -23,7 +23,6 @@ enum ModTarget
 // with per-source depth, polarity and mapping.
 struct ModulationSources
 {
-
   enum Polarity
   {
     UNIPOLAR = 1,
@@ -65,7 +64,7 @@ struct ModulationSources
     return v;
   }
 
-  float evalMod(ModSourceIndex index) const
+  float evalMod (ModSourceIndex index) const
   {
     return mapWithPolarity(modLevel[index], modPolarity[index], modMapping[index]) * modDepth[index];
   }
@@ -98,7 +97,7 @@ class ModulatedEffectParams
         Mapping  mapping  = Mapping::LINEAR;
     };
 
-    ModulatedEffectParams() = default;
+    ModulatedEffectParams () = default;
 
     // Set per-parameter modulation config (depth, polarity, mapping)
     void setParamConfig (size_t index, const ParamConfig &cfg)
@@ -131,14 +130,15 @@ class ModulatedEffectParams
       // Sum all modulation sources, scaled by this parameter's depth/polarity/mapping
       for (size_t src = 0; src < ModulationSources::MOD_SOURCE_LAST; ++src)
       {
-        ModSourceIndex srcIdx = static_cast<ModSourceIndex>(src);
+        auto srcIdx = static_cast<ModSourceIndex>(src);
         // Use the modulation frame's source mapping/polarity/depth where provided
-        const ModulationSources &msrc = modSources_[index];
-        float srcVal                  = msrc.modLevel[srcIdx];
-        Mapping srcMap                = msrc.modMapping[srcIdx];
-        float  srcDepth               = msrc.modDepth[srcIdx];
+        const ModulationSources &msrc     = modSources_[index];
+        float                    srcVal   = msrc.modLevel[srcIdx];
+        Mapping                  srcMap   = msrc.modMapping[srcIdx];
+        float                    srcDepth = msrc.modDepth[srcIdx];
 
-        // Map the raw source value using the desired mapping. Force the mapping to unipolar to keep the value between 0 and 1 for now
+        // Map the raw source value using the desired mapping. Force the mapping to unipolar to keep the value between 0
+        // and 1 for now
         float mapped = ModulationSources::mapWithPolarity(srcVal, Polarity::UNIPOLAR, srcMap);
 
         // Combine source-level depth and per-parameter depth. This allows
@@ -172,11 +172,10 @@ class ModulatedEffectParams
   private:
     ParamConfig                paramConfigs_[kMaxParams];
     ModulationSources          modSources_[kMaxParams];
-    mutable Utils::SmoothValue smoothers_[kMaxParams] = {
-      Utils::SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
-      Utils::SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
-      Utils::SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize),
-      Utils::SmoothValue(kSmoothTime, kSamplePeriodMs * kBlockSize)};
+    mutable Utils::SmoothValue smoothers_[kMaxParams] = {Utils::SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
+                                                         Utils::SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
+                                                         Utils::SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize),
+                                                         Utils::SmoothValue(kSmoothTime, kSamplePeriodMs *kBlockSize)};
 };
 
 // Concrete modulated parameter entity.
@@ -184,7 +183,8 @@ class ModulatedParam
 {
   public:
     // Construct with smoothing params for the effective value (ms, updatePeriodMs)
-    ModulatedParam (float effectiveSmoothTimeMs = kSmoothTime, float effectiveUpdatePeriodMs = kSamplePeriodMs * kBlockSize)
+    ModulatedParam (float effectiveSmoothTimeMs   = kSmoothTime,
+                    float effectiveUpdatePeriodMs = kSamplePeriodMs * kBlockSize)
       : base_(nullptr),
         effective_(0.0f, effectiveSmoothTimeMs, effectiveUpdatePeriodMs),
         effectiveSmoothTimeMs_(effectiveSmoothTimeMs),
@@ -220,7 +220,7 @@ class ModulatedParam
         return effective_.getSmoothVal();
 
       // Always read fresh base value
-      float baseVal = base_->getSmoothVal();
+      float baseVal         = base_->getSmoothVal();
 
       float modContribution = 0.0f;
       // Map CV and soft sources (from 0...1 to either 0..1 or -1..1 depending on polarity, multiplied by depth)
