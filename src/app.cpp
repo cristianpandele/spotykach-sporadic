@@ -495,6 +495,7 @@ void AppImpl::logDebugInfo ()
   Log::PrintLine("Spotykach Slider            : " FLT_FMT(5), FLT_VAR(5, modulatedSpoty.getEffectiveSmoothVal()));
   Log::PrintLine("Position A                  : " FLT_FMT(5), FLT_VAR(5, modulatedPosition[0].getEffectiveSmoothVal()));
   Log::PrintLine("Size A                      : " FLT_FMT(5), FLT_VAR(5, modulatedSize[0].getEffectiveSmoothVal()));
+  Log::PrintLine("Shape A                     : " FLT_FMT(5), FLT_VAR(5, modulatedShape[0].getEffectiveSmoothVal()));
   if (modulatedPosition[1].gritLatch == true)
     Log::PrintLine("Position B grit latched            : true");
   if (modulatedSize[1].gritLatch == true)
@@ -513,7 +514,7 @@ void AppImpl::logDebugInfo ()
   // Log::PrintLine("Env A Release       : " FLT_FMT(5), FLT_VAR(5, modulator[0].getReleaseMs()));
   // Log::PrintLine("Env A Attack Coeff  : " FLT_FMT(5), FLT_VAR(5, modulator[0].getAttackCoefficient()));
   // Log::PrintLine("Env A Release Coeff : " FLT_FMT(5), FLT_VAR(5, modulator[0].getReleaseCoefficient()));
-  Log::PrintLine("Env A Value                 : " FLT_FMT(5), FLT_VAR(5, modulator[0].process()));
+  Log::PrintLine("Mod A Value                 : " FLT_FMT(5), FLT_VAR(5, modulator[0].process()));
 
   std::vector<float> bandFreqs;
   sporadic[0].getBandFrequencies(bandFreqs);
