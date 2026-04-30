@@ -101,6 +101,9 @@ void AppImpl::init ()
     takeoverEnv_[i].SetTime(ADENV_SEG_DECAY, 0.100f);     // 100 ms decay
   }
 
+  decks[0] = &sporadic[0];
+  decks[1] = &sporadic[1];
+
 #if DEBUG
   Log::StartLog(false);
   log_timer.Init();
@@ -161,8 +164,6 @@ void AppImpl::setRoutingMode (AppImpl::AppMode mode)
     sporadic[0].setChannelConfig(ChannelConfig::STEREO);
     sporadic[1].setChannelConfig(ChannelConfig::STEREO);
   }
-  decks[0] = &sporadic[0];
-  decks[1] = &sporadic[1];
 }
 
 void AppImpl::updateAnalogControlFrame (Deck::AnalogControlFrame &frame, size_t slot)
