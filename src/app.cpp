@@ -16,14 +16,17 @@ using namespace infrasonic;
 using infrasonic::Log;
 
 static AppImpl   impl;
-static Spotykach spotykachLooper = Spotykach(kSampleRate, kBlockSize);
-static Sporadic  sporadic[kNumberDeckSlots] = { { kSampleRate, kBlockSize }, { kSampleRate, kBlockSize } };
+static Spotykach spotykachLooper            = Spotykach(kSampleRate, kBlockSize);
+static Sporadic  sporadic[kNumberDeckSlots] = {
+  {kSampleRate, kBlockSize},
+  {kSampleRate, kBlockSize}
+};
 
 // Array of pointers to Decks
-Deck* decks[kNumberDeckSlots];
+Deck *decks[kNumberDeckSlots];
 
 // Control frame for the decks
-Deck::AnalogControlFrame analogControlFrames[kNumberDeckSlots];
+Deck::AnalogControlFrame  analogControlFrames[kNumberDeckSlots];
 Deck::DigitalControlFrame digitalControlFrames[kNumberDeckSlots];
 // Display state for the decks
 Deck::DisplayState displayStates[kNumberDeckSlots];
@@ -94,8 +97,8 @@ void AppImpl::init ()
     takeoverEnv_[i].Init(kLedUpdateRate);
     takeoverEnv_[i].SetMin(0.0f);
     takeoverEnv_[i].SetMax(1.0f);
-    takeoverEnv_[i].SetTime(ADENV_SEG_ATTACK, 0.050f); // 50 ms attack
-    takeoverEnv_[i].SetTime(ADENV_SEG_DECAY, 0.100f);  // 100 ms decay
+    takeoverEnv_[i].SetTime(ADENV_SEG_ATTACK, 0.050f);    // 50 ms attack
+    takeoverEnv_[i].SetTime(ADENV_SEG_DECAY, 0.100f);     // 100 ms decay
   }
 
 #if DEBUG
@@ -107,34 +110,34 @@ void AppImpl::init ()
   audio.Start(AudioCallback);
 }
 
-void AppImpl::initModulatedParams()
+void AppImpl::initModulatedParams ()
 {
   // Per-side arrays
   for (size_t side = 0; side < kNumberDeckSlots; ++side)
   {
-      // Attach ModulatedParam wrappers to their corresponding base SmoothValues.
-      modulatedMix[side].attachBase(&mixControls[side]);
-      modulatedPitch[side].attachBase(&pitchControls[side]);
-      modulatedPosition[side].attachBase(&positionControls[side]);
-      modulatedSize[side].attachBase(&sizeControls[side]);
-      modulatedShape[side].attachBase(&shapeControls[side]);
-      modulatedModAmount[side].attachBase(&modulationAmountControls[side]);
-      modulatedModFreq[side].attachBase(&modulationFreqControls[side]);
-      // Initialize pointer table for quick lookup (params 0..6 are per-side; 7 is spoty)
-      modParamPtrs[side][modParamMixIdx] = &modulatedMix[side];
-      modParamPtrs[side][modParamPitchIdx] = &modulatedPitch[side];
-      modParamPtrs[side][modParamPosIdx] = &modulatedPosition[side];
-      modParamPtrs[side][modParamSizeIdx] = &modulatedSize[side];
-      modParamPtrs[side][modParamShapeIdx] = &modulatedShape[side];
-      modParamPtrs[side][modParamModAmountIdx] = &modulatedModAmount[side];
-      modParamPtrs[side][modParamModFreqIdx] = &modulatedModFreq[side];
-      // Spoty is global (no per-side side), point to single instance
-      modParamPtrs[side][modParamSpotyIdx] = &modulatedSpoty;
-    }
-
-    // Single-sided ModulatedParam controls
-    modulatedSpoty.attachBase(&spotyControl);
+    // Attach ModulatedParam wrappers to their corresponding base SmoothValues.
+    modulatedMix[side].attachBase(&mixControls[side]);
+    modulatedPitch[side].attachBase(&pitchControls[side]);
+    modulatedPosition[side].attachBase(&positionControls[side]);
+    modulatedSize[side].attachBase(&sizeControls[side]);
+    modulatedShape[side].attachBase(&shapeControls[side]);
+    modulatedModAmount[side].attachBase(&modulationAmountControls[side]);
+    modulatedModFreq[side].attachBase(&modulationFreqControls[side]);
+    // Initialize pointer table for quick lookup (params 0..6 are per-side; 7 is spoty)
+    modParamPtrs[side][modParamMixIdx]       = &modulatedMix[side];
+    modParamPtrs[side][modParamPitchIdx]     = &modulatedPitch[side];
+    modParamPtrs[side][modParamPosIdx]       = &modulatedPosition[side];
+    modParamPtrs[side][modParamSizeIdx]      = &modulatedSize[side];
+    modParamPtrs[side][modParamShapeIdx]     = &modulatedShape[side];
+    modParamPtrs[side][modParamModAmountIdx] = &modulatedModAmount[side];
+    modParamPtrs[side][modParamModFreqIdx]   = &modulatedModFreq[side];
+    // Spoty is global (no per-side side), point to single instance
+    modParamPtrs[side][modParamSpotyIdx] = &modulatedSpoty;
   }
+
+  // Single-sided ModulatedParam controls
+  modulatedSpoty.attachBase(&spotyControl);
+}
 
 using ChannelConfig = Deck::ChannelConfig;
 
@@ -162,11 +165,11 @@ void AppImpl::setRoutingMode (AppImpl::AppMode mode)
   decks[1] = &sporadic[1];
 }
 
-void AppImpl::updateAnalogControlFrame(Deck::AnalogControlFrame &frame, size_t slot)
+void AppImpl::updateAnalogControlFrame (Deck::AnalogControlFrame &frame, size_t slot)
 {
   if (slot >= kNumberDeckSlots)
   {
-    return; // Invalid slot
+    return;    // Invalid slot
   }
 
   // Provide modulated parameter references for decks to use
@@ -182,37 +185,37 @@ void AppImpl::updateAnalogControlFrame(Deck::AnalogControlFrame &frame, size_t s
   frame.fluxModulation = &fluxModSources[slot];
 }
 
-void AppImpl::pushAnalogDeckControls(Deck::AnalogControlFrame &c, size_t slot)
+void AppImpl::pushAnalogDeckControls (Deck::AnalogControlFrame &c, size_t slot)
 {
   // Push the controls to the Spotykach looper and Sporadic deck
-  decks[slot]->updateAnalogControls(c);
+  // decks[slot]->updateAnalogControls(c);
 }
 
-void AppImpl::updateDigitalControlFrame(Deck::DigitalControlFrame &frame, size_t slot)
+void AppImpl::updateDigitalControlFrame (Deck::DigitalControlFrame &frame, size_t slot)
 {
   if (slot >= kNumberDeckSlots)
   {
-    return; // Invalid slot
+    return;    // Invalid slot
   }
 
   // Update the control frame for the specified deck slot
   frame = {
-    // Simple pad presses
-    .reverse = currentReverseState[slot],
-    .play    = currentPlayState[slot],
-    .flux    = currentFluxState[slot],
-    .grit    = currentGritState[slot],
-    // Supported pad combinations
-    .altPlay   = currentAltPlayState[slot],
-    .spotyPlay = currentSpotyPlayState[slot],
-    .altFlux   = currentAltFluxState[slot],
-    .altGrit   = currentAltGritState[slot],
-    // Soft takeover notification
-    .takeover  = false
-  };
+            // Simple pad presses
+            .reverse = currentReverseState[slot],
+            .play    = currentPlayState[slot],
+            .flux    = currentFluxState[slot],
+            .grit    = currentGritState[slot],
+            // Supported pad combinations
+            .altPlay   = currentAltPlayState[slot],
+            .spotyPlay = currentSpotyPlayState[slot],
+            .altFlux   = currentAltFluxState[slot],
+            .altGrit   = currentAltGritState[slot],
+            // Soft takeover notification
+            .takeover = false
+          };
 }
 
-void AppImpl::pushDigitalDeckControls(Deck::DigitalControlFrame &c, size_t slot)
+void AppImpl::pushDigitalDeckControls (Deck::DigitalControlFrame &c, size_t slot)
 {
   // Push the controls to the Spotykach looper and Sporadic deck
   decks[slot]->updateDigitalControls(c);
@@ -322,8 +325,9 @@ void AppImpl::loop ()
 
         /////////
         // Control state changes
-        if (reverseStateChanged[side] || playStateChanged[side] || altPlayStateChanged[side] || spotyPlayStateChanged[side] ||
-            fluxStateChanged[side] || altFluxStateChanged[side] || gritStateChanged[side] || altGritStateChanged[side])
+        if (reverseStateChanged[side] || playStateChanged[side] || altPlayStateChanged[side] ||
+            spotyPlayStateChanged[side] || fluxStateChanged[side] || altFluxStateChanged[side] ||
+            gritStateChanged[side] || altGritStateChanged[side])
         {
           updateDigitalControlFrame(digitalControlFrames[side], side);
           pushDigitalDeckControls(digitalControlFrames[side], side);
@@ -372,7 +376,7 @@ void AppImpl::processModulatorControls (size_t slot)
 {
   if (slot >= kNumberDeckSlots)
   {
-    return; // Invalid slot
+    return;    // Invalid slot
   }
 
   // Process the modulation for the specified deck slot
@@ -470,7 +474,7 @@ void AppImpl::processAudio (AudioHandle::InputBuffer in, AudioHandle::OutputBuff
     processModulatorControls(i);
 
     // Feed envelope follower input from audio stream.
-    if (envelopeFeed == true)
+    if (envelopeFeed)
     {
       modulator[i].setEnvelopeInput(in[0], 1);
     }
@@ -496,13 +500,13 @@ void AppImpl::logDebugInfo ()
   Log::PrintLine("Position A                  : " FLT_FMT(5), FLT_VAR(5, modulatedPosition[0].getEffectiveSmoothVal()));
   Log::PrintLine("Size A                      : " FLT_FMT(5), FLT_VAR(5, modulatedSize[0].getEffectiveSmoothVal()));
   Log::PrintLine("Shape A                     : " FLT_FMT(5), FLT_VAR(5, modulatedShape[0].getEffectiveSmoothVal()));
-  if (modulatedPosition[1].gritLatch == true)
-    Log::PrintLine("Position B grit latched            : true");
-  if (modulatedSize[1].gritLatch == true)
-    Log::PrintLine("Size B grit latched            : true");
-  if (modulatedShape[1].gritLatch == true)
+  if (modulatedPosition[1].gritLatch)
+    Log::PrintLine("Position B grit latched         : true");
+  if (modulatedSize[1].gritLatch)
+    Log::PrintLine("Size B grit latched             : true");
+  if (modulatedShape[1].gritLatch)
     Log::PrintLine("Shape B grit latched            : true");
-  if (modulatedPitch[1].gritLatch == true)
+  if (modulatedPitch[1].gritLatch)
     Log::PrintLine("Pitch B grit latched            : true");
   // // Log::PrintLine("Read Index A   : " FLT_FMT(5), FLT_VAR(5, ((Spotykach *) decks[0])->getReadIx()));
   // // Log::PrintLine("Write Index A  : " FLT_FMT(5), FLT_VAR(5, ((Spotykach *) decks[0])->getWriteIx()));
@@ -562,8 +566,7 @@ void AppImpl::logDebugInfo ()
   if (usbBuffIx > 0)
   {
     // If the buffer contents end with a newline (LF, CR, or CRLF), print the buffer
-    if ((usbBuff[usbBuffIx - 1] == '\n') ||
-        (usbBuff[usbBuffIx - 1] == '\r') ||
+    if ((usbBuff[usbBuffIx - 1] == '\n') || (usbBuff[usbBuffIx - 1] == '\r') ||
         (!strncmp((const char *)usbBuff + usbBuffIx - 2, "\r\n", 2)))
     {
       Log::PrintLine("USB Callback: %d bytes received", usbBuffIx);
@@ -727,7 +730,6 @@ void AppImpl::processUIQueue ()
           {
             modParamMappings[modSide][targetSide][paramIdx].polarity = ModulationSources::Polarity::UNIPOLAR;
           }
-
         }
       }
     }
@@ -781,41 +783,39 @@ void AppImpl::drawRainbowRoad ()
 
 void AppImpl::applyModulatorSoftModulation ()
 {
-    // For each modulator side and each param index, apply soft modulation to the mapping's target side.
-    for (size_t modSide = 0; modSide < kNumberDeckSlots; ++modSide)
+  // For each modulator side and each param index, apply soft modulation to the mapping's target side.
+  for (size_t modSide = 0; modSide < kNumberDeckSlots; ++modSide)
+  {
+    for (size_t targetSide = 0; targetSide < kNumberDeckSlots; ++targetSide)
     {
-      for (size_t targetSide = 0; targetSide < kNumberDeckSlots; ++targetSide)
+      for (size_t paramIdx = 0; paramIdx < kNumModParams; ++paramIdx)
       {
-        for (size_t paramIdx = 0; paramIdx < kNumModParams; ++paramIdx)
+        if (modParamMappings[modSide][targetSide][paramIdx].depth < 0.001f)
         {
-          if (modParamMappings[modSide][targetSide][paramIdx].depth <
-              0.001f)
-          {
-            continue;
-          }
+          continue;
+        }
 
-          float depth    = modParamMappings[modSide][targetSide][paramIdx].depth;
-          auto  polarity = modParamMappings[modSide][targetSide][paramIdx].polarity;
+        float depth    = modParamMappings[modSide][targetSide][paramIdx].depth;
+        auto  polarity = modParamMappings[modSide][targetSide][paramIdx].polarity;
 
-          // Which modulated param wrapper to call on the target side
-          ModulatedParam *targetParam = nullptr;
-          if (paramIdx >= 0 && paramIdx < (int)kNumModParams)
-          {
-            // For params 0..6 we use per-target side pointers; param 7 (modParamSpotyIdx) resolves
-            // to the single modulatedSpoty instance via the pointer table.
-            targetParam = modParamPtrs[targetSide][paramIdx];
-          }
+        // Which modulated param wrapper to call on the target side
+        ModulatedParam *targetParam = nullptr;
+        if (paramIdx >= 0 && paramIdx < (int)kNumModParams)
+        {
+          // For params 0..6 we use per-target side pointers; param 7 (modParamSpotyIdx) resolves
+          // to the single modulatedSpoty instance via the pointer table.
+          targetParam = modParamPtrs[targetSide][paramIdx];
+        }
 
-          if (targetParam != nullptr)
-          {
-            // For Spoty (single instance) we still call addSoftModulation — the targetSide
-            // argument is cast to ModSourceIndex to indicate which soft source to use.
-            targetParam->addSoftModulation(static_cast<ModSourceIndex>(modSide),
-                                           modCv[modSide],
-                                           depth,
-                                           Mapping::LINEAR,
-                                           polarity);
-          }
+        if (targetParam != nullptr)
+        {
+          // For Spoty (single instance) we still call addSoftModulation — the targetSide
+          // argument is cast to ModSourceIndex to indicate which soft source to use.
+          targetParam->addSoftModulation(static_cast<ModSourceIndex>(modSide),
+                                         modCv[modSide],
+                                         depth,
+                                         Mapping::LINEAR,
+                                         polarity);
         }
       }
     }
@@ -1129,7 +1129,7 @@ void AppImpl::handleDigitalControls ()
   {
     if (decks[side] != nullptr)
     {
-      Deck::DigitalControlFrame takeoverProbe {};
+      Deck::DigitalControlFrame takeoverProbe{};
       decks[side]->getDigitalControls(takeoverProbe);
       currentTakeoverState[side] = takeoverProbe.takeover;
     }
@@ -1260,12 +1260,12 @@ void AppImpl::handleDisplay ()
   float skval = daisysp::fmap(deckMix_, -1.0f, 1.0f);
   hw.leds.Set(Hardware::LED_SPOTY_SLIDER_B,
               0xff0000,
-              skval > 0.0f ? daisysp::fmap(skval, kMinLedBrightness, kMaxLedBrightness, Mapping::LOG) : kOffLedBrightness);
+              skval > 0.0f ? daisysp::fmap(skval, kMinLedBrightness, kMaxLedBrightness, Mapping::LOG)
+                           : kOffLedBrightness);
   hw.leds.Set(Hardware::LED_SPOTY_SLIDER_A,
               0x0000ff,
-              skval < 0.0f ? daisysp::fmap(-skval, kMinLedBrightness, kMaxLedBrightness, Mapping::LOG) : kOffLedBrightness);
-
-  // --- CV INPUTS ---
+              skval < 0.0f ? daisysp::fmap(-skval, kMinLedBrightness, kMaxLedBrightness, Mapping::LOG)
+                           : kOffLedBrightness);
 
   // // For these we just add together the 3 CVs on each side and render to drift LEDs
   // for (uint8_t side = 0; side < kNumberDeckSlots; side++)
@@ -1305,7 +1305,7 @@ void AppImpl::handleDisplay ()
 
             // Show the depth of the mapping originating from this modSide
             auto modMapping = &modParamMappings[modSide][targetSide][paramIdx];
-            depth = modMapping->depth;
+            depth           = modMapping->depth;
 
             // Map depth (0..1) to LED brightness
             float brightness = daisysp::fmap(depth, kMinLedBrightness, kMaxLedBrightness, Mapping::LINEAR);

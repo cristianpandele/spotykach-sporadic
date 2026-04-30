@@ -86,7 +86,7 @@ class Utils
     class SmoothValue
     {
       public:
-        SmoothValue () : SmoothValue(0.0f, 0.0f, 0.0f) {};
+        SmoothValue () : SmoothValue(0.0f, 0.0f, 0.0f) { };
 
         SmoothValue (float smoothTimeMs, float updatePeriodMs) : SmoothValue(0.0f, smoothTimeMs, updatePeriodMs) { }
 
@@ -150,14 +150,7 @@ class Utils
         void setSmoothing (float oldValue, float currentValue)
         {
           // If the current value is more that 1% away from the old value, mark as smoothing
-          if (std::abs((currentValue - oldValue) / oldValue) > 0.01f)
-          {
-            smoothing_ = true;
-          }
-          else
-          {
-            smoothing_ = false;
-          }
+          smoothing_ = std::abs((currentValue - oldValue) / oldValue) > 0.01f;
         }
     };
 };
