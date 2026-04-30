@@ -20,24 +20,18 @@ namespace spotykach
   static constexpr Pin kI2CSdaPin                       = seed::D12;
   static constexpr Pin kI2CSclPin                       = seed::D11;
 
-  static constexpr Pin kMux1SignalPin                   = seed::A9;
-  static constexpr Pin kMux2SignalPin                   = seed::A10;
+  static constexpr Pin kMuxSignalPin                    = seed::A10; // Pots 1-8, multiplexed by addr pins
   static constexpr Pin kMuxAddrAPin                     = seed::D8;
   static constexpr Pin kMuxAddrBPin                     = seed::D9;
   static constexpr Pin kMuxAddrCPin                     = seed::D10;
 
-  static constexpr Pin kCVInput1Pin                     = seed::A4;
-  static constexpr Pin kCVInput2Pin                     = seed::A11;
-  static constexpr Pin kCVInput3Pin                     = seed::A5;
-  static constexpr Pin kCVInput4Pin                     = seed::A3;
-  static constexpr Pin kCVInput5Pin                     = seed::A0;
-  static constexpr Pin kCVInput6Pin                     = seed::A6;
-  static constexpr Pin kCVInput7Pin                     = seed::A1;
+  static constexpr Pin kPot9Pin                         = seed::A8;
+  static constexpr Pin kPot10Pin                        = seed::A3;
 
   static constexpr Pin kMidiUartRxPin                   = seed::D14;
   static constexpr Pin kMidiUartTxPin                   = seed::D13;
 
-  static constexpr size_t kNumAdcChannels               = 9;    // 7 CV + 2 Mux
+  static constexpr size_t kNumAdcChannels               = 3;    // 2 Pots + 1 Mux
 
 }    // namespace spotykach
 
@@ -99,55 +93,25 @@ void Hardware::Init (float sr, size_t blocksize)
   const auto kAdcOvs   = AdcHandle::OverSampling::OVS_32;
 
   AdcChannelConfig adc_cfg[kNumAdcChannels];
-  adc_cfg[0].InitMux(kMux1SignalPin, 8, kMuxAddrAPin, kMuxAddrBPin, kMuxAddrCPin, kAdcSpeed);
-  adc_cfg[1].InitMux(kMux2SignalPin, 8, kMuxAddrAPin, kMuxAddrBPin, kMuxAddrCPin, kAdcSpeed);
-  adc_cfg[2].InitSingle(kCVInput1Pin, kAdcSpeed);
-  adc_cfg[3].InitSingle(kCVInput2Pin, kAdcSpeed);
-  adc_cfg[4].InitSingle(kCVInput3Pin, kAdcSpeed);
-  adc_cfg[5].InitSingle(kCVInput4Pin, kAdcSpeed);
-  adc_cfg[6].InitSingle(kCVInput5Pin, kAdcSpeed);
-  adc_cfg[7].InitSingle(kCVInput6Pin, kAdcSpeed);
-  adc_cfg[8].InitSingle(kCVInput7Pin, kAdcSpeed);
+  adc_cfg[0].InitMux(kMuxSignalPin, 8, kMuxAddrAPin, kMuxAddrBPin, kMuxAddrCPin, kAdcSpeed);
+  adc_cfg[1].InitSingle(kPot9Pin, kAdcSpeed);
+  adc_cfg[2].InitSingle(kPot10Pin, kAdcSpeed);
 
   seed.adc.Init(adc_cfg, kNumAdcChannels, kAdcOvs);
 
   // --- Analog Controls ---
-  // Again this is verbose and clumsy - would normally do a loopable configuration mapping
   constexpr float kPotSmoothTime = 0.02f;
 
-  controls_[CTRL_SOS_A].Init(seed.adc.GetMuxPtr(0, 0), kProcessRate, false, false, kPotSmoothTime);
+  controls_[CTRL_MOD_AMT_A].Init(seed.adc.GetMuxPtr(0, 0), kProcessRate, false, false, kPotSmoothTime);
   controls_[CTRL_MOD_FREQ_A].Init(seed.adc.GetMuxPtr(0, 1), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_MOD_AMT_A].Init(seed.adc.GetMuxPtr(0, 3), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_POS_A].Init(seed.adc.GetMuxPtr(0, 6), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_PITCH_A].Init(seed.adc.GetMuxPtr(0, 2), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_SIZE_A].Init(seed.adc.GetMuxPtr(0, 5), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_SHAPE_A].Init(seed.adc.GetMuxPtr(0, 4), kProcessRate, false, false, kPotSmoothTime);
-
-  controls_[CTRL_SOS_B].Init(seed.adc.GetMuxPtr(1, 0), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_MOD_FREQ_B].Init(seed.adc.GetMuxPtr(1, 4), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_MOD_AMT_B].Init(seed.adc.GetMuxPtr(1, 6), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_POS_B].Init(seed.adc.GetMuxPtr(1, 1), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_PITCH_B].Init(seed.adc.GetMuxPtr(1, 2), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_SIZE_B].Init(seed.adc.GetMuxPtr(1, 3), kProcessRate, false, false, kPotSmoothTime);
-  controls_[CTRL_SHAPE_B].Init(seed.adc.GetMuxPtr(1, 5), kProcessRate, false, false, kPotSmoothTime);
-
-  controls_[CTRL_SPOTYKACH].Init(seed.adc.GetMuxPtr(1, 7), kProcessRate, false, false, kPotSmoothTime);
-
-  // --- CV Inputs ---
-
-  // NOTE: being bipolar, these will all benefit from zero-point calibration
-  // i.e. capture reading for each with no patch cables plugged in (OV input) and
-  // subtract from all future readings on that channel.
-  //
-  // The V/Oct inputs will also require at least 2-point (1V and 3V) calibration
-  // for linear fit to track V/Oct reasonably well
-  cvinputs_[CV_SIZE_POS_A].InitBipolarCv(seed.adc.GetPtr(2), kProcessRate);
-  cvinputs_[CV_SOS_IN_A].InitBipolarCv(seed.adc.GetPtr(3), kProcessRate);
-  cvinputs_[CV_V_OCT_A].InitBipolarCv(seed.adc.GetPtr(4), kProcessRate);
-  cvinputs_[CV_SPOTYKACH].InitBipolarCv(seed.adc.GetPtr(5), kProcessRate);
-  cvinputs_[CV_SIZE_POS_B].InitBipolarCv(seed.adc.GetPtr(6), kProcessRate);
-  cvinputs_[CV_SOS_IN_B].InitBipolarCv(seed.adc.GetPtr(7), kProcessRate);
-  cvinputs_[CV_V_OCT_B].InitBipolarCv(seed.adc.GetPtr(8), kProcessRate);
+  controls_[CTRL_SOS_A].Init(seed.adc.GetMuxPtr(0, 2), kProcessRate, false, false, kPotSmoothTime);
+  controls_[CTRL_PITCH_A ].Init(seed.adc.GetMuxPtr(0, 3), kProcessRate, false, false, kPotSmoothTime);
+  controls_[CTRL_POS_B].Init(seed.adc.GetMuxPtr(0, 4), kProcessRate, false, false, kPotSmoothTime);
+  controls_[CTRL_POS_A].Init(seed.adc.GetMuxPtr(0, 5), kProcessRate, false, false, kPotSmoothTime);
+  controls_[CTRL_SIZE_A].Init(seed.adc.GetMuxPtr(0, 6), kProcessRate, false, false, kPotSmoothTime);
+  controls_[CTRL_PITCH_B].Init(seed.adc.GetMuxPtr(0, 7), kProcessRate, false, false, kPotSmoothTime);
+  controls_[CTRL_SIZE_B].Init(seed.adc.GetPtr(1), kProcessRate, false, false, kPotSmoothTime);
+  controls_[CTRL_SPOTYKACH].Init(seed.adc.GetPtr(2), kProcessRate, false, false, kPotSmoothTime);
 
   // --- UART MIDI ---
   MidiUartHandler::Config midi_cfg;
