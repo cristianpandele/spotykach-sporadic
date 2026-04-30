@@ -927,38 +927,6 @@ void AppImpl::handleDigitalControls ()
 
   for (uint8_t side = 0; side < kNumberDeckSlots; side++)
   {
-    if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapRevIds[side]))
-    {
-      // REV_A and B
-      reverseStateChanged[side] = true;
-      currentReverseState[side] = !currentReverseState[side];
-      // Log::PrintLine("Reverse state changed for side %d to: %d", side, currentReverseState[side]);
-    }
-
-    if ((Utils::isAltPadPressed(padTouchStates)) &&
-        (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapPlayIds[side])))
-    {
-      // ALT + PLAY_A or B
-      altPlayStateChanged[side] = true;
-      currentAltPlayState[side] = !currentAltPlayState[side];
-      // Log::PrintLine("Alt+Play state changed for side %d to: %d", side, currentAltPlayState[side]);
-    }
-    else if ((Utils::isSpotykachPadPressed(padTouchStates)) &&
-            (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapPlayIds[side])))
-    {
-      // SPOTYKACH + PLAY_A or B
-      spotyPlayStateChanged[side] = true;
-      currentSpotyPlayState[side] = !currentSpotyPlayState[side];
-      // Log::PrintLine("Spotykach+Play state changed for side %d to: %d", side, currentSpotyPlayState[side]);
-    }
-    else if (Utils::hasTouchStateChangedToPressed(padTouchStates, padTouchStatesPrev, kPadMapPlayIds[side]))
-    {
-      // PLAY_A or B
-      playStateChanged[side] = true;
-      currentPlayState[side] = !currentPlayState[side];
-      // Log::PrintLine("Play state changed for side %d to: %d", side, currentPlayState[side]);
-    }
-
     if (Utils::hasTouchStateChanged(padTouchStates, padTouchStatesPrev, kPadMapFluxIds[side]))
     {
       // FLUX A or B
