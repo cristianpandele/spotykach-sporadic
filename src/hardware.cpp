@@ -1,3 +1,4 @@
+#include "constants.h"
 #include "hardware.h"
 
 using namespace spotykach;
@@ -56,9 +57,7 @@ void Hardware::Init (float sr, size_t blocksize)
   led_cfg.tim_periph  = TimerHandle::Config::Peripheral::TIM_3;
   led_cfg.tim_channel = infrasonic::Ws2812::Config::CH4;
   leds.Init(led_cfg);
-  // leds.SetBrightnessLimit(0.7f);
-
-  // --- GPIO - gate/clk/etc ---
+  leds.SetBrightnessLimit(kMaxLedBrightness);
 
   // --- GPIO - clks ---
   GPIO::Config gpio_cfg;
