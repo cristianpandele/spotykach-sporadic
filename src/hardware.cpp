@@ -11,9 +11,10 @@ namespace spotykach
   static constexpr Pin kGateInputPin[kNumberDeckSlots]  = {seed::D1, seed::D0};
   static constexpr Pin kGateOutputPin[kNumberDeckSlots] = {seed::D31, seed::D32};
 
-  static constexpr Pin kSRDataPin                       = seed::D27;
-  static constexpr Pin kSRClockPin                      = seed::D26;
-  static constexpr Pin kSRLoadPin                       = seed::D7;
+  static constexpr Pin kSW1APin                         = seed::D16;
+  static constexpr Pin kSW1BPin                         = seed::D31;
+  static constexpr Pin kSW2APin                         = seed::D0;
+  static constexpr Pin kSW2BPin                         = seed::D7;
 
   static constexpr Pin kI2CSdaPin                       = seed::D12;
   static constexpr Pin kI2CSclPin                       = seed::D11;
@@ -47,8 +48,11 @@ void Hardware::Init (float sr, size_t blocksize)
 
   boot_btn_.Init(seed::D2, 0, Switch::TYPE_MOMENTARY, Switch::POLARITY_INVERTED, GPIO::Pull::NOPULL);
 
-  // --- LEDs ---
+  // --- Switches ---
+  direction_switch_[0].Init(kSW1APin, kSW1BPin);
+  direction_switch_[1].Init(kSW2APin, kSW2BPin);
 
+  // --- LEDs ---
   infrasonic::Ws2812::Config led_cfg;
   led_cfg.num_leds    = LED_LAST;
   led_cfg.tim_pin     = kLEDDataPin;
@@ -65,24 +69,9 @@ void Hardware::Init (float sr, size_t blocksize)
   gpio_cfg.pin  = kClockInputPin;
   clock_in_.Init(gpio_cfg);
 
-  for (uint8_t i = 0; i < kNumberDeckSlots; i++)
-  {
-    gpio_cfg.mode = GPIO::Mode::INPUT;
-    gpio_cfg.pin = kGateInputPin[i];
-    gate_in[i].Init(gpio_cfg);
-
-    gpio_cfg.mode = GPIO::Mode::OUTPUT;
-    gpio_cfg.pin = kGateOutputPin[i];
-    gate_out[i].Init(gpio_cfg);
-  }
-
-  // --- Shift registers (switches) ---
-
-  infrasonic::ShiftRegister165::Config srcfg;
-  srcfg.clk  = kSRClockPin;
-  srcfg.data = kSRDataPin;
-  srcfg.load = kSRLoadPin;
-  shiftreg_.Init(srcfg, 2);
+  gpio_cfg.pin  = kClockOutputPin;
+  gpio_cfg.mode = GPIO::Mode::OUTPUT;
+  clock_out_.Init(gpio_cfg);
 
   // --- MPR121 (I2C) ---
 
@@ -194,6 +183,12 @@ void Hardware::ProcessDigitalControls ()
   shiftreg_.Update();
 }
 
+  for (uint8_t side = 0; side < kNumberDeckSlots; side++)
+  {
+    switchState_[side] = direction_switch_[side].Read();
+  }
+}
+
 float Hardware::GetAnalogControlValue (AnalogControlId id)
 {
   // inset scaling for full range
@@ -214,7 +209,11 @@ bool Hardware::GetGateInputState (uint8_t side)
   if (side >= kNumberDeckSlots)
     return false;
 
-  return !gate_in[side].Read();
+uint8_t Hardware::GetDirectionSwitchState (uint8_t side)
+{
+  if (side >= kNumberDeckSlots)
+    return 0;
+  return switchState_[side];
 }
 
 uint32_t Hardware::GetBootButtonHeldTime () const

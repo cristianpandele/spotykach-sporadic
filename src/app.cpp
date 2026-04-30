@@ -878,139 +878,47 @@ void AppImpl::handleAnalogControls ()
 
 void AppImpl::handleDigitalControls ()
 {
-  // --- Switches (Shift registers) ---
+  // --- Switches ---
+  int switchState[kNumberDeckSlots] = { 0};
 
-  // construct into 8-bit set from inverted bitmask state
-  // (all inputs are inverted due to pullups)
-  std::bitset<8> sr1 = ~hw.GetShiftRegState(0);
-  std::bitset<8> sr2 = ~hw.GetShiftRegState(1);
+  // Direction switches
+  for (uint8_t side = 0; side < kNumberDeckSlots; side++)
+  {
+    switchState[side] = hw.GetDirectionSwitchState(side);
 
-  // Mode A/B/C switch
-  AppMode newMode = currentRoutingMode;
-  if (sr1.test(2))
-  {
-    newMode = AppMode::ROUTING_GENERATIVE;
-  }
-  else if (sr1.test(3))
-  {
-    newMode = AppMode::ROUTING_DUAL_MONO;
-  }
-  else
-  {
-    newMode = AppMode::ROUTING_DUAL_STEREO;
-  }
-
-  if (newMode != currentRoutingMode)
-  {
-    routingModeChanged = true;
-    currentRoutingMode = newMode;
-    // Log::PrintLine("Operating mode changed to: %d", currentRoutingMode);
-  }
-
-  // Size/Pos A switch
-  if (sr1.test(4))
-  {
-    sizePosSwitches[0] = SizePosSwitchState::SIZE;
-  }
-  else if (sr1.test(5))
-  {
-    sizePosSwitches[0] = SizePosSwitchState::POSITION;
-  }
-  else
-  {
-    sizePosSwitches[0] = SizePosSwitchState::BOTH;
-  }
-
-  // Size/Pos B switch
-  if (sr2.test(0))
-  {
-    sizePosSwitches[1] = SizePosSwitchState::SIZE;
-  }
-  else if (sr2.test(1))
-  {
-    sizePosSwitches[1] = SizePosSwitchState::POSITION;
-  }
-  else
-  {
-    sizePosSwitches[1] = SizePosSwitchState::BOTH;
-  }
-
-  // Mode A switch (sr1 bits 6,7)
-  ModTarget newModTarget[2];
-  if (sr1.test(6))
-  {
-    newModTarget[0] = ModTarget::GRIT;
-  }
-  else if (sr1.test(7))
-  {
-    newModTarget[0] = ModTarget::MIX;
-  }
-  else
-  {
-    newModTarget[0] = ModTarget::FLUX;
-  }
-
-  // Mode B switch (sr2 bits 2,3)
-  if (sr2.test(2))
-  {
-    newModTarget[1] = ModTarget::GRIT;
-  }
-  else if (sr2.test(3))
-  {
-    newModTarget[1] = ModTarget::MIX;
-  }
-  else
-  {
-    newModTarget[1] = ModTarget::FLUX;
-  }
-
-  for (size_t i = 0; i < kNumberDeckSlots; i++)
-  {
-    if (newModTarget[i] != currentModTarget[i])
+    switch (switchState[side])
     {
-      modTargetChanged[i] = true;
-      currentModTarget[i] = newModTarget[i];
-      // Log::PrintLine("Modulation target changed for side %d to: %d", i, currentModTarget[i]);
-    }
-  }
-
-  // Mod type A switch (sr1 bits 0,1)
-  using ModType = ModulationEngine::ModType;
-  ModType newModType[2];
-  if (sr1.test(0))
-  {
-    newModType[0] = modulationTypes[0][2];
-  }
-  else if (sr1.test(1))
-  {
-    newModType[0] = modulationTypes[0][0];
-  }
-  else
-  {
-    newModType[0] = modulationTypes[0][1];
-  }
-
-  // Mod type B switch (sr2 bits 4,5)
-  if (sr2.test(4))
-  {
-    newModType[1] = modulationTypes[1][2];
-  }
-  else if (sr2.test(5))
-  {
-    newModType[1] = modulationTypes[1][0];
-  }
-  else
-  {
-    newModType[1] = modulationTypes[1][1];
-  }
-
-  for (size_t i = 0; i < kNumberDeckSlots; i++)
-  {
-    if (newModType[i] != currentModType[i])
-    {
-      modTypeChanged[i] = true;
-      currentModType[i] = newModType[i];
-      // Log::PrintLine("Modulator type changed for side %d to: %d", i, currentModType[i]);
+      case Switch3::POS_UP:
+        if (!currentPlayState[side])
+        {
+          playStateChanged[side] = true;
+          currentPlayState[side] = true;
+          Log::PrintLine("Play state changed for side %d to: %d", side, currentPlayState[side]);
+        }
+        break;
+      case Switch3::POS_CENTER:
+        if (currentPlayState[side])
+        {
+          playStateChanged[side] = true;
+          currentPlayState[side] = false;
+          Log::PrintLine("Play state changed for side %d to: %d", side, currentPlayState[side]);
+        }
+        if (currentReverseState[side])
+        {
+          reverseStateChanged[side] = true;
+          currentReverseState[side] = false;
+          Log::PrintLine("Reverse state changed for side %d to: %d", side, currentReverseState[side]);
+        }
+      case Switch3::POS_DOWN:
+        if (!currentReverseState[side])
+        {
+          reverseStateChanged[side] = true;
+          currentReverseState[side] = true;
+          Log::PrintLine("Reverse state changed for side %d to: %d", side, currentReverseState[side]);
+        }
+        break;
+      default:
+        break;
     }
   }
 
@@ -1124,71 +1032,6 @@ void AppImpl::handleDisplay ()
   if (hw.GetClockInputState())
   {
     hw.leds.Set(Hardware::LED_CLOCK_IN, 0xff0000, kMaxLedBrightness);
-  }
-
-  for (size_t i = 0; i < kNumberDeckSlots; i++)
-  {
-    if (hw.GetGateInputState(i))
-    {
-      hw.leds.Set(Hardware::kLedGateIds[i], 0xff0000, kMaxLedBrightness);
-    }
-  }
-
-  // --- Switches (Shift registers) ---
-  std::bitset<8> sr2 = ~hw.GetShiftRegState(1);
-
-  // Mode A/B/C switch
-  if (currentRoutingMode == AppMode::ROUTING_GENERATIVE)
-  {
-    hw.leds.Set(Hardware::LED_ROUTING_RIGHT, 0xff0000, kMaxLedBrightness);
-  }
-  else if (currentRoutingMode == AppMode::ROUTING_DUAL_MONO)
-  {
-    hw.leds.Set(Hardware::LED_ROUTING_LEFT, 0xff0000, kMaxLedBrightness);
-  }
-  else if (currentRoutingMode == AppMode::ROUTING_DUAL_STEREO)
-  {
-    hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0xff0000, kMaxLedBrightness);
-  }
-  else
-  {
-    hw.leds.Set(Hardware::LED_ROUTING_LEFT, 0x000000, kMaxLedBrightness);
-    hw.leds.Set(Hardware::LED_ROUTING_RIGHT, 0x000000, kMaxLedBrightness);
-    hw.leds.Set(Hardware::LED_ROUTING_CENTER, 0x000000, kMaxLedBrightness);
-  }
-
-  // Modulator A & B Type switch LED
-  using ModType = ModulationEngine::ModType;
-  for (size_t side = 0; side < kNumberDeckSlots; side++)
-  {
-    if (takeoverPulseActive_[side])
-    {
-      float envVal = takeoverEnv_[side].Process();
-      hw.leds.Set(Hardware::kLedCycleIds[side], 0xffffff, daisysp::fmap(envVal, kMinLedBrightness, kMaxLedBrightness, Mapping::EXP));
-      takeoverPulseActive_[side] = takeoverEnv_[side].IsRunning();
-      continue;
-    }
-
-    float modLedBrightness = daisysp::fmap(modCv[side], kMinLedBrightness, kMaxLedBrightness, Mapping::LOG);
-    switch (currentModType[side])
-    {
-      case ModType::ENV_FOLLOWER:
-      {
-        hw.leds.Set(Hardware::kLedCycleIds[side], 0x00ff00, modLedBrightness);
-        break;
-      }
-      case ModType::S_H:
-      case ModType::SINE:
-      {
-        hw.leds.Set(Hardware::kLedCycleIds[side], 0x0000ff, modLedBrightness);
-        break;
-      }
-      default:
-      {
-        hw.leds.Set(Hardware::kLedCycleIds[side], 0xff0000, modLedBrightness);
-        break;
-      }
-    }
   }
 
   // Manual tempo tap switch

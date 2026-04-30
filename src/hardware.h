@@ -120,25 +120,14 @@ namespace spotykach
       // Adapter for direct use as PotMonitor Backend
       inline float GetPotValue (uint16_t pot_id) { return GetAnalogControlValue((AnalogControlId)pot_id); }
 
+      // Get the direction switch state for a given side
+      uint8_t GetDirectionSwitchState (uint8_t side);
+
       uint32_t GetBootButtonHeldTime () const;
       uint32_t GetBootButtonReleased () const;
 
       bool GetClockInputState ();
-
-      bool GetGateInputState (uint8_t side);
-      inline void SetGateOut (uint8_t side, bool state) { gate_out[side].Write(state); }
-
-      // TODO: I'd recommend abstracting this with more readable enums
-      //       and abstracted bit testing for switches - not just reading raw bytes
-      //       from the shift register (this is just for quick hardware testing code)
-      inline uint8_t GetShiftRegState (uint8_t idx) const
-      {
-        if (idx > 1)
-        {
-          return 0;
-        }
-        return shiftreg_.Read(idx);
-      }
+      bool GetTapButtonState ();
 
       // TODO: same as above, this is just quick code for testing - recommend
       //       implementing enumerated pad logic internal to hw class
@@ -160,15 +149,16 @@ namespace spotykach
       daisy::MidiUartHandler midi_uart;
 
     private:
-      infrasonic::ShiftRegister165 shiftreg_;
-
       daisy::Mpr121I2C mpr121_;
 
       daisy::GPIO clock_in_;
-      daisy::GPIO gate_in[kNumberDeckSlots];
-      daisy::GPIO gate_out[kNumberDeckSlots];
+      daisy::GPIO clock_out_;
 
       daisy::Switch boot_btn_;
+      daisy::Switch tap_btn_;
+
+      daisy::Switch3 direction_switch_[kNumberDeckSlots];
+      int switchState_[kNumberDeckSlots];
 
       daisy::AnalogControl controls_[CTRL_LAST];
 
