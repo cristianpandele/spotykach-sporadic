@@ -8,8 +8,9 @@ namespace spotykach
   static constexpr Pin kLEDDataPin                      = seed::D17;
 
   static constexpr Pin kClockInputPin                   = seed::D3;
-  static constexpr Pin kGateInputPin[kNumberDeckSlots]  = {seed::D1, seed::D0};
-  static constexpr Pin kGateOutputPin[kNumberDeckSlots] = {seed::D31, seed::D32};
+  static constexpr Pin kClockOutputPin                  = seed::D15;
+  static constexpr Pin kBootButtonPin                   = seed::D2;
+  static constexpr Pin kTapButtonPin                    = seed::D32;
 
   static constexpr Pin kSW1APin                         = seed::D16;
   static constexpr Pin kSW1BPin                         = seed::D31;
@@ -46,7 +47,9 @@ void Hardware::Init (float sr, size_t blocksize)
 
   seed.Init(true);
 
-  boot_btn_.Init(seed::D2, 0, Switch::TYPE_MOMENTARY, Switch::POLARITY_INVERTED, GPIO::Pull::NOPULL);
+  // --- Buttons ---
+  boot_btn_.Init(kBootButtonPin, 0, Switch::TYPE_MOMENTARY, Switch::POLARITY_INVERTED, GPIO::Pull::NOPULL);
+  tap_btn_.Init(kTapButtonPin, 0, Switch::TYPE_MOMENTARY, Switch::POLARITY_INVERTED, GPIO::Pull::NOPULL);
 
   // --- Switches ---
   direction_switch_[0].Init(kSW1APin, kSW1BPin);
@@ -63,6 +66,7 @@ void Hardware::Init (float sr, size_t blocksize)
 
   // --- GPIO - gate/clk/etc ---
 
+  // --- GPIO - clks ---
   GPIO::Config gpio_cfg;
   gpio_cfg.pull = GPIO::Pull::NOPULL;
 
@@ -180,8 +184,7 @@ void Hardware::ProcessAnalogControls ()
 void Hardware::ProcessDigitalControls ()
 {
   boot_btn_.Debounce();
-  shiftreg_.Update();
-}
+  tap_btn_.Debounce();
 
   for (uint8_t side = 0; side < kNumberDeckSlots; side++)
   {
@@ -204,10 +207,10 @@ bool Hardware::GetClockInputState ()
   return !clock_in_.Read();
 }
 
-bool Hardware::GetGateInputState (uint8_t side)
+bool Hardware::GetTapButtonState ()
 {
-  if (side >= kNumberDeckSlots)
-    return false;
+  return tap_btn_.Pressed();
+}
 
 uint8_t Hardware::GetDirectionSwitchState (uint8_t side)
 {

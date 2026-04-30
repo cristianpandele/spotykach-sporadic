@@ -1003,7 +1003,7 @@ void AppImpl::handleDisplay ()
   }
 
   // Manual tempo tap switch
-  if (sr2.test(6))
+  if (hw.GetTapButtonState())
   {
     hw.leds.Set(Hardware::LED_CLOCK_IN, 0xffffff, kMaxLedBrightness);
   }
