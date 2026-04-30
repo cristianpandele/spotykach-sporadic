@@ -372,9 +372,6 @@ namespace spotykach_hwtest
       void handleDigitalControls ();
       void handleDisplay ();
 
-      // Apply CV modulation to parameters
-      void applyCvModulation (ModulatedParam &modParam, Hardware::CvInputId cvId, float cvModSmoothLevel = 1.0f);
-
       // Apply soft modulation to parameters based on stored mappings
       void applyModulatorSoftModulation();
 

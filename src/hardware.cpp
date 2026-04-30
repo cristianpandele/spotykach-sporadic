@@ -186,10 +186,6 @@ void Hardware::ProcessAnalogControls ()
   {
     control.Process();
   }
-  for (auto &cv : cvinputs_)
-  {
-    cv.Process();
-  }
 }
 
 void Hardware::ProcessDigitalControls ()
@@ -205,14 +201,6 @@ float Hardware::GetAnalogControlValue (AnalogControlId id)
     return 0.0f;
   float val = infrasonic::map(controls_[id].Value(), 0.05f, 0.93f, 0.0f, 1.0f);
   return infrasonic::unitclamp(val);
-}
-
-float Hardware::GetControlVoltageValue (CvInputId id)
-{
-  // TODO: ideally these are calibrated and adjusted
-  if (id >= CV_LAST)
-    return 0.0f;
-  return cvinputs_[id].Value();
 }
 
 // These are all inverted due to transistors

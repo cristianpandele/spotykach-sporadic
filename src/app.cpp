@@ -821,18 +821,12 @@ void AppImpl::applyModulatorSoftModulation ()
       }
     }
   }
-
-void AppImpl::applyCvModulation (ModulatedParam &modParam, Hardware::CvInputId cvId, float cvModSmoothLevel)
-{
-  modParam.addCvModulation(hw.GetControlVoltageValue(cvId) * cvModSmoothLevel);
 }
 
 void AppImpl::handleAnalogControls ()
 {
   // Spotykach slider
   spotyControl = hw.GetAnalogControlValue(Hardware::CTRL_SPOTYKACH);
-  // Apply CV modulation to Spotykach slider
-  applyCvModulation(modulatedSpoty, Hardware::CV_SPOTYKACH);
   // Set the deck mix level
   deckMix_ = modulatedSpoty.getEffectiveSmoothVal();
 
@@ -843,45 +837,23 @@ void AppImpl::handleAnalogControls ()
     {
       pitchControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPitchIds[side]);
     }
-    // Apply CV modulation to Pitch
-    applyCvModulation(modulatedPitch[side], Hardware::kCvVOctIds[side]);
 
     // Read the mix controls for both sides
     if (!modParamModMapping[side][modParamMixIdx])
     {
       mixControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSosIds[side]);
     }
-    // Apply CV modulation to Mix
-    applyCvModulation(modulatedMix[side],
-                      Hardware::kCvSosInIds[side],
-                      modTargetSmooth[side][ModTarget::MIX].getSmoothVal());
-
-    // Apply CV modulation to Grit and Flux if selected as mod targets
-    fluxModSources[side].modLevel[ModSourceIndex::CV] =
-      hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]) * modTargetSmooth[side][ModTarget::FLUX].getSmoothVal();
-    gritModSources[side].modLevel[ModSourceIndex::CV] =
-      hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]) * modTargetSmooth[side][ModTarget::GRIT].getSmoothVal();
 
     // Read the position knobs and CVs
     if (!modParamModMapping[side][modParamPosIdx])
     {
       positionControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlPosIds[side]);
     }
-    if ((sizePosSwitches[side] == SizePosSwitchState::POSITION) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
-    {
-      // Add the position CV values when the Size/Pos switch is set to Position or Both
-      applyCvModulation(modulatedPosition[side], Hardware::kCvSizePosIds[side]);
-    }
 
     // Read the size knobs and CVs
     if (!modParamModMapping[side][modParamSizeIdx])
     {
       sizeControls[side] = hw.GetAnalogControlValue(Hardware::kCtrlSizeIds[side]);
-    }
-    if ((sizePosSwitches[side] == SizePosSwitchState::SIZE) || (sizePosSwitches[side] == SizePosSwitchState::BOTH))
-    {
-      // Add the size CV values when the Size/Pos switch is set to Size or Both
-      applyCvModulation(modulatedSize[side], Hardware::kCvSizePosIds[side]);
     }
 
     // Read the shape knobs
@@ -1268,15 +1240,8 @@ void AppImpl::handleDisplay ()
               skval < 0.0f ? daisysp::fmap(-skval, kMinLedBrightness, kMaxLedBrightness, Mapping::LOG)
                            : kOffLedBrightness);
 
-  // // For these we just add together the 3 CVs on each side and render to drift LEDs
-  // for (uint8_t side = 0; side < kNumberDeckSlots; side++)
-  // {
-  //   float cv = 0;
-  //   cv += hw.GetControlVoltageValue(Hardware::kCvSosInIds[side]);
-  //   cv += hw.GetControlVoltageValue(Hardware::kCvVOctIds[side]);
-  //   cv += hw.GetControlVoltageValue(Hardware::kCvSizePosIds[side]);
-  //   hw.leds.Set(Hardware::kLedGritIds[side], cv >= 0.0f ? 0xff0000 : 0x0000ff, fabsf(cv));
-  // }
+  // Chaos trimmer
+  // TODO
 
   // --- MIDI INPUT ---
   if (midi_in_note_on)

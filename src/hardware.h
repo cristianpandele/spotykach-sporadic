@@ -100,26 +100,6 @@ namespace spotykach
       static constexpr AnalogControlId kCtrlShapeIds[kNumberDeckSlots]    = {CTRL_SHAPE_A, CTRL_SHAPE_B};
       static constexpr AnalogControlId kCtrlLastSideIds[kNumberDeckSlots] = {CTRL_SHAPE_A, CTRL_SHAPE_B};
 
-      // These are in order as they are labeled on the schematic
-      enum CvInputId : uint16_t
-      {
-        CV_SIZE_POS_A,
-        CV_V_OCT_A,
-        CV_SOS_IN_A,
-
-        CV_SPOTYKACH,
-
-        CV_SIZE_POS_B,
-        CV_V_OCT_B,
-        CV_SOS_IN_B,
-
-        CV_LAST
-      };
-
-      static constexpr CvInputId kCvSizePosIds[kNumberDeckSlots] = {CV_SIZE_POS_A, CV_SIZE_POS_B};
-      static constexpr CvInputId kCvVOctIds[kNumberDeckSlots]    = {CV_V_OCT_A, CV_V_OCT_B};
-      static constexpr CvInputId kCvSosInIds[kNumberDeckSlots]   = {CV_SOS_IN_A, CV_SOS_IN_B};
-
       Hardware ()                          = default;
       ~Hardware ()                         = default;
 
@@ -136,9 +116,6 @@ namespace spotykach
 
       // Unipolar 0.0 - 1.0
       float GetAnalogControlValue (AnalogControlId id);
-
-      // Bipolar -1.0 - 1.0 (nominally around 0.0)
-      float GetControlVoltageValue (CvInputId id);
 
       // Adapter for direct use as PotMonitor Backend
       inline float GetPotValue (uint16_t pot_id) { return GetAnalogControlValue((AnalogControlId)pot_id); }
@@ -194,7 +171,6 @@ namespace spotykach
       daisy::Switch boot_btn_;
 
       daisy::AnalogControl controls_[CTRL_LAST];
-      daisy::AnalogControl cvinputs_[CV_LAST];
 
       Hardware (const Hardware &a)           = delete;
       Hardware &operator=(const Hardware &a) = delete;
